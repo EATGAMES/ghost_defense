@@ -104,3 +104,18 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# JetBrains Rider
+.idea/
+*.rider.user
+
+# macOS 시스템 파일
+.DS_Store
+*.DS_Store
+
+# Windows 탐색기 썸네일 캐시
+Thumbs.db
+
+# Android 서명 키스토어 (절대 커밋 금지)
+*.keystore
+*.jks
