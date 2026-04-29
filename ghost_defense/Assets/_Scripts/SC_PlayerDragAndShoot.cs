@@ -9,34 +9,40 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("드래그 가능한 최대 X 좌표(월드 좌표)")]
     [SerializeField] private float maxX = 3.5f;
 
-    [Tooltip("발사 시 위쪽(+Y) 속도")]
+    [Tooltip("발사 시작 속도(+Y 방향)")]
     [SerializeField] private float shootSpeed = 12f;
 
-    [Tooltip("드래그 시 Y 위치를 고정할지 여부")]
+    [Tooltip("드래그 중 Y 좌표를 고정할지 여부")]
     [SerializeField] private bool lockYPosition = true;
 
-    [Tooltip("드래그 시 고정할 Y 좌표(비워두면 시작 위치 사용)")]
+    [Tooltip("드래그 고정 Y 좌표(기본값이면 시작 위치 사용)")]
     [SerializeField] private float fixedY = -7f;
+
+    [Tooltip("발사 후 속도 감속 계수(클수록 빨리 감속)")]
+    [SerializeField] private float deceleration = 4.5f;
+
+    [Tooltip("충돌 시 속도 감쇠 비율(0~1)")]
+    [SerializeField] [Range(0f, 1f)] private float collisionDamping = 0.65f;
+
+    [Tooltip("이 속도 이하로 떨어지면 정지 처리")]
+    [SerializeField] private float stopSpeedThreshold = 0.2f;
 
     private Camera mainCamera;
     private Rigidbody2D rb2D;
-    private Rigidbody rb3D;
     private Collider2D col2D;
-    private Collider col3D;
     private bool isDragging;
     private bool isShot;
     private float zDepthFromCamera;
-    private bool useTransformMoveAfterShot;
     private bool wasMousePressed;
     private bool wasTouchPressed;
+
+    public bool IsShot => isShot;
 
     private void Awake()
     {
         mainCamera = Camera.main;
         rb2D = GetComponent<Rigidbody2D>();
-        rb3D = GetComponent<Rigidbody>();
         col2D = GetComponent<Collider2D>();
-        col3D = GetComponent<Collider>();
 
         if (lockYPosition && Mathf.Approximately(fixedY, -7f))
         {
@@ -51,17 +57,35 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void Update()
     {
-        if (isShot || mainCamera == null)
+        if (mainCamera == null || isShot)
         {
-            if (isShot && useTransformMoveAfterShot)
-            {
-                transform.position += Vector3.up * shootSpeed * Time.deltaTime;
-            }
             return;
         }
 
         HandleTouchInput();
         HandleMouseInput();
+    }
+
+    private void FixedUpdate()
+    {
+        if (!isShot || rb2D == null)
+        {
+            return;
+        }
+
+        // 발사 후 바닥 마찰처럼 점진적으로 감속한다.
+        Vector2 velocity = rb2D.linearVelocity;
+        float speed = velocity.magnitude;
+
+        if (speed <= stopSpeedThreshold)
+        {
+            rb2D.linearVelocity = Vector2.zero;
+            rb2D.angularVelocity = 0f;
+            return;
+        }
+
+        float nextSpeed = Mathf.Max(0f, speed - deceleration * Time.fixedDeltaTime);
+        rb2D.linearVelocity = velocity.normalized * nextSpeed;
     }
 
     private void HandleTouchInput()
@@ -79,7 +103,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (isPressed && !wasTouchPressed)
         {
-            if (IsPointerOverSelf(worldPoint, screenPoint))
+            if (IsPointerOverSelf(worldPoint))
             {
                 isDragging = true;
             }
@@ -123,7 +147,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (isPressed && !wasMousePressed)
         {
-            if (IsPointerOverSelf(worldPoint, screenPoint))
+            if (IsPointerOverSelf(worldPoint))
             {
                 isDragging = true;
             }
@@ -154,20 +178,14 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         return world;
     }
 
-    private bool IsPointerOverSelf(Vector3 worldPoint, Vector2 screenPoint)
+    private bool IsPointerOverSelf(Vector3 worldPoint)
     {
-        if (col2D != null)
+        if (col2D == null)
         {
-            return col2D.OverlapPoint(worldPoint);
+            return true;
         }
 
-        if (col3D != null)
-        {
-            Ray ray = mainCamera.ScreenPointToRay(screenPoint);
-            return col3D.Raycast(ray, out _, 1000f);
-        }
-
-        return true;
+        return col2D.OverlapPoint(worldPoint);
     }
 
     private void DragTo(Vector3 worldPoint)
@@ -183,16 +201,25 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (rb2D != null)
         {
+            // 손을 떼는 순간 현재 위치에서 위 방향으로 직진 발사한다.
             rb2D.linearVelocity = Vector2.up * shootSpeed;
-            return;
         }
+    }
 
-        if (rb3D != null)
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!isShot || rb2D == null)
         {
-            rb3D.linearVelocity = Vector3.up * shootSpeed;
             return;
         }
 
-        useTransformMoveAfterShot = true;
+        // 상단 벽/다른 캐릭터와 충돌 시 감쇠된 반응을 적용한다.
+        rb2D.linearVelocity *= collisionDamping;
+
+        if (rb2D.linearVelocity.magnitude <= stopSpeedThreshold)
+        {
+            rb2D.linearVelocity = Vector2.zero;
+            rb2D.angularVelocity = 0f;
+        }
     }
 }

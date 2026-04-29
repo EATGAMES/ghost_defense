@@ -2,28 +2,87 @@ using UnityEngine;
 
 public class SC_BattleCharacterSpawner : MonoBehaviour
 {
-    [Tooltip("배틀 시작 시 생성할 캐릭터 프리팹")]
+    [Tooltip("발사 대기 캐릭터로 생성할 프리팹")]
     [SerializeField] private GameObject characterPrefab;
 
-    [Tooltip("캐릭터를 생성할 기준 위치")]
+    [Tooltip("하단 중앙 발사 대기 위치(비우면 현재 오브젝트 위치 사용)")]
     [SerializeField] private Transform spawnPoint;
 
-    [Tooltip("생성된 캐릭터의 부모 Transform(비워두면 씬 루트)")]
+    [Tooltip("생성된 캐릭터의 부모 Transform(비우면 루트)")]
     [SerializeField] private Transform spawnedParent;
 
-    [Tooltip("생성 즉시 드래그/발사 스크립트를 자동 추가할지 여부")]
+    [Tooltip("프리팹에 없을 때 드래그 발사 스크립트를 자동 추가할지 여부")]
     [SerializeField] private bool addDragAndShootIfMissing = true;
+
+    [Tooltip("발사 가능한 총 캐릭터 수량")]
+    [SerializeField] private int availableShootCount = 10;
+
+    [Tooltip("대기 캐릭터 재생성 대기 시간(초)")]
+    [SerializeField] private float respawnDelay = 0.1f;
+
+    private SC_PlayerDragAndShoot currentWaitingCharacter;
+    private float respawnTimer;
+    private bool isRespawnScheduled;
 
     private void Start()
     {
-        SpawnCharacter();
+        TrySpawnWaitingCharacter();
     }
 
-    private void SpawnCharacter()
+    private void Update()
     {
+        if (currentWaitingCharacter == null)
+        {
+            return;
+        }
+
+        if (!currentWaitingCharacter.IsShot)
+        {
+            return;
+        }
+
+        currentWaitingCharacter = null;
+        ScheduleRespawn();
+    }
+
+    private void ScheduleRespawn()
+    {
+        if (isRespawnScheduled)
+        {
+            return;
+        }
+
+        isRespawnScheduled = true;
+        respawnTimer = respawnDelay;
+    }
+
+    private void LateUpdate()
+    {
+        if (!isRespawnScheduled)
+        {
+            return;
+        }
+
+        respawnTimer -= Time.deltaTime;
+        if (respawnTimer > 0f)
+        {
+            return;
+        }
+
+        isRespawnScheduled = false;
+        TrySpawnWaitingCharacter();
+    }
+
+    private void TrySpawnWaitingCharacter()
+    {
+        if (availableShootCount <= 0)
+        {
+            return;
+        }
+
         if (characterPrefab == null)
         {
-            Debug.LogWarning("SC_BattleCharacterSpawner: 캐릭터 프리팹이 비어 있습니다.");
+            Debug.LogWarning("SC_BattleCharacterSpawner: characterPrefab이 비어 있습니다.");
             return;
         }
 
@@ -32,10 +91,21 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         Transform parent = spawnedParent;
 
         GameObject character = Instantiate(characterPrefab, position, rotation, parent);
+        SC_PlayerDragAndShoot shootComponent = character.GetComponent<SC_PlayerDragAndShoot>();
 
-        if (addDragAndShootIfMissing && character.GetComponent<SC_PlayerDragAndShoot>() == null)
+        if (shootComponent == null && addDragAndShootIfMissing)
         {
-            character.AddComponent<SC_PlayerDragAndShoot>();
+            shootComponent = character.AddComponent<SC_PlayerDragAndShoot>();
         }
+
+        if (shootComponent == null)
+        {
+            Debug.LogWarning("SC_BattleCharacterSpawner: SC_PlayerDragAndShoot 컴포넌트를 찾지 못했습니다.");
+            Destroy(character);
+            return;
+        }
+
+        currentWaitingCharacter = shootComponent;
+        availableShootCount--;
     }
 }

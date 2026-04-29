@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 7deb08010905afd49bccd5f563ea3780
+guid: da2ac51a11161fe4aa09e36f3aae8eba
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 4692517977933189334
-    second: Label_monster_0
+      213: -4459756691924483023
+    second: C1_3_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -53,7 +53,7 @@ TextureImporter:
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spriteGenerateFallbackPhysicsShape: 0
+  spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Label_monster_0
+      name: C1_3_0
       rect:
         serializedVersion: 2
         x: 0
-        y: 0
-        width: 863
-        height: 747
+        y: 1
+        width: 159
+        height: 179
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6d097d82d3c2f1140800000000000000
-      internalID: 4692517977933189334
+      spriteID: 1348b21eae2cb12c0800000000000000
+      internalID: -4459756691924483023
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Label_monster_0: 4692517977933189334
+      C1_3_0: -4459756691924483023
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
