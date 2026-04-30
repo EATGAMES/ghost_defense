@@ -27,8 +27,26 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("충돌 시 미끄러짐(접선 속도) 감쇠 비율(0~1, 낮을수록 빨리 멈춤)")]
     [SerializeField] [Range(0f, 1f)] private float sideSlipDamping = 0.15f;
 
+    [Tooltip("충돌 시 속도 방향을 좌우로 미세하게 랜덤 회전할지 여부")]
+    [SerializeField] private bool useCollisionAngleJitter = false;
+
+    [Tooltip("충돌 시 랜덤 회전 최대 각도(도)")]
+    [SerializeField] private float collisionAngleJitterMax = 4f;
+
     [Tooltip("이 속도 이하로 떨어지면 정지 처리")]
     [SerializeField] private float stopSpeedThreshold = 0.2f;
+
+    [Tooltip("아래 방향 속도(Y<0)일 때 추가로 적용할 감속 계수")]
+    [SerializeField] private float downwardBrakeMultiplier = 2f;
+
+    [Tooltip("발사 전에는 물리 충돌을 비활성화할지 여부")]
+    [SerializeField] private bool disableCollisionBeforeShot = true;
+
+    [Tooltip("주변에 다른 캐릭터가 겹치면 발사를 막을지 여부")]
+    [SerializeField] private bool blockShootWhenOverlappingCharacter = true;
+
+    [Tooltip("발사 차단을 검사할 세로 높이(월드 좌표)")]
+    [SerializeField] private float shootBlockCheckHeight = 1.2f;
 
     private Camera mainCamera;
     private Rigidbody2D rb2D;
@@ -38,6 +56,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private float zDepthFromCamera;
     private bool wasMousePressed;
     private bool wasTouchPressed;
+    private readonly Collider2D[] overlapResults = new Collider2D[16];
 
     public bool IsShot => isShot;
 
@@ -56,6 +75,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         {
             zDepthFromCamera = Mathf.Abs(transform.position.z - mainCamera.transform.position.z);
         }
+
+        ApplyCollisionState();
     }
 
     private void Update()
@@ -84,7 +105,13 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             return;
         }
 
-        rb2D.linearVelocity = Vector2.MoveTowards(velocity, Vector2.zero, deceleration * Time.fixedDeltaTime);
+        float currentDeceleration = deceleration;
+        if (velocity.y < 0f)
+        {
+            currentDeceleration *= downwardBrakeMultiplier;
+        }
+
+        rb2D.linearVelocity = Vector2.MoveTowards(velocity, Vector2.zero, currentDeceleration * Time.fixedDeltaTime);
     }
 
     private void HandleTouchInput()
@@ -196,7 +223,12 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void ShootForward()
     {
-        isShot = true;
+        if (blockShootWhenOverlappingCharacter && IsShootBlockedByCharacter())
+        {
+            return;
+        }
+
+        SetShotState(true);
 
         if (rb2D != null)
         {
@@ -212,14 +244,22 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
 
         Vector2 velocity = rb2D.linearVelocity * collisionDamping;
+        bool isCharacterCollision = collision.collider.GetComponent<SC_CharacterMergeController>() != null
+            || collision.collider.GetComponentInParent<SC_CharacterMergeController>() != null;
 
-        if (collision.contactCount > 0)
+        if (!isCharacterCollision && collision.contactCount > 0)
         {
             Vector2 normal = collision.GetContact(0).normal;
             float normalSpeed = Vector2.Dot(velocity, normal);
             Vector2 normalVelocity = normal * normalSpeed;
             Vector2 tangentVelocity = velocity - normalVelocity;
             velocity = normalVelocity + tangentVelocity * sideSlipDamping;
+        }
+
+        if (useCollisionAngleJitter && velocity.sqrMagnitude > Mathf.Epsilon)
+        {
+            float randomAngle = Random.Range(-collisionAngleJitterMax, collisionAngleJitterMax);
+            velocity = RotateVector2(velocity, randomAngle);
         }
 
         rb2D.linearVelocity = velocity;
@@ -229,5 +269,83 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             rb2D.linearVelocity = Vector2.zero;
             rb2D.angularVelocity = 0f;
         }
+    }
+
+    public void SetShotState(bool shot)
+    {
+        isShot = shot;
+        ApplyCollisionState();
+    }
+
+    private void ApplyCollisionState()
+    {
+        if (!disableCollisionBeforeShot || col2D == null)
+        {
+            return;
+        }
+
+        col2D.isTrigger = !isShot;
+    }
+
+    private bool IsShootBlockedByCharacter()
+    {
+        if (col2D == null)
+        {
+            return false;
+        }
+
+        float checkWidth = GetCharacterWidthForShootBlock();
+        Vector2 checkSize = new Vector2(checkWidth, shootBlockCheckHeight);
+        int hitCount = Physics2D.OverlapBoxNonAlloc(transform.position, checkSize, 0f, overlapResults);
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D hit = overlapResults[i];
+            if (hit == null || hit == col2D)
+            {
+                continue;
+            }
+
+            SC_CharacterMergeController otherCharacter = hit.GetComponentInParent<SC_CharacterMergeController>();
+            if (otherCharacter != null && otherCharacter.gameObject != gameObject)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Vector2 RotateVector2(Vector2 vector, float degrees)
+    {
+        float radians = degrees * Mathf.Deg2Rad;
+        float cos = Mathf.Cos(radians);
+        float sin = Mathf.Sin(radians);
+        return new Vector2(
+            vector.x * cos - vector.y * sin,
+            vector.x * sin + vector.y * cos
+        );
+    }
+
+    private float GetCharacterWidthForShootBlock()
+    {
+        if (col2D == null)
+        {
+            return 1f;
+        }
+
+        return Mathf.Max(0.01f, col2D.bounds.size.x);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!blockShootWhenOverlappingCharacter)
+        {
+            return;
+        }
+
+        Gizmos.color = Color.red;
+        float checkWidth = GetCharacterWidthForShootBlock();
+        Vector3 checkSize = new Vector3(checkWidth, shootBlockCheckHeight, 0f);
+        Gizmos.DrawWireCube(transform.position, checkSize);
     }
 }

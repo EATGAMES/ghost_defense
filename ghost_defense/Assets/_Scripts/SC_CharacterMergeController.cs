@@ -12,10 +12,10 @@ public class SC_CharacterMergeController : MonoBehaviour
     [SerializeField] private SC_CharacterPresenter presenter;
 
     [Tooltip("합체 후 상속 속도 배율")]
-    [SerializeField] private float mergeSpeedMultiplier = 0.4f;
+    [SerializeField] private float mergeSpeedMultiplier = 0.6667f;
 
     [Tooltip("합체 후 상속 속도의 최대값(0 이하면 제한 없음)")]
-    [SerializeField] private float maxInheritedSpeed = 5f;
+    [SerializeField] private float maxInheritedSpeed = 0f;
 
     private bool isMerged;
 
@@ -70,6 +70,13 @@ public class SC_CharacterMergeController : MonoBehaviour
             return;
         }
 
+        SC_PlayerDragAndShoot myShoot = GetComponent<SC_PlayerDragAndShoot>();
+        SC_PlayerDragAndShoot otherShoot = otherMerge.GetComponent<SC_PlayerDragAndShoot>();
+        if (myShoot == null || otherShoot == null || !myShoot.IsShot || !otherShoot.IsShot)
+        {
+            return;
+        }
+
         SO_CharacterData myData = presenter.CharacterData;
         SO_CharacterData otherData = otherMerge.presenter.CharacterData;
         if (myData == null || otherData == null)
@@ -99,9 +106,18 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         if (myRb2D != null && otherRb2D != null)
         {
-            inheritedVelocity = myRb2D.linearVelocity.magnitude >= otherRb2D.linearVelocity.magnitude
-                ? myRb2D.linearVelocity
-                : otherRb2D.linearVelocity;
+            bool isMyFaster = myRb2D.linearVelocity.magnitude >= otherRb2D.linearVelocity.magnitude;
+            Rigidbody2D fastRb2D = isMyFaster ? myRb2D : otherRb2D;
+            Rigidbody2D upperRb2D = myRb2D.position.y >= otherRb2D.position.y ? myRb2D : otherRb2D;
+
+            Vector2 direction = upperRb2D.linearVelocity.normalized;
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+            {
+                direction = fastRb2D.linearVelocity.normalized;
+            }
+
+            float inheritedSpeed = fastRb2D.linearVelocity.magnitude;
+            inheritedVelocity = direction * inheritedSpeed;
         }
         else if (myRb2D != null)
         {
@@ -141,6 +157,12 @@ public class SC_CharacterMergeController : MonoBehaviour
             }
 
             mergedRb2D.linearVelocity = mergedVelocity;
+        }
+
+        SC_PlayerDragAndShoot mergedShoot = mergedCharacter.GetComponent<SC_PlayerDragAndShoot>();
+        if (mergedShoot != null)
+        {
+            mergedShoot.SetShotState(true);
         }
 
         EnablePhysicsForMergedCharacter(mergedCharacter);

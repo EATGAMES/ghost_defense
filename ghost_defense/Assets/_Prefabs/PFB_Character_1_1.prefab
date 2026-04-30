@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 4159833219662769503}
   - component: {fileID: 3986356179992966670}
   - component: {fileID: 560854494607647108}
+  - component: {fileID: 3051682432527465309}
   m_Layer: 0
   m_Name: PFB_Character_1_1
   m_TagString: Untagged
@@ -74,7 +75,7 @@ CircleCollider2D:
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
-  m_Material: {fileID: 6200000, guid: 7e7cea0f70b1a1647a3bace2b5838df5, type: 2}
+  m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -112,15 +113,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4dcc710ac45bff74cbffc0b8ffad17c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_PlayerDragAndShoot
-  minX: -3.5
-  maxX: 3.5
+  minX: -2.8
+  maxX: 2.8
   shootSpeed: 20
   lockYPosition: 1
   fixedY: -7
-  deceleration: 3
+  deceleration: 0.2
   collisionDamping: 0.5
-  sideSlipDamping: 0.05
-  stopSpeedThreshold: 0.4
+  sideSlipDamping: 0.5
+  useCollisionAngleJitter: 1
+  collisionAngleJitterMax: 30
+  stopSpeedThreshold: 0.01
+  downwardBrakeMultiplier: 8
+  disableCollisionBeforeShot: 1
+  blockShootWhenOverlappingCharacter: 1
+  shootBlockCheckHeight: 3
 --- !u!114 &3986356179992966670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -152,6 +159,24 @@ MonoBehaviour:
   characterPrefab: {fileID: 5306799179826955618}
   spawnParent: {fileID: 0}
   presenter: {fileID: 3986356179992966670}
+  mergeSpeedMultiplier: 0.4
+  maxInheritedSpeed: 5
+--- !u!114 &3051682432527465309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5306799179826955618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0cca2a9c1d4abd4a93db823dd7a5f9f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterYSort
+  targetRenderer: {fileID: 2376257291775783077}
+  sortPrecision: 100
+  baseOrderOffset: 0
+  yChangeThreshold: 0.003
 --- !u!1 &9202169707005736598
 GameObject:
   m_ObjectHideFlags: 0
@@ -229,8 +254,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1522978925
+  m_SortingLayer: 1
   m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: cd1f12e84d0567340b6e37786d4b6a22, type: 3}
