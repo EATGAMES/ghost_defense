@@ -1,24 +1,27 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class SC_BattleCharacterSpawner : MonoBehaviour
 {
-    [Tooltip("발사 대기 캐릭터로 생성할 프리팹")]
+    [Tooltip("발사 대기 캐릭터로 생성할 공용 프리팹")]
     [SerializeField] private GameObject characterPrefab;
 
-    [Tooltip("하단 중앙 발사 대기 위치(비우면 현재 오브젝트 위치 사용)")]
+    [Tooltip("발사 대기 위치(비우면 현재 오브젝트 위치 사용)")]
     [SerializeField] private Transform spawnPoint;
 
-    [Tooltip("생성된 캐릭터의 부모 Transform(비우면 루트)")]
+    [Tooltip("생성 캐릭터 부모 Transform(비우면 루트)")]
     [SerializeField] private Transform spawnedParent;
 
-    [Tooltip("프리팹에 없을 때 드래그 발사 스크립트를 자동 추가할지 여부")]
+    [Tooltip("프리팹에 없을 때 드래그 발사 스크립트 자동 추가 여부")]
     [SerializeField] private bool addDragAndShootIfMissing = true;
 
-    [Tooltip("발사 가능한 총 캐릭터 수량")]
+    [Tooltip("발사 가능한 총 캐릭터 수")]
     [SerializeField] private int availableShootCount = 10;
 
-    [Tooltip("대기 캐릭터 재생성 대기 시간(초)")]
+    [Tooltip("다음 캐릭터 생성 대기 시간(초)")]
     [SerializeField] private float respawnDelay = 0.1f;
+
+    [Tooltip("랜덤 발사에 사용할 캐릭터 데이터 목록(예: 5종)")]
+    [SerializeField] private SO_CharacterData[] randomCharacterDataList;
 
     private SC_PlayerDragAndShoot currentWaitingCharacter;
     private float respawnTimer;
@@ -88,11 +91,11 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
         Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
         Quaternion rotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
-        Transform parent = spawnedParent;
 
-        GameObject character = Instantiate(characterPrefab, position, rotation, parent);
+        GameObject character = Instantiate(characterPrefab, position, rotation, spawnedParent);
+        ApplyRandomCharacterData(character);
+
         SC_PlayerDragAndShoot shootComponent = character.GetComponent<SC_PlayerDragAndShoot>();
-
         if (shootComponent == null && addDragAndShootIfMissing)
         {
             shootComponent = character.AddComponent<SC_PlayerDragAndShoot>();
@@ -107,5 +110,35 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
         currentWaitingCharacter = shootComponent;
         availableShootCount--;
+    }
+
+    private void ApplyRandomCharacterData(GameObject character)
+    {
+        if (character == null)
+        {
+            return;
+        }
+
+        if (randomCharacterDataList == null || randomCharacterDataList.Length == 0)
+        {
+            Debug.LogWarning("SC_BattleCharacterSpawner: randomCharacterDataList가 비어 있습니다.");
+            return;
+        }
+
+        SC_CharacterPresenter presenter = character.GetComponent<SC_CharacterPresenter>();
+        if (presenter == null)
+        {
+            Debug.LogWarning("SC_BattleCharacterSpawner: SC_CharacterPresenter를 찾지 못했습니다.");
+            return;
+        }
+
+        SO_CharacterData randomData = randomCharacterDataList[Random.Range(0, randomCharacterDataList.Length)];
+        if (randomData == null)
+        {
+            Debug.LogWarning("SC_BattleCharacterSpawner: randomCharacterDataList에 비어 있는 데이터가 있습니다.");
+            return;
+        }
+
+        presenter.SetCharacterData(randomData, true);
     }
 }

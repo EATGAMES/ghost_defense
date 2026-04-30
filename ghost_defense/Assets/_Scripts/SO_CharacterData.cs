@@ -28,7 +28,7 @@ public enum CharacterGrade
 }
 
 [CreateAssetMenu(fileName = "SO_CharacterData", menuName = "Ghost Defense/Character Data")]
-public class SC_CharacterData : ScriptableObject
+public class SO_CharacterData : ScriptableObject
 {
     [Tooltip("캐릭터 이름")]
     [SerializeField] private string characterName;
@@ -58,6 +58,9 @@ public class SC_CharacterData : ScriptableObject
     [Tooltip("CircleCollider2D 오프셋")]
     [SerializeField] private Vector2 circleColliderOffset = new Vector2(0.02f, -0.15f);
 
+    [Tooltip("합체 시 생성할 다음 등급 캐릭터 데이터")]
+    [SerializeField] private SO_CharacterData nextGradeCharacterData;
+
     public string CharacterName => characterName;
     public string CharacterDescription => characterDescription;
     public Sprite CharacterSprite => characterSprite;
@@ -67,4 +70,6 @@ public class SC_CharacterData : ScriptableObject
     public float Weight => weight;
     public float CircleColliderRadius => circleColliderRadius;
     public Vector2 CircleColliderOffset => circleColliderOffset;
+    public SO_CharacterData NextGradeCharacterData => nextGradeCharacterData;
 }
+

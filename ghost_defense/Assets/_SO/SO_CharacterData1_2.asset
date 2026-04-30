@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30e43cdfe0e11f04284956aaeb979e0d, type: 3}
+  m_Script: {fileID: 11500000, guid: f944b97db8b00b2449980b1e29f5ec76, type: 3}
   m_Name: SO_CharacterData1_2
   m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterData
-  characterName: "\uBC29\uAE68\uBE44"
-  characterDescription: "\uBC29\uAE68\uBE44\uC785\uB2C8\uB2E4"
+  characterName: 
+  characterDescription: 
   characterSprite: {fileID: 21300000, guid: 77b4352c0701043418f62506a6bd199c, type: 3}
   characterKind: 0
   characterGrade: 2
@@ -21,3 +21,4 @@ MonoBehaviour:
   weight: 1
   circleColliderRadius: 0.55
   circleColliderOffset: {x: 0.02, y: -0.15}
+  nextGradeCharacterData: {fileID: 11400000, guid: 22821b000887bd1469711512935a9ee6, type: 2}

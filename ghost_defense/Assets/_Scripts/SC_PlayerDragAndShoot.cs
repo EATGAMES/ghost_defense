@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class SC_PlayerDragAndShoot : MonoBehaviour
@@ -18,11 +18,14 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("드래그 고정 Y 좌표(기본값이면 시작 위치 사용)")]
     [SerializeField] private float fixedY = -7f;
 
-    [Tooltip("발사 후 속도 감속 계수(클수록 빨리 감속)")]
+    [Tooltip("발사 후 속도 감소량(값이 클수록 빨리 멈춤)")]
     [SerializeField] private float deceleration = 4.5f;
 
-    [Tooltip("충돌 시 속도 감쇠 비율(0~1)")]
+    [Tooltip("충돌 시 전체 속도 감쇠 비율(0~1)")]
     [SerializeField] [Range(0f, 1f)] private float collisionDamping = 0.65f;
+
+    [Tooltip("충돌 시 미끄러짐(접선 속도) 감쇠 비율(0~1, 낮을수록 빨리 멈춤)")]
+    [SerializeField] [Range(0f, 1f)] private float sideSlipDamping = 0.15f;
 
     [Tooltip("이 속도 이하로 떨어지면 정지 처리")]
     [SerializeField] private float stopSpeedThreshold = 0.2f;
@@ -68,24 +71,20 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!isShot || rb2D == null)
+        if (rb2D == null || isDragging)
         {
             return;
         }
 
-        // 발사 후 바닥 마찰처럼 점진적으로 감속한다.
         Vector2 velocity = rb2D.linearVelocity;
-        float speed = velocity.magnitude;
-
-        if (speed <= stopSpeedThreshold)
+        if (velocity.magnitude <= stopSpeedThreshold)
         {
             rb2D.linearVelocity = Vector2.zero;
             rb2D.angularVelocity = 0f;
             return;
         }
 
-        float nextSpeed = Mathf.Max(0f, speed - deceleration * Time.fixedDeltaTime);
-        rb2D.linearVelocity = velocity.normalized * nextSpeed;
+        rb2D.linearVelocity = Vector2.MoveTowards(velocity, Vector2.zero, deceleration * Time.fixedDeltaTime);
     }
 
     private void HandleTouchInput()
@@ -201,20 +200,29 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (rb2D != null)
         {
-            // 손을 떼는 순간 현재 위치에서 위 방향으로 직진 발사한다.
             rb2D.linearVelocity = Vector2.up * shootSpeed;
         }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!isShot || rb2D == null)
+        if (rb2D == null)
         {
             return;
         }
 
-        // 상단 벽/다른 캐릭터와 충돌 시 감쇠된 반응을 적용한다.
-        rb2D.linearVelocity *= collisionDamping;
+        Vector2 velocity = rb2D.linearVelocity * collisionDamping;
+
+        if (collision.contactCount > 0)
+        {
+            Vector2 normal = collision.GetContact(0).normal;
+            float normalSpeed = Vector2.Dot(velocity, normal);
+            Vector2 normalVelocity = normal * normalSpeed;
+            Vector2 tangentVelocity = velocity - normalVelocity;
+            velocity = normalVelocity + tangentVelocity * sideSlipDamping;
+        }
+
+        rb2D.linearVelocity = velocity;
 
         if (rb2D.linearVelocity.magnitude <= stopSpeedThreshold)
         {

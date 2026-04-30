@@ -9,15 +9,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30e43cdfe0e11f04284956aaeb979e0d, type: 3}
+  m_Script: {fileID: 11500000, guid: f944b97db8b00b2449980b1e29f5ec76, type: 3}
   m_Name: SO_CharacterData4_5
   m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterData
-  characterName: "\uAC15\uC2DC\uD76C"
-  characterDescription: "\uAC15\uC2DC\uD76C"
+  characterName: 
+  characterDescription: 
   characterSprite: {fileID: -8127433396147525159, guid: a4e558c92b5fbb244b937bf73542b041, type: 3}
   characterKind: 5
   characterGrade: 5
-  attackType: 1
+  attackType: 0
   weight: 1
   circleColliderRadius: 0.55
   circleColliderOffset: {x: 0.02, y: -0.15}
+  nextGradeCharacterData: {fileID: 0}

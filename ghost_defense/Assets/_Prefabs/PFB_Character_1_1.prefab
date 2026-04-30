@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 1192178842671405152}
   - component: {fileID: 8719631040584362176}
   - component: {fileID: 4159833219662769503}
+  - component: {fileID: 3986356179992966670}
+  - component: {fileID: 560854494607647108}
   m_Layer: 0
   m_Name: PFB_Character_1_1
   m_TagString: Untagged
@@ -28,7 +30,7 @@ Transform:
   m_GameObject: {fileID: 5306799179826955618}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.04302, y: 4.0108, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -48,7 +50,7 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDamping: 0
+  m_LinearDamping: 0.2
   m_AngularDamping: 0.05
   m_GravityScale: 0
   m_Material: {fileID: 0}
@@ -115,9 +117,41 @@ MonoBehaviour:
   shootSpeed: 20
   lockYPosition: 1
   fixedY: -7
-  deceleration: 12
-  collisionDamping: 0.85
-  stopSpeedThreshold: 0.2
+  deceleration: 3
+  collisionDamping: 0.5
+  sideSlipDamping: 0.05
+  stopSpeedThreshold: 0.4
+--- !u!114 &3986356179992966670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5306799179826955618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8d567a28e1cc0f4e91d4f92798265c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterPresenter
+  characterData: {fileID: 0}
+  spriteRenderer: {fileID: 2376257291775783077}
+  rigidbody2D: {fileID: 1192178842671405152}
+  circleCollider2D: {fileID: 8719631040584362176}
+--- !u!114 &560854494607647108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5306799179826955618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39a67bbc6f4ee9e4d9701315838ba295, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterMergeController
+  characterPrefab: {fileID: 5306799179826955618}
+  spawnParent: {fileID: 0}
+  presenter: {fileID: 3986356179992966670}
 --- !u!1 &9202169707005736598
 GameObject:
   m_ObjectHideFlags: 0
