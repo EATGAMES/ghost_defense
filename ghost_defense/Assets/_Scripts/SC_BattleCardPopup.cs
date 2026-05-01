@@ -1,39 +1,41 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-public class SC_WaveCardPopup : MonoBehaviour
+public class SC_BattleCardPopup : MonoBehaviour
 {
-    [Tooltip("배경 어둡게 처리용 DIM 오브젝트")]
+    [Tooltip("팝업 뒤 배경을 어둡게 처리할 DIM 오브젝트입니다.")]
     [SerializeField] private GameObject dimObject;
 
-    [Tooltip("카드 선택 팝업 루트 오브젝트")]
+    [Tooltip("카드 선택 팝업 루트 오브젝트입니다.")]
     [SerializeField] private GameObject popupRoot;
 
-    [Tooltip("웨이브 데이터를 제공할 매니저")]
-    [SerializeField] private SC_WaveManager waveManager;
+    [Tooltip("카드 선택 결과를 전달할 배틀 매니저입니다.")]
+    [FormerlySerializedAs("waveManager")]
+    [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("왼쪽 카드 버튼")]
+    [Tooltip("왼쪽 카드 버튼입니다.")]
     [SerializeField] private Button leftCardButton;
 
-    [Tooltip("오른쪽 카드 버튼")]
+    [Tooltip("오른쪽 카드 버튼입니다.")]
     [SerializeField] private Button rightCardButton;
 
-    [Tooltip("왼쪽 카드 이름 텍스트")]
+    [Tooltip("왼쪽 카드 이름을 표시할 TMP_Text입니다.")]
     [SerializeField] private TMP_Text leftCardTitleText;
 
-    [Tooltip("오른쪽 카드 이름 텍스트")]
+    [Tooltip("오른쪽 카드 이름을 표시할 TMP_Text입니다.")]
     [SerializeField] private TMP_Text rightCardTitleText;
 
-    [Tooltip("카드 후보 이름 목록")]
+    [Tooltip("임시로 사용할 카드 이름 목록입니다.")]
     [SerializeField] private string[] cardNamePool =
     {
-        "공격력 강화",
-        "공격 속도 강화",
-        "탄속 강화",
-        "합체 보너스",
-        "치명타 강화"
+        "ATTACK DAMAGE UP",
+        "HIGH GRADE BONUS",
+        "FIELD CLEAR",
+        "NEXT OBJECT UP",
+        "CLEAR REWARD UP"
     };
 
     private int leftCardIndex = -1;
@@ -41,9 +43,9 @@ public class SC_WaveCardPopup : MonoBehaviour
 
     private void Awake()
     {
-        if (waveManager == null)
+        if (battleManager == null)
         {
-            waveManager = FindFirstObjectByType<SC_WaveManager>();
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
 
         if (leftCardButton != null)
@@ -59,32 +61,7 @@ public class SC_WaveCardPopup : MonoBehaviour
         SetPopupVisible(false);
     }
 
-    private void OnEnable()
-    {
-        if (waveManager == null)
-        {
-            return;
-        }
-
-        waveManager.CardSelectionRequested += OnCardSelectionRequested;
-    }
-
-    private void OnDisable()
-    {
-        if (waveManager == null)
-        {
-            return;
-        }
-
-        waveManager.CardSelectionRequested -= OnCardSelectionRequested;
-    }
-
-    private void OnCardSelectionRequested(int nextWave)
-    {
-        OpenCardSelection(nextWave);
-    }
-
-    public void OpenCardSelection(int nextWave)
+    public void OpenCardSelection(int selectionCount)
     {
         if (!gameObject.activeSelf)
         {
@@ -100,7 +77,7 @@ public class SC_WaveCardPopup : MonoBehaviour
         int count = cardNamePool != null ? cardNamePool.Length : 0;
         if (count <= 0)
         {
-            SetCardTexts("카드 A", "카드 B");
+            SetCardTexts("CARD A", "CARD B");
             leftCardIndex = 0;
             rightCardIndex = 1;
             return;
@@ -116,9 +93,7 @@ public class SC_WaveCardPopup : MonoBehaviour
             }
         }
 
-        string leftName = cardNamePool[leftCardIndex];
-        string rightName = cardNamePool[rightCardIndex];
-        SetCardTexts(leftName, rightName);
+        SetCardTexts(cardNamePool[leftCardIndex], cardNamePool[rightCardIndex]);
     }
 
     private void SetCardTexts(string leftText, string rightText)
@@ -146,11 +121,16 @@ public class SC_WaveCardPopup : MonoBehaviour
 
     private void SelectCard(int selectedCardIndex)
     {
+        if (cardNamePool != null && selectedCardIndex >= 0 && selectedCardIndex < cardNamePool.Length)
+        {
+            Debug.Log($"Selected Card: {cardNamePool[selectedCardIndex]}");
+        }
+
         SetPopupVisible(false);
 
-        if (waveManager != null)
+        if (battleManager != null)
         {
-            waveManager.NotifyCardSelected();
+            battleManager.NotifyCardSelected();
         }
     }
 

@@ -316,7 +316,9 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         float checkWidth = GetCharacterWidthForShootBlock();
         Vector2 checkSize = new Vector2(checkWidth, shootBlockCheckHeight);
-        int hitCount = Physics2D.OverlapBoxNonAlloc(transform.position, checkSize, 0f, overlapResults);
+        ContactFilter2D contactFilter = default;
+        contactFilter.useTriggers = true;
+        int hitCount = Physics2D.OverlapBox(transform.position, checkSize, 0f, contactFilter, overlapResults);
         for (int i = 0; i < hitCount; i++)
         {
             Collider2D hit = overlapResults[i];

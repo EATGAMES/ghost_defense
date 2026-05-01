@@ -1,24 +1,33 @@
-﻿using UnityEngine;
+using UnityEngine;
+using UnityEngine.Serialization;
 
+[DisallowMultipleComponent]
 public class SC_CharacterMergeController : MonoBehaviour
 {
-    [Tooltip("이 캐릭터 프리팹 원본")]
-    [SerializeField] private GameObject characterPrefab;
+    [Tooltip("머지 결과로 생성할 프리팹입니다. 비워두면 자기 자신 프리팹을 재사용합니다.")]
+    [SerializeField] private GameObject mergeObjectPrefab;
 
-    [Tooltip("합체 후 생성 오브젝트의 부모")]
+    [Tooltip("머지 결과 오브젝트를 생성할 부모 Transform입니다.")]
     [SerializeField] private Transform spawnParent;
 
-    [Tooltip("같은 캐릭터 합체를 처리할 프리젠터")]
+    [Tooltip("현재 머지 오브젝트의 단계와 이미지를 표시하는 프레젠터입니다.")]
     [SerializeField] private SC_CharacterPresenter presenter;
 
-    [Tooltip("합체 후 상속 속도 배율")]
+    [Tooltip("머지 성공 시 공격 큐를 전달할 배틀 매니저입니다.")]
+    [FormerlySerializedAs("waveManager")]
+    [SerializeField] private SC_BattleManager battleManager;
+
+    [Tooltip("머지 후 이어받을 속도에 곱할 배율입니다.")]
     [SerializeField] private float mergeSpeedMultiplier = 0.6667f;
 
-    [Tooltip("합체 후 상속 속도의 최대값(0 이하면 제한 없음)")]
+    [Tooltip("머지 후 이어받을 최대 속도입니다. 0 이하면 제한하지 않습니다.")]
     [SerializeField] private float maxInheritedSpeed = 0f;
 
-    [Tooltip("합체를 허용할 실제 접촉 거리 오차(0이면 실제 접촉 시에만 합체)")]
+    [Tooltip("겹침 판정 시 허용할 추가 거리입니다. 0이면 실제 접촉일 때만 머지됩니다.")]
     [SerializeField] private float mergeContactTolerance = 0f;
+
+    [Tooltip("10단계 완성 오브젝트를 제거하기 전까지의 지연 시간(초)입니다.")]
+    [SerializeField] private float finalMergeCleanupDelay = 0.15f;
 
     private bool isMerged;
 
@@ -34,9 +43,14 @@ public class SC_CharacterMergeController : MonoBehaviour
             presenter = GetComponent<SC_CharacterPresenter>();
         }
 
-        if (characterPrefab == null)
+        if (battleManager == null)
         {
-            characterPrefab = gameObject;
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (mergeObjectPrefab == null)
+        {
+            mergeObjectPrefab = gameObject;
         }
     }
 
@@ -58,12 +72,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
 
         SC_CharacterMergeController otherMerge = otherCollider.GetComponent<SC_CharacterMergeController>();
-        if (otherMerge == null || otherMerge.isMerged)
-        {
-            return;
-        }
-
-        if (otherMerge == this)
+        if (otherMerge == null || otherMerge.isMerged || otherMerge == this)
         {
             return;
         }
@@ -80,19 +89,9 @@ public class SC_CharacterMergeController : MonoBehaviour
             return;
         }
 
-        SO_CharacterData myData = presenter.CharacterData;
-        SO_CharacterData otherData = otherMerge.presenter.CharacterData;
-        if (myData == null || otherData == null)
-        {
-            return;
-        }
-
-        if (myData.CharacterKind != otherData.CharacterKind)
-        {
-            return;
-        }
-
-        if (myData.CharacterGrade != otherData.CharacterGrade)
+        int myGrade = presenter.MergeGrade;
+        int otherGrade = otherMerge.presenter.MergeGrade;
+        if (myGrade != otherGrade)
         {
             return;
         }
@@ -102,39 +101,8 @@ public class SC_CharacterMergeController : MonoBehaviour
             return;
         }
 
-        SO_CharacterData nextData = myData.NextGradeCharacterData;
-        if (nextData == null)
-        {
-            return;
-        }
-
-        Rigidbody2D myRb2D = GetComponent<Rigidbody2D>();
-        Rigidbody2D otherRb2D = otherMerge.GetComponent<Rigidbody2D>();
-        Vector2 inheritedVelocity = Vector2.zero;
-
-        if (myRb2D != null && otherRb2D != null)
-        {
-            bool isMyFaster = myRb2D.linearVelocity.magnitude >= otherRb2D.linearVelocity.magnitude;
-            Rigidbody2D fastRb2D = isMyFaster ? myRb2D : otherRb2D;
-            Rigidbody2D upperRb2D = myRb2D.position.y >= otherRb2D.position.y ? myRb2D : otherRb2D;
-
-            Vector2 direction = upperRb2D.linearVelocity.normalized;
-            if (direction.sqrMagnitude <= Mathf.Epsilon)
-            {
-                direction = fastRb2D.linearVelocity.normalized;
-            }
-
-            float inheritedSpeed = fastRb2D.linearVelocity.magnitude;
-            inheritedVelocity = direction * inheritedSpeed;
-        }
-        else if (myRb2D != null)
-        {
-            inheritedVelocity = myRb2D.linearVelocity;
-        }
-        else if (otherRb2D != null)
-        {
-            inheritedVelocity = otherRb2D.linearVelocity;
-        }
+        int nextGrade = Mathf.Clamp(myGrade + 1, 1, 10);
+        Vector2 inheritedVelocity = CalculateInheritedVelocity(GetComponent<Rigidbody2D>(), otherMerge.GetComponent<Rigidbody2D>());
 
         DisablePhysicsForMerge(this);
         DisablePhysicsForMerge(otherMerge);
@@ -143,51 +111,60 @@ public class SC_CharacterMergeController : MonoBehaviour
         otherMerge.isMerged = true;
 
         Vector3 spawnPosition = (transform.position + otherMerge.transform.position) * 0.5f;
-        Quaternion spawnRotation = Quaternion.identity;
         Transform parent = spawnParent != null ? spawnParent : transform.parent;
+        GameObject mergedObject = Instantiate(mergeObjectPrefab, spawnPosition, Quaternion.identity, parent);
 
-        GameObject mergedCharacter = Instantiate(characterPrefab, spawnPosition, spawnRotation, parent);
-        SC_CharacterPresenter mergedPresenter = mergedCharacter.GetComponent<SC_CharacterPresenter>();
+        SC_CharacterPresenter mergedPresenter = mergedObject.GetComponent<SC_CharacterPresenter>();
         if (mergedPresenter != null)
         {
-            mergedPresenter.SetCharacterData(nextData, true);
+            mergedPresenter.Configure(nextGrade, true);
         }
 
-        Rigidbody2D mergedRb2D = mergedCharacter.GetComponent<Rigidbody2D>();
+        Rigidbody2D mergedRb2D = mergedObject.GetComponent<Rigidbody2D>();
         if (mergedRb2D != null)
         {
-            mergedRb2D.simulated = true;
-
             Vector2 mergedVelocity = inheritedVelocity * mergeSpeedMultiplier;
             if (maxInheritedSpeed > 0f)
             {
                 mergedVelocity = Vector2.ClampMagnitude(mergedVelocity, maxInheritedSpeed);
             }
 
+            mergedRb2D.simulated = true;
             mergedRb2D.linearVelocity = mergedVelocity;
         }
 
-        SC_PlayerDragAndShoot mergedShoot = mergedCharacter.GetComponent<SC_PlayerDragAndShoot>();
+        SC_PlayerDragAndShoot mergedShoot = mergedObject.GetComponent<SC_PlayerDragAndShoot>();
         if (mergedShoot != null)
         {
             mergedShoot.SetShotState(true);
         }
 
-        if (mergedCharacter.GetComponent<SC_CharacterAutoProjectileShooter>() == null)
-        {
-            mergedCharacter.AddComponent<SC_CharacterAutoProjectileShooter>();
-        }
+        EnablePhysicsForMergedCharacter(mergedObject);
+        NotifyMergeCreated(nextGrade);
 
-        SC_CharacterAutoProjectileShooter mergedAutoShooter = mergedCharacter.GetComponent<SC_CharacterAutoProjectileShooter>();
-        if (mergedAutoShooter != null)
+        if (nextGrade >= 10)
         {
-            mergedAutoShooter.SetRequireFirstCollisionBeforeAutoShoot(false);
+            DisablePhysicsForFinalMerge(mergedObject);
+            Destroy(mergedObject, Mathf.Max(0f, finalMergeCleanupDelay));
         }
-
-        EnablePhysicsForMergedCharacter(mergedCharacter);
 
         Destroy(otherMerge.gameObject);
         Destroy(gameObject);
+    }
+
+    private void NotifyMergeCreated(int mergedGrade)
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (battleManager == null)
+        {
+            return;
+        }
+
+        battleManager.NotifyMergeAttack(mergedGrade);
     }
 
     private bool IsActuallyTouching(SC_CharacterMergeController otherMerge)
@@ -206,6 +183,37 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         ColliderDistance2D colliderDistance = myCollider.Distance(otherCollider);
         return colliderDistance.distance <= Mathf.Max(0f, mergeContactTolerance);
+    }
+
+    private static Vector2 CalculateInheritedVelocity(Rigidbody2D myRb2D, Rigidbody2D otherRb2D)
+    {
+        if (myRb2D != null && otherRb2D != null)
+        {
+            bool isMyFaster = myRb2D.linearVelocity.magnitude >= otherRb2D.linearVelocity.magnitude;
+            Rigidbody2D fastRb2D = isMyFaster ? myRb2D : otherRb2D;
+            Rigidbody2D upperRb2D = myRb2D.position.y >= otherRb2D.position.y ? myRb2D : otherRb2D;
+
+            Vector2 direction = upperRb2D.linearVelocity.normalized;
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+            {
+                direction = fastRb2D.linearVelocity.normalized;
+            }
+
+            float inheritedSpeed = fastRb2D.linearVelocity.magnitude;
+            return direction * inheritedSpeed;
+        }
+
+        if (myRb2D != null)
+        {
+            return myRb2D.linearVelocity;
+        }
+
+        if (otherRb2D != null)
+        {
+            return otherRb2D.linearVelocity;
+        }
+
+        return Vector2.zero;
     }
 
     private static void DisablePhysicsForMerge(SC_CharacterMergeController mergeController)
@@ -249,5 +257,26 @@ public class SC_CharacterMergeController : MonoBehaviour
             colliders[i].enabled = true;
         }
     }
-}
 
+    private static void DisablePhysicsForFinalMerge(GameObject mergedCharacter)
+    {
+        if (mergedCharacter == null)
+        {
+            return;
+        }
+
+        Rigidbody2D rb2D = mergedCharacter.GetComponent<Rigidbody2D>();
+        if (rb2D != null)
+        {
+            rb2D.linearVelocity = Vector2.zero;
+            rb2D.angularVelocity = 0f;
+            rb2D.simulated = false;
+        }
+
+        Collider2D[] colliders = mergedCharacter.GetComponentsInChildren<Collider2D>();
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            colliders[i].enabled = false;
+        }
+    }
+}

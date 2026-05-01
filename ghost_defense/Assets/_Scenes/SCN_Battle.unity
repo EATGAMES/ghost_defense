@@ -150,37 +150,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 65215405}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &62250946
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 62250947}
-  m_Layer: 0
-  m_Name: Monster_Point2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &62250947
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 62250946}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: 6, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 65215405}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &65215404
 GameObject:
   m_ObjectHideFlags: 0
@@ -210,8 +179,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 966241686}
-  - {fileID: 62250947}
   - {fileID: 26777282}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1123,9 +1090,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23a4ecb1cfeae724da7f3e75752f67ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_WaveUI
-  waveText: {fileID: 1620479538}
-  timerText: {fileID: 818708050}
-  waveManager: {fileID: 1688277399}
+  stageText: {fileID: 1620479538}
+  attackGaugeText: {fileID: 818708050}
+  rosterTexts: []
+  battleManager: {fileID: 1688277399}
 --- !u!1 &788529756
 GameObject:
   m_ObjectHideFlags: 0
@@ -1325,20 +1293,6 @@ MonoBehaviour:
   spawnPoint: {fileID: 385050827}
   spawnedParent: {fileID: 1356688014}
   addDragAndShootIfMissing: 1
-  addAutoProjectileShooterIfMissing: 1
-  spawnableCharacterDataList:
-  - {fileID: 11400000, guid: 88d5dff4040ab6e40af66229204a6142, type: 2}
-  - {fileID: 11400000, guid: 8c7ab0ae9e7b6364f9c40b2cb0380cb6, type: 2}
-  - {fileID: 11400000, guid: 22821b000887bd1469711512935a9ee6, type: 2}
-  - {fileID: 11400000, guid: 65506769d247ea44985f67e32ac5931d, type: 2}
-  - {fileID: 11400000, guid: f5f4e6dae56420c469c445c61b8128f2, type: 2}
-  - {fileID: 11400000, guid: 8536f76d5858e0e43b43e3b3d0b7fc55, type: 2}
-  - {fileID: 11400000, guid: 7bc7fb39246c9fc409ffc07c6a8c7eaf, type: 2}
-  - {fileID: 11400000, guid: a6093280c92e97c489e2907c6a7fe42d, type: 2}
-  - {fileID: 11400000, guid: bc719cc67fa22164a8623f26c0a13081, type: 2}
-  - {fileID: 11400000, guid: b4136dec2b5d6ae419b28ce0b8776412, type: 2}
-  minSpawnGrade: 1
-  maxSpawnGrade: 5
   grade1Weight: 25
   grade2Weight: 25
   grade3Weight: 20
@@ -1372,7 +1326,7 @@ GameObject:
   - component: {fileID: 818708051}
   - component: {fileID: 818708050}
   m_Layer: 5
-  m_Name: TXT_Timer
+  m_Name: TXT_Attack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1497,37 +1451,6 @@ RectTransform:
   m_AnchoredPosition: {x: 250, y: 850}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &966241685
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 966241686}
-  m_Layer: 0
-  m_Name: Monster_Point1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &966241686
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 966241685}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 6, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 65215405}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1080617118
 GameObject:
   m_ObjectHideFlags: 0
@@ -1839,7 +1762,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SC_WaveCardPopup
   dimObject: {fileID: 788529756}
   popupRoot: {fileID: 1099884443}
-  waveManager: {fileID: 1688277399}
+  battleManager: {fileID: 1688277399}
   leftCardButton: {fileID: 1087180028}
   rightCardButton: {fileID: 431563746}
   leftCardTitleText: {fileID: 1991234913}
@@ -2068,7 +1991,7 @@ GameObject:
   - component: {fileID: 1620479539}
   - component: {fileID: 1620479538}
   m_Layer: 5
-  m_Name: TXT_Wave
+  m_Name: TXT_Stage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2361,12 +2284,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae9a12424b1d8914a8d28d3e70ea8f39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_WaveManager
-  maxWave: 10
-  startWave: 1
-  nextWaveDelaySeconds: 3
-  waveDurationSeconds: 30
-  useCardSelectionOnOddWaveClear: 1
-  waveCardPopup: {fileID: 1099884445}
+  maxStage: 10
+  startStage: 1
+  equippedRoster:
+  - {fileID: 11400000, guid: 8536f76d5858e0e43b43e3b3d0b7fc55, type: 2}
+  - {fileID: 11400000, guid: 7bc7fb39246c9fc409ffc07c6a8c7eaf, type: 2}
+  - {fileID: 11400000, guid: a6093280c92e97c489e2907c6a7fe42d, type: 2}
+  - {fileID: 11400000, guid: bc719cc67fa22164a8623f26c0a13081, type: 2}
+  - {fileID: 11400000, guid: b4136dec2b5d6ae419b28ce0b8776412, type: 2}
+  attackCountPerCard: 20
+  baseAttackInterval: 0.2
+  pauseWhenSelectingCard: 1
+  battleCardPopup: {fileID: 1099884445}
 --- !u!114 &1688277400
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2379,14 +2308,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f88d3df7ee42f83438670887e35e629c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_WaveMonsterSpawner
-  waveManager: {fileID: 1688277399}
+  battleManager: {fileID: 1688277399}
   monsterPrefab: {fileID: 1582929693889218549, guid: cc4f41566eff6fa43bd4bae6ed40e667, type: 3}
-  spawnPoints:
-  - {fileID: 966241686}
-  - {fileID: 62250947}
-  - {fileID: 26777282}
+  spawnPoint: {fileID: 26777282}
   spawnedMonsterParent: {fileID: 65215405}
-  monstersPerWave: 3
+  spawnBossOnStart: 1
 --- !u!4 &1688277401
 Transform:
   m_ObjectHideFlags: 0

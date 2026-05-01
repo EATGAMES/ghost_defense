@@ -1,105 +1,91 @@
-﻿using UnityEngine;
+using UnityEngine;
 
-public enum CharacterKind
+public enum CharacterAttackRole
 {
-    방깨비,
-    구미오,
-    유우령,
-    미희라,
-    도라큘,
-    강시희,
-    천여귀
-}
-
-public enum CharacterAttackType
-{
-    원거리,
-    소환,
-    버프
-}
-
-public enum CharacterGrade
-{
-    Grade1 = 1,
-    Grade2 = 2,
-    Grade3 = 3,
-    Grade4 = 4,
-    Grade5 = 5,
-    Grade6 = 6,
-    Grade7 = 7,
-    Grade8 = 8,
-    Grade9 = 9,
-    Grade10 = 10
+    Single,
+    MultiHit,
+    Area,
+    Support
 }
 
 [CreateAssetMenu(fileName = "SO_CharacterData", menuName = "Ghost Defense/Character Data")]
 public class SO_CharacterData : ScriptableObject
 {
-    [Tooltip("캐릭터 이름")]
+    [Tooltip("캐릭터 표시 이름입니다.")]
     [SerializeField] private string characterName;
 
-    [Tooltip("캐릭터 설명")]
+    [Tooltip("캐릭터 설명입니다.")]
     [TextArea(3, 8)]
     [SerializeField] private string characterDescription;
 
-    [Tooltip("캐릭터 공용 스프라이트")]
+    [Tooltip("상단 대기열과 필드 스킨에 사용할 스프라이트입니다.")]
     [SerializeField] private Sprite characterSprite;
 
-    [Tooltip("캐릭터 종류")]
-    [SerializeField] private CharacterKind characterKind;
+    [Tooltip("공격 역할 분류입니다.")]
+    [SerializeField] private CharacterAttackRole attackRole = CharacterAttackRole.Single;
 
-    [Tooltip("캐릭터 등급")]
-    [SerializeField] private CharacterGrade characterGrade = CharacterGrade.Grade1;
+    [Tooltip("캐릭터 기본 공격력입니다.")]
+    [SerializeField] private float baseAttackPower = 10f;
 
-    [Tooltip("공격 방식")]
-    [SerializeField] private CharacterAttackType attackType;
+    [Tooltip("머지 단계 1당 적용할 공격 배수입니다.")]
+    [SerializeField] private float mergeGradeMultiplierPerStep = 1f;
 
-    [Tooltip("캐릭터 무게")]
-    [SerializeField] private float weight = 1f;
+    [Tooltip("최종 공격력 보정 배율입니다. 1이면 100%입니다.")]
+    [SerializeField] private float attackPowerPercent = 1f;
 
-    [Tooltip("캐릭터 크기 배율(1 = 100%, 1.2 = 120%)")]
-    [SerializeField] private float sizePercent = 1f;
+    [Tooltip("고단계 보너스를 적용하기 시작할 단계입니다.")]
+    [SerializeField] private int highGradeStart = 5;
 
-    [Tooltip("CircleCollider2D 반지름")]
-    [SerializeField] private float circleColliderRadius = 0.55f;
+    [Tooltip("고단계 공격 시 추가할 보너스 배율입니다. 0.3이면 30%입니다.")]
+    [SerializeField] private float highGradeBonusPercent = 0f;
 
-    [Tooltip("CircleCollider2D 오프셋")]
-    [SerializeField] private Vector2 circleColliderOffset = new Vector2(0.02f, -0.15f);
+    [Tooltip("10단계 공격 시 추가할 보너스 배율입니다. 0.5이면 50%입니다.")]
+    [SerializeField] private float finalGradeBonusPercent = 0f;
 
-    [Tooltip("합체 시 생성할 다음 등급 캐릭터 데이터")]
-    [SerializeField] private SO_CharacterData nextGradeCharacterData;
+    [Tooltip("치명타 확률입니다. 0에서 1 사이 값을 사용합니다.")]
+    [SerializeField] [Range(0f, 1f)] private float criticalChance = 0f;
 
-    [Tooltip("자동 발사로 생성할 발사체 프리팹")]
-    [SerializeField] private GameObject autoProjectilePrefab;
+    [Tooltip("치명타 배율입니다. 1.5이면 150%입니다.")]
+    [SerializeField] private float criticalDamageMultiplier = 1.5f;
 
-    [Tooltip("자동 발사 간격(초)")]
-    [SerializeField] private float autoProjectileSpawnDelay = 1f;
-
-    [Tooltip("자동 발사체 이동 속도")]
-    [SerializeField] private float autoProjectileSpeed = 6f;
-
-    [Tooltip("자동 발사체 1회 공격력")]
-    [SerializeField] private float autoProjectileDamage = 1f;
-
-    [Tooltip("자동 발사체 데미지 배율(1 = 100%, 1.2 = 120%)")]
-    [SerializeField] private float autoProjectileDamagePercent = 1f;
+    [Tooltip("공격 큐 처리 속도 배율입니다. 1이면 기본 속도입니다.")]
+    [SerializeField] private float attackQueueSpeedPercent = 1f;
 
     public string CharacterName => characterName;
     public string CharacterDescription => characterDescription;
     public Sprite CharacterSprite => characterSprite;
-    public CharacterKind CharacterKind => characterKind;
-    public CharacterGrade CharacterGrade => characterGrade;
-    public CharacterAttackType AttackType => attackType;
-    public float Weight => weight;
-    public float SizePercent => sizePercent;
-    public float CircleColliderRadius => circleColliderRadius;
-    public Vector2 CircleColliderOffset => circleColliderOffset;
-    public SO_CharacterData NextGradeCharacterData => nextGradeCharacterData;
-    public GameObject AutoProjectilePrefab => autoProjectilePrefab;
-    public float AutoProjectileSpawnDelay => autoProjectileSpawnDelay;
-    public float AutoProjectileSpeed => autoProjectileSpeed;
-    public float AutoProjectileDamage => autoProjectileDamage;
-    public float AutoProjectileDamagePercent => autoProjectileDamagePercent;
-    public int GradeValue => (int)characterGrade;
-}
+    public CharacterAttackRole AttackRole => attackRole;
+    public float BaseAttackPower => baseAttackPower;
+    public float MergeGradeMultiplierPerStep => mergeGradeMultiplierPerStep;
+    public float AttackPowerPercent => attackPowerPercent;
+    public int HighGradeStart => Mathf.Max(1, highGradeStart);
+    public float HighGradeBonusPercent => highGradeBonusPercent;
+    public float FinalGradeBonusPercent => finalGradeBonusPercent;
+    public float CriticalChance => criticalChance;
+    public float CriticalDamageMultiplier => Mathf.Max(1f, criticalDamageMultiplier);
+    public float AttackQueueSpeedPercent => Mathf.Max(0.01f, attackQueueSpeedPercent);
 
+    public float CalculateAttackDamage(int mergeGrade)
+    {
+        int safeGrade = Mathf.Clamp(mergeGrade, 1, 10);
+        float gradeMultiplier = Mathf.Max(1f, safeGrade * Mathf.Max(0.01f, mergeGradeMultiplierPerStep));
+        float damage = Mathf.Max(0f, baseAttackPower) * gradeMultiplier * Mathf.Max(0f, attackPowerPercent);
+
+        if (safeGrade >= HighGradeStart)
+        {
+            damage *= 1f + Mathf.Max(0f, highGradeBonusPercent);
+        }
+
+        if (safeGrade >= 10)
+        {
+            damage *= 1f + Mathf.Max(0f, finalGradeBonusPercent);
+        }
+
+        if (criticalChance > 0f && Random.value <= criticalChance)
+        {
+            damage *= CriticalDamageMultiplier;
+        }
+
+        return Mathf.Max(0f, damage);
+    }
+}

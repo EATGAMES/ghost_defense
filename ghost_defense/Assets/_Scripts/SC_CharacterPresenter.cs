@@ -1,25 +1,53 @@
-﻿using UnityEngine;
+using UnityEngine;
+using UnityEngine.Serialization;
 
+[DisallowMultipleComponent]
 public class SC_CharacterPresenter : MonoBehaviour
 {
-    [Tooltip("이 캐릭터가 사용할 데이터")]
-    [SerializeField] private SO_CharacterData characterData;
+    [Tooltip("현재 필드 오브젝트의 머지 단계입니다.")]
+    [SerializeField] private int mergeGrade = 1;
 
-    [Tooltip("스프라이트를 적용할 렌더러")]
+    [Tooltip("단계별로 사용할 필드 오브젝트 이미지 목록입니다. 0번이 1단계입니다.")]
+    [SerializeField] private Sprite[] gradeSprites;
+
+    [Tooltip("단계 이미지를 표시할 SpriteRenderer입니다.")]
     [SerializeField] private SpriteRenderer spriteRenderer;
 
-    [Tooltip("무게를 적용할 Rigidbody2D")]
-    [SerializeField] private Rigidbody2D rigidbody2D;
+    [Tooltip("단계별 질량을 적용할 Rigidbody2D입니다.")]
+    [FormerlySerializedAs("rigidbody2D")]
+    [SerializeField] private Rigidbody2D cachedRigidbody2D;
 
-    [Tooltip("반지름/오프셋을 적용할 CircleCollider2D")]
+    [Tooltip("단계별 크기를 적용할 CircleCollider2D입니다.")]
     [SerializeField] private CircleCollider2D circleCollider2D;
 
-    public SO_CharacterData CharacterData => characterData;
+    [Tooltip("1단계 기본 크기입니다.")]
+    [SerializeField] private float baseScale = 1f;
+
+    [Tooltip("단계가 1 증가할 때마다 더할 크기 값입니다.")]
+    [SerializeField] private float scaleStep = 0.08f;
+
+    [Tooltip("1단계 기본 질량입니다.")]
+    [SerializeField] private float baseMass = 1f;
+
+    [Tooltip("단계가 1 증가할 때마다 더할 질량 값입니다.")]
+    [SerializeField] private float massStep = 0.2f;
+
+    [Tooltip("1단계 기본 콜라이더 반지름입니다.")]
+    [SerializeField] private float baseColliderRadius = 0.55f;
+
+    [Tooltip("단계가 1 증가할 때마다 더할 콜라이더 반지름 값입니다.")]
+    [SerializeField] private float colliderRadiusStep = 0.03f;
+
+    [Tooltip("공통으로 사용할 콜라이더 오프셋입니다.")]
+    [SerializeField] private Vector2 colliderOffset = new Vector2(0.02f, -0.15f);
+
+    public int MergeGrade => Mathf.Clamp(mergeGrade, 1, 10);
+    public Sprite CurrentGradeSprite => GetSpriteForGrade(MergeGrade);
 
     private void Reset()
     {
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        rigidbody2D = GetComponent<Rigidbody2D>();
+        cachedRigidbody2D = GetComponent<Rigidbody2D>();
         circleCollider2D = GetComponent<CircleCollider2D>();
     }
 
@@ -35,9 +63,9 @@ public class SC_CharacterPresenter : MonoBehaviour
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
 
-        if (rigidbody2D == null)
+        if (cachedRigidbody2D == null)
         {
-            rigidbody2D = GetComponent<Rigidbody2D>();
+            cachedRigidbody2D = GetComponent<Rigidbody2D>();
         }
 
         if (circleCollider2D == null)
@@ -48,9 +76,19 @@ public class SC_CharacterPresenter : MonoBehaviour
         ApplyData();
     }
 
-    public void SetCharacterData(SO_CharacterData newData, bool applyImmediately = true)
+    public void Configure(int grade, bool applyImmediately = true)
     {
-        characterData = newData;
+        mergeGrade = Mathf.Clamp(grade, 1, 10);
+
+        if (applyImmediately)
+        {
+            ApplyData();
+        }
+    }
+
+    public void SetMergeGrade(int grade, bool applyImmediately = true)
+    {
+        mergeGrade = Mathf.Clamp(grade, 1, 10);
 
         if (applyImmediately)
         {
@@ -60,29 +98,34 @@ public class SC_CharacterPresenter : MonoBehaviour
 
     public void ApplyData()
     {
-        if (characterData == null)
-        {
-            return;
-        }
-
-        float sizePercent = Mathf.Max(0.01f, characterData.SizePercent);
-        transform.localScale = new Vector3(sizePercent, sizePercent, 1f);
+        float scale = Mathf.Max(0.01f, baseScale + (MergeGrade - 1) * scaleStep);
+        transform.localScale = new Vector3(scale, scale, 1f);
 
         if (spriteRenderer != null)
         {
-            spriteRenderer.sprite = characterData.CharacterSprite;
+            spriteRenderer.sprite = GetSpriteForGrade(MergeGrade);
         }
 
-        if (rigidbody2D != null)
+        if (cachedRigidbody2D != null)
         {
-            rigidbody2D.mass = characterData.Weight;
+            cachedRigidbody2D.mass = Mathf.Max(0.01f, baseMass + (MergeGrade - 1) * massStep);
         }
 
         if (circleCollider2D != null)
         {
-            circleCollider2D.radius = characterData.CircleColliderRadius;
-            circleCollider2D.offset = characterData.CircleColliderOffset;
+            circleCollider2D.radius = Mathf.Max(0.01f, baseColliderRadius + (MergeGrade - 1) * colliderRadiusStep);
+            circleCollider2D.offset = colliderOffset;
         }
     }
-}
 
+    private Sprite GetSpriteForGrade(int grade)
+    {
+        if (gradeSprites == null || gradeSprites.Length <= 0)
+        {
+            return null;
+        }
+
+        int spriteIndex = Mathf.Clamp(grade - 1, 0, gradeSprites.Length - 1);
+        return gradeSprites[spriteIndex];
+    }
+}

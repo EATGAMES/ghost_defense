@@ -15,7 +15,6 @@ GameObject:
   - component: {fileID: 3986356179992966670}
   - component: {fileID: 560854494607647108}
   - component: {fileID: 3051682432527465309}
-  - component: {fileID: 2831476226434385665}
   m_Layer: 0
   m_Name: PFB_Character_1_1
   m_TagString: Untagged
@@ -100,8 +99,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: -0.2}
-  m_Radius: 0.45
+  m_Offset: {x: 0.02, y: -0.15}
+  m_Radius: 0.55
 --- !u!114 &4159833219662769503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -141,10 +140,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8d567a28e1cc0f4e91d4f92798265c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterPresenter
-  characterData: {fileID: 0}
+  mergeGrade: 1
+  gradeSprites:
+  - {fileID: 21300000, guid: d1b085f9af15ddc4196284624a6e2bb0, type: 3}
+  - {fileID: 21300000, guid: a0f0b657c290645459dee4e7ed68d92c, type: 3}
+  - {fileID: 21300000, guid: f53f36e3cfce4384cbe6e3f72a3db8c0, type: 3}
+  - {fileID: 21300000, guid: 32a92a79dea41244288552b4ed1cb8ae, type: 3}
+  - {fileID: 21300000, guid: 95692983f4bd49c4e81f20e16d05b266, type: 3}
+  - {fileID: 21300000, guid: 8f73e633d3af966488928c6585fe14ad, type: 3}
+  - {fileID: 21300000, guid: 381edcfea5363f947ba4bd44deb9a970, type: 3}
+  - {fileID: 21300000, guid: 6090353196638bb48b678eb429e8e56d, type: 3}
+  - {fileID: 21300000, guid: 81bf58441f5305c46a4c73f4d74ca733, type: 3}
+  - {fileID: 21300000, guid: f66df84db28bbfe46ada56f80dbce8af, type: 3}
   spriteRenderer: {fileID: 2376257291775783077}
-  rigidbody2D: {fileID: 1192178842671405152}
+  cachedRigidbody2D: {fileID: 1192178842671405152}
   circleCollider2D: {fileID: 8719631040584362176}
+  baseScale: 1
+  scaleStep: 0.08
+  baseMass: 1
+  massStep: 0.2
+  baseColliderRadius: 0.55
+  colliderRadiusStep: 0.03
+  colliderOffset: {x: 0.02, y: -0.15}
 --- !u!114 &560854494607647108
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,12 +174,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39a67bbc6f4ee9e4d9701315838ba295, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterMergeController
-  characterPrefab: {fileID: 5306799179826955618}
+  mergeObjectPrefab: {fileID: 0}
   spawnParent: {fileID: 0}
   presenter: {fileID: 3986356179992966670}
+  battleManager: {fileID: 0}
   mergeSpeedMultiplier: 0.4
   maxInheritedSpeed: 5
   mergeContactTolerance: 0
+  finalMergeCleanupDelay: 0.15
 --- !u!114 &3051682432527465309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -179,22 +198,6 @@ MonoBehaviour:
   sortPrecision: 100
   baseOrderOffset: 0
   yChangeThreshold: 0.003
---- !u!114 &2831476226434385665
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5306799179826955618}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c328e2c71964fde409fa58e9871ba950, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterAutoProjectileShooter
-  requireFirstCollisionBeforeAutoShoot: 1
-  monsterTag: Monster
-  spawnOffset: {x: 0, y: 0, z: 0}
-  projectileParent: {fileID: 3430716556751482373}
 --- !u!1 &9202169707005736598
 GameObject:
   m_ObjectHideFlags: 0

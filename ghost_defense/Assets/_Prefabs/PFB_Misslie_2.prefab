@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4304039899651758197}
-  - component: {fileID: 2056235204934850068}
   - component: {fileID: 1772208828237327911}
   m_Layer: 0
   m_Name: PFB_Misslie_2
@@ -34,22 +33,6 @@ Transform:
   - {fileID: 4645846992881729331}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2056235204934850068
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2985253678660139407}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 95bd566813365c54c97454850550858c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SC_AutoHomingProjectile
-  targetTag: Monster
-  moveSpeed: 6
-  lifeTime: 8
-  retargetInterval: 0.2
 --- !u!61 &1772208828237327911
 BoxCollider2D:
   m_ObjectHideFlags: 0
