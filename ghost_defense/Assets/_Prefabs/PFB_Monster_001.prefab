@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b37e714b9aa4da4084ffd93019adeee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_MonsterHealth
-  maxHp: 30
+  maxHp: 300
   hpIncreasePerWave: 0.5
   destroyOnDeath: 1
 --- !u!114 &7955173684100627578

@@ -87,6 +87,11 @@ public class SC_CharacterMergeController : MonoBehaviour
             return;
         }
 
+        if (myData.CharacterKind != otherData.CharacterKind)
+        {
+            return;
+        }
+
         if (myData.CharacterGrade != otherData.CharacterGrade)
         {
             return;

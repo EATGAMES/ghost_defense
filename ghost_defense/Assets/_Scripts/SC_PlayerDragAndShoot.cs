@@ -56,6 +56,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private float zDepthFromCamera;
     private bool wasMousePressed;
     private bool wasTouchPressed;
+    private Vector3 dragStartPosition;
     private readonly Collider2D[] overlapResults = new Collider2D[16];
 
     public bool IsShot => isShot;
@@ -132,6 +133,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             if (IsPointerOverSelf(worldPoint))
             {
                 isDragging = true;
+                dragStartPosition = transform.position;
             }
         }
         else if (isPressed && wasTouchPressed)
@@ -176,6 +178,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             if (IsPointerOverSelf(worldPoint))
             {
                 isDragging = true;
+                dragStartPosition = transform.position;
             }
         }
         else if (isPressed && wasMousePressed)
@@ -275,6 +278,23 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     {
         isShot = shot;
         ApplyCollisionState();
+    }
+
+    public void CancelDragAndResetToStartPosition()
+    {
+        if (isShot)
+        {
+            return;
+        }
+
+        if (isDragging)
+        {
+            transform.position = dragStartPosition;
+        }
+
+        isDragging = false;
+        wasMousePressed = false;
+        wasTouchPressed = false;
     }
 
     private void ApplyCollisionState()

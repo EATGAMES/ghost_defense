@@ -101,7 +101,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: -0.2}
-  m_Radius: 0.4
+  m_Radius: 0.45
 --- !u!114 &4159833219662769503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -195,7 +195,6 @@ MonoBehaviour:
   monsterTag: Monster
   spawnOffset: {x: 0, y: 0, z: 0}
   projectileParent: {fileID: 3430716556751482373}
-  gradeDamageMultiplierPerStep: 3
 --- !u!1 &9202169707005736598
 GameObject:
   m_ObjectHideFlags: 0

@@ -20,11 +20,11 @@ MonoBehaviour:
   attackType: 0
   weight: 1
   sizePercent: 1.2
-  circleColliderRadius: 0.4
+  circleColliderRadius: 0.45
   circleColliderOffset: {x: 0, y: -0.2}
   nextGradeCharacterData: {fileID: 11400000, guid: 65506769d247ea44985f67e32ac5931d, type: 2}
   autoProjectilePrefab: {fileID: 2985253678660139407, guid: aae0fdbc3adf5644098d447f93794bbe, type: 3}
   autoProjectileSpawnDelay: 1
   autoProjectileSpeed: 9
-  autoProjectileDamage: 10
-  autoProjectileDamagePercent: 4
+  autoProjectileDamage: 5
+  autoProjectileDamagePercent: 3
