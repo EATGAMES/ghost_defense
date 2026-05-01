@@ -2265,6 +2265,7 @@ GameObject:
   - component: {fileID: 1688277401}
   - component: {fileID: 1688277399}
   - component: {fileID: 1688277400}
+  - component: {fileID: 1688277402}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -2328,6 +2329,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1688277402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1688277398}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d8b192e8d77421d94945992bc4d7d4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_AttackRosterView
+  battleManager: {fileID: 1688277399}
+  characterViewPrefab: {fileID: 700000000000000001, guid: 2b8f1a1c4a2c4fd3b46d81b7ce36a428, type: 3}
+  spawnedParent: {fileID: 1688277401}
+  centerOffset: {x: 2, y: -1.1, z: 0}
+  slotSpacing: 0.6
+  moveDuration: 0.15
+  idleScale: {x: 0.85, y: 0.85, z: 1}
+  currentTurnScale: {x: 1, y: 1, z: 1}
+  sortingOrderBase: 20
 --- !u!1 &1854610419
 GameObject:
   m_ObjectHideFlags: 0
