@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [DisallowMultipleComponent]
 public class SC_CharacterAutoProjectileShooter : MonoBehaviour
@@ -6,7 +6,7 @@ public class SC_CharacterAutoProjectileShooter : MonoBehaviour
     [Tooltip("첫 충돌 이후에만 자동 발사를 시작할지 여부")]
     [SerializeField] private bool requireFirstCollisionBeforeAutoShoot = true;
 
-    [Tooltip("유도 대상 태그")]
+    [Tooltip("추적 대상 몬스터 태그")]
     [SerializeField] private string monsterTag = "Monster";
 
     [Tooltip("발사체 생성 위치 오프셋")]
@@ -14,9 +14,6 @@ public class SC_CharacterAutoProjectileShooter : MonoBehaviour
 
     [Tooltip("발사체 부모 Transform(비우면 루트)")]
     [SerializeField] private Transform projectileParent;
-
-    [Tooltip("등급이 1 오를 때마다 적용할 데미지 배율(기본 2.5배)")]
-    [SerializeField] private float gradeDamageMultiplierPerStep = 2.5f;
 
     private SC_PlayerDragAndShoot dragAndShoot;
     private SC_CharacterPresenter presenter;
@@ -97,22 +94,20 @@ public class SC_CharacterAutoProjectileShooter : MonoBehaviour
         SC_AutoHomingProjectile homingProjectile = projectile.GetComponent<SC_AutoHomingProjectile>();
         if (homingProjectile != null)
         {
-            float finalDamage = CalculateGradeScaledProjectileDamage(data);
+            float finalDamage = CalculateProjectileDamage(data);
             homingProjectile.Initialize(data.AutoProjectileSpeed, monsterTag, finalDamage);
         }
     }
 
-    private float CalculateGradeScaledProjectileDamage(SO_CharacterData data)
+    private float CalculateProjectileDamage(SO_CharacterData data)
     {
         if (data == null)
         {
             return 0f;
         }
 
-        int gradeValue = Mathf.Max(1, (int)data.CharacterGrade);
-        float multiplierPerStep = Mathf.Max(1f, gradeDamageMultiplierPerStep);
-        float gradeMultiplier = Mathf.Pow(multiplierPerStep, gradeValue - 1);
-        return Mathf.Max(0f, data.AutoProjectileDamage * gradeMultiplier);
+        float damagePercent = Mathf.Max(0f, data.AutoProjectileDamagePercent);
+        return Mathf.Max(0f, data.AutoProjectileDamage * damagePercent);
     }
 
     private bool HasAnyMonsterTarget()

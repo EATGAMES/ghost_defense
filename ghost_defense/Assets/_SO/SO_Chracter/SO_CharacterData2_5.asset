@@ -14,14 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterData
   characterName: 
   characterDescription: 
-  characterSprite: {fileID: 2445383409242427859, guid: 18851747541f3544e9125123a2722013, type: 3}
+  characterSprite: {fileID: 21300000, guid: 95692983f4bd49c4e81f20e16d05b266, type: 3}
   characterKind: 6
   characterGrade: 5
   attackType: 0
   weight: 1
-  circleColliderRadius: 0.55
-  circleColliderOffset: {x: 0.02, y: -0.15}
-  nextGradeCharacterData: {fileID: 0}
+  sizePercent: 1.4
+  circleColliderRadius: 0.4
+  circleColliderOffset: {x: 0, y: -0.2}
+  nextGradeCharacterData: {fileID: 11400000, guid: d9b33dc487a9a1b4d9ce900d56dc6680, type: 2}
   autoProjectilePrefab: {fileID: 2985253678660139407, guid: aae0fdbc3adf5644098d447f93794bbe, type: 3}
   autoProjectileSpawnDelay: 1
   autoProjectileSpeed: 9
+  autoProjectileDamage: 10
+  autoProjectileDamagePercent: 1

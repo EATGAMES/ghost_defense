@@ -24,7 +24,12 @@ public enum CharacterGrade
     Grade2 = 2,
     Grade3 = 3,
     Grade4 = 4,
-    Grade5 = 5
+    Grade5 = 5,
+    Grade6 = 6,
+    Grade7 = 7,
+    Grade8 = 8,
+    Grade9 = 9,
+    Grade10 = 10
 }
 
 [CreateAssetMenu(fileName = "SO_CharacterData", menuName = "Ghost Defense/Character Data")]
@@ -52,6 +57,9 @@ public class SO_CharacterData : ScriptableObject
     [Tooltip("캐릭터 무게")]
     [SerializeField] private float weight = 1f;
 
+    [Tooltip("캐릭터 크기 배율(1 = 100%, 1.2 = 120%)")]
+    [SerializeField] private float sizePercent = 1f;
+
     [Tooltip("CircleCollider2D 반지름")]
     [SerializeField] private float circleColliderRadius = 0.55f;
 
@@ -73,6 +81,9 @@ public class SO_CharacterData : ScriptableObject
     [Tooltip("자동 발사체 1회 공격력")]
     [SerializeField] private float autoProjectileDamage = 1f;
 
+    [Tooltip("자동 발사체 데미지 배율(1 = 100%, 1.2 = 120%)")]
+    [SerializeField] private float autoProjectileDamagePercent = 1f;
+
     public string CharacterName => characterName;
     public string CharacterDescription => characterDescription;
     public Sprite CharacterSprite => characterSprite;
@@ -80,6 +91,7 @@ public class SO_CharacterData : ScriptableObject
     public CharacterGrade CharacterGrade => characterGrade;
     public CharacterAttackType AttackType => attackType;
     public float Weight => weight;
+    public float SizePercent => sizePercent;
     public float CircleColliderRadius => circleColliderRadius;
     public Vector2 CircleColliderOffset => circleColliderOffset;
     public SO_CharacterData NextGradeCharacterData => nextGradeCharacterData;
@@ -87,5 +99,7 @@ public class SO_CharacterData : ScriptableObject
     public float AutoProjectileSpawnDelay => autoProjectileSpawnDelay;
     public float AutoProjectileSpeed => autoProjectileSpeed;
     public float AutoProjectileDamage => autoProjectileDamage;
+    public float AutoProjectileDamagePercent => autoProjectileDamagePercent;
+    public int GradeValue => (int)characterGrade;
 }
 

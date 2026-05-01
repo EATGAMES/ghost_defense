@@ -20,12 +20,6 @@ public class SC_WaveManager : MonoBehaviour
     [Tooltip("다음 웨이브 시작까지 대기 시간(초)")]
     [SerializeField] private float nextWaveDelaySeconds = 3f;
 
-    [Tooltip("웨이브 클리어 시 슛 카운트를 추가할 스포너")]
-    [SerializeField] private SC_BattleCharacterSpawner battleCharacterSpawner;
-
-    [Tooltip("웨이브 클리어마다 추가할 슛 카운트")]
-    [SerializeField] private int addShootCountPerWaveClear = 10;
-
     public int MaxWave => Mathf.Max(1, maxWave);
 
     private bool isWaitingNextWave;
@@ -42,11 +36,6 @@ public class SC_WaveManager : MonoBehaviour
         if (clearedWave != CurrentWave)
         {
             return;
-        }
-
-        if (battleCharacterSpawner != null)
-        {
-            battleCharacterSpawner.AddShootCount(Mathf.Max(0, addShootCountPerWaveClear));
         }
 
         WaveCleared?.Invoke(clearedWave);

@@ -1086,20 +1086,15 @@ MonoBehaviour:
   spawnedParent: {fileID: 1356688014}
   addDragAndShootIfMissing: 1
   addAutoProjectileShooterIfMissing: 1
-  availableShootCount: 10
-  respawnDelay: 0.1
-  randomCharacterDataList:
+  spawnableCharacterDataList:
   - {fileID: 11400000, guid: 88d5dff4040ab6e40af66229204a6142, type: 2}
-  - {fileID: 11400000, guid: c731c1f5f0f2c7147910662375676edd, type: 2}
-  - {fileID: 11400000, guid: eee609defd414e645b167f36dd34d0e1, type: 2}
-  - {fileID: 11400000, guid: b8462109be3d6234499dc4d9508fa610, type: 2}
-  - {fileID: 11400000, guid: 70552955b1753f64793f51cc06794fbd, type: 2}
-  previewPrefab: {fileID: 3358339371852297089, guid: c6307d07611422c42b6d5342b46f89b8, type: 3}
-  previewStartPoint: {fileID: 440650122}
-  previewParent: {fileID: 1944654498}
-  previewSpacing: {x: 0.7, y: 0}
-  previewScale: {x: 0.5, y: 0.5, z: 1}
-  maxPreviewCount: 9
+  - {fileID: 11400000, guid: 8c7ab0ae9e7b6364f9c40b2cb0380cb6, type: 2}
+  - {fileID: 11400000, guid: 22821b000887bd1469711512935a9ee6, type: 2}
+  - {fileID: 11400000, guid: 65506769d247ea44985f67e32ac5931d, type: 2}
+  - {fileID: 11400000, guid: f5f4e6dae56420c469c445c61b8128f2, type: 2}
+  minSpawnGrade: 1
+  maxSpawnGrade: 5
+  respawnDelay: 0.1
 --- !u!4 &804934506
 Transform:
   m_ObjectHideFlags: 0
@@ -1798,8 +1793,6 @@ MonoBehaviour:
   maxWave: 10
   startWave: 1
   nextWaveDelaySeconds: 3
-  battleCharacterSpawner: {fileID: 804934505}
-  addShootCountPerWaveClear: 10
 --- !u!114 &1688277400
 MonoBehaviour:
   m_ObjectHideFlags: 0

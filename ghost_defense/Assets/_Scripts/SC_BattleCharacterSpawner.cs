@@ -18,45 +18,41 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     [Tooltip("프리팹에 없을 때 자동 발사 스크립트 자동 추가 여부")]
     [SerializeField] private bool addAutoProjectileShooterIfMissing = true;
 
-    [Tooltip("발사 가능한 총 캐릭터 수")]
-    [SerializeField] private int availableShootCount = 10;
+    [Tooltip("발사 후보로 사용할 캐릭터 데이터 목록")]
+    [SerializeField] private SO_CharacterData[] spawnableCharacterDataList;
+
+    [Tooltip("랜덤 생성 최소 단계")]
+    [SerializeField] private CharacterGrade minSpawnGrade = CharacterGrade.Grade1;
+
+    [Tooltip("랜덤 생성 최대 단계")]
+    [SerializeField] private CharacterGrade maxSpawnGrade = CharacterGrade.Grade5;
+
+    [Tooltip("1단계 등장 확률 가중치(%)")]
+    [SerializeField] private float grade1Weight = 25f;
+
+    [Tooltip("2단계 등장 확률 가중치(%)")]
+    [SerializeField] private float grade2Weight = 25f;
+
+    [Tooltip("3단계 등장 확률 가중치(%)")]
+    [SerializeField] private float grade3Weight = 20f;
+
+    [Tooltip("4단계 등장 확률 가중치(%)")]
+    [SerializeField] private float grade4Weight = 18f;
+
+    [Tooltip("5단계 등장 확률 가중치(%)")]
+    [SerializeField] private float grade5Weight = 12f;
 
     [Tooltip("다음 캐릭터 생성 대기 시간(초)")]
     [SerializeField] private float respawnDelay = 0.1f;
 
-    [Tooltip("셔플 발사용 캐릭터 데이터 목록(약 5종)")]
-    [SerializeField] private SO_CharacterData[] randomCharacterDataList;
-
-    [Tooltip("다음 발사 순서를 표시할 프리뷰 프리팹(PFB_Preview)")]
-    [SerializeField] private GameObject previewPrefab;
-
-    [Tooltip("프리뷰 시작 위치(왼쪽 첫 칸 기준, 비우면 현재 오브젝트 위치 사용)")]
-    [SerializeField] private Transform previewStartPoint;
-
-    [Tooltip("프리뷰 오브젝트 부모 Transform(비우면 루트)")]
-    [SerializeField] private Transform previewParent;
-
-    [Tooltip("프리뷰 간격(X, Y)")]
-    [SerializeField] private Vector2 previewSpacing = new Vector2(0.9f, 0f);
-
-    [Tooltip("프리뷰 크기 배율")]
-    [SerializeField] private Vector3 previewScale = new Vector3(0.35f, 0.35f, 1f);
-
-    [Tooltip("프리뷰에 표시할 최대 개수")]
-    [SerializeField] private int maxPreviewCount = 10;
-
     private SC_PlayerDragAndShoot currentWaitingCharacter;
     private float respawnTimer;
     private bool isRespawnScheduled;
-    private readonly Queue<SO_CharacterData> shootQueue = new Queue<SO_CharacterData>();
-    private readonly List<GameObject> previewInstances = new List<GameObject>();
-
-    public int RemainingShootCount => shootQueue.Count;
+    private readonly List<SO_CharacterData> cachedSpawnCandidates = new List<SO_CharacterData>();
 
     private void Start()
     {
-        BuildInitialShootQueue();
-        RefreshPreview();
+        RebuildSpawnCandidates();
         TrySpawnWaitingCharacter();
     }
 
@@ -73,20 +69,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         }
 
         currentWaitingCharacter = null;
-        ConsumeShotCharacter();
-        RefreshPreview();
         ScheduleRespawn();
-    }
-
-    private void ScheduleRespawn()
-    {
-        if (isRespawnScheduled)
-        {
-            return;
-        }
-
-        isRespawnScheduled = true;
-        respawnTimer = respawnDelay;
     }
 
     private void LateUpdate()
@@ -106,16 +89,29 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         TrySpawnWaitingCharacter();
     }
 
-    private void TrySpawnWaitingCharacter()
+    private void ScheduleRespawn()
     {
-        if (shootQueue.Count <= 0)
+        if (isRespawnScheduled)
         {
             return;
         }
 
+        isRespawnScheduled = true;
+        respawnTimer = Mathf.Max(0f, respawnDelay);
+    }
+
+    private void TrySpawnWaitingCharacter()
+    {
         if (characterPrefab == null)
         {
             Debug.LogWarning("SC_BattleCharacterSpawner: characterPrefab이 비어 있습니다.");
+            return;
+        }
+
+        SO_CharacterData spawnData = GetRandomSpawnData();
+        if (spawnData == null)
+        {
+            Debug.LogWarning("SC_BattleCharacterSpawner: 현재 설정으로 생성 가능한 캐릭터 데이터가 없습니다.");
             return;
         }
 
@@ -123,7 +119,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         Quaternion rotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
 
         GameObject character = Instantiate(characterPrefab, position, rotation, spawnedParent);
-        ApplyCharacterData(character, shootQueue.Peek());
+        ApplyCharacterData(character, spawnData);
 
         SC_PlayerDragAndShoot shootComponent = character.GetComponent<SC_PlayerDragAndShoot>();
         if (shootComponent == null && addDragAndShootIfMissing)
@@ -167,7 +163,6 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
             return;
         }
 
-        // 프리뷰 프리팹에 SC_CharacterPresenter가 없을 때 스프라이트만 직접 적용한다.
         SpriteRenderer spriteRenderer = character.GetComponentInChildren<SpriteRenderer>();
         if (spriteRenderer != null)
         {
@@ -178,108 +173,111 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         Debug.LogWarning("SC_BattleCharacterSpawner: SC_CharacterPresenter 또는 SpriteRenderer를 찾지 못했습니다.");
     }
 
-    private void BuildInitialShootQueue()
+    private SO_CharacterData GetRandomSpawnData()
     {
-        shootQueue.Clear();
-
-        if (randomCharacterDataList == null || randomCharacterDataList.Length == 0)
+        RebuildSpawnCandidates();
+        if (cachedSpawnCandidates.Count <= 0)
         {
-            Debug.LogWarning("SC_BattleCharacterSpawner: randomCharacterDataList가 비어 있습니다.");
-            return;
+            return null;
         }
 
-        EnqueueRandomShootData(Mathf.Max(0, availableShootCount));
-    }
-
-    public void AddShootCount(int amount)
-    {
-        int addCount = Mathf.Max(0, amount);
-        if (addCount <= 0)
+        CharacterGrade selectedGrade = PickWeightedGrade();
+        List<SO_CharacterData> gradeCandidates = new List<SO_CharacterData>();
+        for (int i = 0; i < cachedSpawnCandidates.Count; i++)
         {
-            return;
-        }
-
-        if (randomCharacterDataList == null || randomCharacterDataList.Length == 0)
-        {
-            Debug.LogWarning("SC_BattleCharacterSpawner: randomCharacterDataList가 비어 있어 슛 카운트를 추가할 수 없습니다.");
-            return;
-        }
-
-        availableShootCount += addCount;
-        EnqueueRandomShootData(addCount);
-        RefreshPreview();
-
-        if (currentWaitingCharacter == null && !isRespawnScheduled)
-        {
-            TrySpawnWaitingCharacter();
-        }
-    }
-
-    private void EnqueueRandomShootData(int count)
-    {
-        if (randomCharacterDataList == null || randomCharacterDataList.Length == 0)
-        {
-            return;
-        }
-
-        for (int i = 0; i < count; i++)
-        {
-            SO_CharacterData randomData = randomCharacterDataList[Random.Range(0, randomCharacterDataList.Length)];
-            if (randomData == null)
+            SO_CharacterData candidate = cachedSpawnCandidates[i];
+            if (candidate != null && candidate.CharacterGrade == selectedGrade)
             {
-                Debug.LogWarning("SC_BattleCharacterSpawner: randomCharacterDataList에 비어 있는 데이터가 있습니다.");
+                gradeCandidates.Add(candidate);
+            }
+        }
+
+        if (gradeCandidates.Count > 0)
+        {
+            int gradeRandomIndex = Random.Range(0, gradeCandidates.Count);
+            return gradeCandidates[gradeRandomIndex];
+        }
+
+        int fallbackIndex = Random.Range(0, cachedSpawnCandidates.Count);
+        return cachedSpawnCandidates[fallbackIndex];
+    }
+
+    private CharacterGrade PickWeightedGrade()
+    {
+        float minGrade = Mathf.Min((int)minSpawnGrade, (int)maxSpawnGrade);
+        float maxGrade = Mathf.Max((int)minSpawnGrade, (int)maxSpawnGrade);
+
+        float w1 = IsGradeEnabled(CharacterGrade.Grade1, minGrade, maxGrade) ? Mathf.Max(0f, grade1Weight) : 0f;
+        float w2 = IsGradeEnabled(CharacterGrade.Grade2, minGrade, maxGrade) ? Mathf.Max(0f, grade2Weight) : 0f;
+        float w3 = IsGradeEnabled(CharacterGrade.Grade3, minGrade, maxGrade) ? Mathf.Max(0f, grade3Weight) : 0f;
+        float w4 = IsGradeEnabled(CharacterGrade.Grade4, minGrade, maxGrade) ? Mathf.Max(0f, grade4Weight) : 0f;
+        float w5 = IsGradeEnabled(CharacterGrade.Grade5, minGrade, maxGrade) ? Mathf.Max(0f, grade5Weight) : 0f;
+
+        float total = w1 + w2 + w3 + w4 + w5;
+        if (total <= 0f)
+        {
+            return CharacterGrade.Grade1;
+        }
+
+        float roll = Random.Range(0f, total);
+        if (roll < w1)
+        {
+            return CharacterGrade.Grade1;
+        }
+
+        roll -= w1;
+        if (roll < w2)
+        {
+            return CharacterGrade.Grade2;
+        }
+
+        roll -= w2;
+        if (roll < w3)
+        {
+            return CharacterGrade.Grade3;
+        }
+
+        roll -= w3;
+        if (roll < w4)
+        {
+            return CharacterGrade.Grade4;
+        }
+
+        return CharacterGrade.Grade5;
+    }
+
+    private static bool IsGradeEnabled(CharacterGrade grade, float minGrade, float maxGrade)
+    {
+        float gradeValue = (int)grade;
+        return gradeValue >= minGrade && gradeValue <= maxGrade;
+    }
+
+    private void RebuildSpawnCandidates()
+    {
+        cachedSpawnCandidates.Clear();
+        if (spawnableCharacterDataList == null || spawnableCharacterDataList.Length == 0)
+        {
+            return;
+        }
+
+        int minGradeValue = Mathf.Min((int)minSpawnGrade, (int)maxSpawnGrade);
+        int maxGradeValue = Mathf.Max((int)minSpawnGrade, (int)maxSpawnGrade);
+
+        for (int i = 0; i < spawnableCharacterDataList.Length; i++)
+        {
+            SO_CharacterData candidate = spawnableCharacterDataList[i];
+            if (candidate == null)
+            {
                 continue;
             }
 
-            shootQueue.Enqueue(randomData);
-        }
-    }
-
-    private void ConsumeShotCharacter()
-    {
-        if (shootQueue.Count > 0)
-        {
-            shootQueue.Dequeue();
-        }
-    }
-
-    private void RefreshPreview()
-    {
-        ClearPreviewInstances();
-
-        if (previewPrefab == null)
-        {
-            return;
-        }
-
-        Vector3 basePosition = previewStartPoint != null ? previewStartPoint.position : transform.position;
-        int previewCount = Mathf.Min(Mathf.Max(0, maxPreviewCount), Mathf.Max(0, shootQueue.Count - 1));
-        if (previewCount <= 0)
-        {
-            return;
-        }
-
-        SO_CharacterData[] queueArray = shootQueue.ToArray();
-        for (int i = 0; i < previewCount; i++)
-        {
-            Vector3 position = basePosition + new Vector3(previewSpacing.x * i, previewSpacing.y * i, 0f);
-            GameObject preview = Instantiate(previewPrefab, position, Quaternion.identity, previewParent);
-            preview.transform.localScale = previewScale;
-            ApplyCharacterData(preview, queueArray[i + 1]);
-            previewInstances.Add(preview);
-        }
-    }
-
-    private void ClearPreviewInstances()
-    {
-        for (int i = 0; i < previewInstances.Count; i++)
-        {
-            if (previewInstances[i] != null)
+            int gradeValue = candidate.GradeValue;
+            if (gradeValue < minGradeValue || gradeValue > maxGradeValue)
             {
-                Destroy(previewInstances[i]);
+                continue;
             }
-        }
 
-        previewInstances.Clear();
+            cachedSpawnCandidates.Add(candidate);
+        }
     }
 }

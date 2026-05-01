@@ -8,8 +8,8 @@ public class SC_AutoHomingProjectile : MonoBehaviour
     [Tooltip("발사체 이동 속도")]
     [SerializeField] private float moveSpeed = 6f;
 
-    [Tooltip("발사체 1회 공격력")]
-    [SerializeField] private float damage = 1f;
+    // 발사체 데미지는 SC_CharacterAutoProjectileShooter.Initialize에서 런타임 주입한다.
+    private float damage = 1f;
 
     [Tooltip("발사체 최대 생존 시간(초)")]
     [SerializeField] private float lifeTime = 8f;

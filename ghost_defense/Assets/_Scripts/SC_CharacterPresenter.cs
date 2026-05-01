@@ -65,6 +65,9 @@ public class SC_CharacterPresenter : MonoBehaviour
             return;
         }
 
+        float sizePercent = Mathf.Max(0.01f, characterData.SizePercent);
+        transform.localScale = new Vector3(sizePercent, sizePercent, 1f);
+
         if (spriteRenderer != null)
         {
             spriteRenderer.sprite = characterData.CharacterSprite;
