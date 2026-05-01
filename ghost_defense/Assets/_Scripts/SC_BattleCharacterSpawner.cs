@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class SC_BattleCharacterSpawner : MonoBehaviour
@@ -24,7 +24,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     [Tooltip("다음 캐릭터 생성 대기 시간(초)")]
     [SerializeField] private float respawnDelay = 0.1f;
 
-    [Tooltip("랜덤 발사에 사용할 캐릭터 데이터 목록(예: 5종)")]
+    [Tooltip("셔플 발사용 캐릭터 데이터 목록(약 5종)")]
     [SerializeField] private SO_CharacterData[] randomCharacterDataList;
 
     [Tooltip("다음 발사 순서를 표시할 프리뷰 프리팹(PFB_Preview)")]
@@ -50,6 +50,8 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     private bool isRespawnScheduled;
     private readonly Queue<SO_CharacterData> shootQueue = new Queue<SO_CharacterData>();
     private readonly List<GameObject> previewInstances = new List<GameObject>();
+
+    public int RemainingShootCount => shootQueue.Count;
 
     private void Start()
     {
@@ -186,8 +188,41 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
             return;
         }
 
-        int totalCount = Mathf.Max(0, availableShootCount);
-        for (int i = 0; i < totalCount; i++)
+        EnqueueRandomShootData(Mathf.Max(0, availableShootCount));
+    }
+
+    public void AddShootCount(int amount)
+    {
+        int addCount = Mathf.Max(0, amount);
+        if (addCount <= 0)
+        {
+            return;
+        }
+
+        if (randomCharacterDataList == null || randomCharacterDataList.Length == 0)
+        {
+            Debug.LogWarning("SC_BattleCharacterSpawner: randomCharacterDataList가 비어 있어 슛 카운트를 추가할 수 없습니다.");
+            return;
+        }
+
+        availableShootCount += addCount;
+        EnqueueRandomShootData(addCount);
+        RefreshPreview();
+
+        if (currentWaitingCharacter == null && !isRespawnScheduled)
+        {
+            TrySpawnWaitingCharacter();
+        }
+    }
+
+    private void EnqueueRandomShootData(int count)
+    {
+        if (randomCharacterDataList == null || randomCharacterDataList.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < count; i++)
         {
             SO_CharacterData randomData = randomCharacterDataList[Random.Range(0, randomCharacterDataList.Length)];
             if (randomData == null)

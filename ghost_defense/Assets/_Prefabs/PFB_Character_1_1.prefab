@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3986356179992966670}
   - component: {fileID: 560854494607647108}
   - component: {fileID: 3051682432527465309}
+  - component: {fileID: 2831476226434385665}
   m_Layer: 0
   m_Name: PFB_Character_1_1
   m_TagString: Untagged
@@ -177,6 +178,23 @@ MonoBehaviour:
   sortPrecision: 100
   baseOrderOffset: 0
   yChangeThreshold: 0.003
+--- !u!114 &2831476226434385665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5306799179826955618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c328e2c71964fde409fa58e9871ba950, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterAutoProjectileShooter
+  requireFirstCollisionBeforeAutoShoot: 1
+  monsterTag: Monster
+  spawnOffset: {x: 0, y: 0, z: 0}
+  projectileParent: {fileID: 3430716556751482373}
+  gradeDamageMultiplierPerStep: 3
 --- !u!1 &9202169707005736598
 GameObject:
   m_ObjectHideFlags: 0

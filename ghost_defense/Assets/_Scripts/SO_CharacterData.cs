@@ -70,6 +70,9 @@ public class SO_CharacterData : ScriptableObject
     [Tooltip("자동 발사체 이동 속도")]
     [SerializeField] private float autoProjectileSpeed = 6f;
 
+    [Tooltip("자동 발사체 1회 공격력")]
+    [SerializeField] private float autoProjectileDamage = 1f;
+
     public string CharacterName => characterName;
     public string CharacterDescription => characterDescription;
     public Sprite CharacterSprite => characterSprite;
@@ -83,5 +86,6 @@ public class SO_CharacterData : ScriptableObject
     public GameObject AutoProjectilePrefab => autoProjectilePrefab;
     public float AutoProjectileSpawnDelay => autoProjectileSpawnDelay;
     public float AutoProjectileSpeed => autoProjectileSpeed;
+    public float AutoProjectileDamage => autoProjectileDamage;
 }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class SC_AutoHomingProjectile : MonoBehaviour
 {
@@ -8,21 +8,23 @@ public class SC_AutoHomingProjectile : MonoBehaviour
     [Tooltip("발사체 이동 속도")]
     [SerializeField] private float moveSpeed = 6f;
 
+    [Tooltip("발사체 1회 공격력")]
+    [SerializeField] private float damage = 1f;
+
     [Tooltip("발사체 최대 생존 시간(초)")]
     [SerializeField] private float lifeTime = 8f;
 
-    [Tooltip("타겟 재탐색 주기(초)")]
-    [SerializeField] private float retargetInterval = 0.2f;
-
     private float lifeTimer;
-    private float retargetTimer;
     private Transform currentTarget;
+    private SC_MonsterHealth currentTargetHealth;
+    private bool hasLockedTarget;
 
     private void OnEnable()
     {
         lifeTimer = lifeTime;
-        retargetTimer = 0f;
         currentTarget = null;
+        currentTargetHealth = null;
+        hasLockedTarget = false;
     }
 
     private void Update()
@@ -34,19 +36,34 @@ public class SC_AutoHomingProjectile : MonoBehaviour
             return;
         }
 
-        retargetTimer -= Time.deltaTime;
-        if (currentTarget == null || retargetTimer <= 0f)
+        // 발사 직후 한 번만 가장 가까운 타겟을 고정한다.
+        if (!hasLockedTarget)
         {
-            currentTarget = FindNearestTarget();
-            retargetTimer = retargetInterval;
+            currentTarget = FindNearestTarget(out currentTargetHealth);
+            hasLockedTarget = true;
+
+            if (currentTarget == null || currentTargetHealth == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+        }
+
+        // 고정한 타겟이 사라지거나 죽으면 재탐색 없이 즉시 소멸한다.
+        if (currentTarget == null || currentTargetHealth == null || currentTargetHealth.CurrentHp <= 0f)
+        {
+            Destroy(gameObject);
+            return;
         }
 
         MoveTowardTarget();
     }
 
-    public void Initialize(float speed, string monsterTag = "Monster")
+    public void Initialize(float speed, string monsterTag = "Monster", float projectileDamage = 1f)
     {
         moveSpeed = Mathf.Max(0f, speed);
+        damage = Mathf.Max(0f, projectileDamage);
+
         if (!string.IsNullOrWhiteSpace(monsterTag))
         {
             targetTag = monsterTag;
@@ -55,18 +72,15 @@ public class SC_AutoHomingProjectile : MonoBehaviour
 
     private void MoveTowardTarget()
     {
-        if (currentTarget == null)
-        {
-            return;
-        }
-
         Vector3 targetPosition = currentTarget.position;
         Vector3 nextPosition = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
         transform.position = nextPosition;
     }
 
-    private Transform FindNearestTarget()
+    private Transform FindNearestTarget(out SC_MonsterHealth nearestHealth)
     {
+        nearestHealth = null;
+
         if (string.IsNullOrEmpty(targetTag))
         {
             return null;
@@ -79,6 +93,7 @@ public class SC_AutoHomingProjectile : MonoBehaviour
         }
 
         Transform nearest = null;
+        SC_MonsterHealth nearestMonsterHealth = null;
         float nearestSqrDistance = float.MaxValue;
         Vector3 currentPosition = transform.position;
 
@@ -90,20 +105,61 @@ public class SC_AutoHomingProjectile : MonoBehaviour
                 continue;
             }
 
-            float sqrDistance = (candidate.transform.position - currentPosition).sqrMagnitude;
+            SC_MonsterHealth candidateHealth = candidate.GetComponent<SC_MonsterHealth>();
+            if (candidateHealth == null)
+            {
+                candidateHealth = candidate.GetComponentInChildren<SC_MonsterHealth>();
+            }
+
+            if (candidateHealth == null || candidateHealth.CurrentHp <= 0f)
+            {
+                continue;
+            }
+
+            Transform candidateTarget = ResolveTargetTransform(candidate);
+            if (candidateTarget == null)
+            {
+                continue;
+            }
+
+            float sqrDistance = (candidateTarget.position - currentPosition).sqrMagnitude;
             if (sqrDistance < nearestSqrDistance)
             {
                 nearestSqrDistance = sqrDistance;
-                nearest = candidate.transform;
+                nearest = candidateTarget;
+                nearestMonsterHealth = candidateHealth;
             }
         }
 
+        nearestHealth = nearestMonsterHealth;
         return nearest;
+    }
+
+    private Transform ResolveTargetTransform(GameObject candidate)
+    {
+        if (candidate == null)
+        {
+            return null;
+        }
+
+        Rigidbody2D childRigidbody = candidate.GetComponentInChildren<Rigidbody2D>();
+        if (childRigidbody != null)
+        {
+            return childRigidbody.transform;
+        }
+
+        SpriteRenderer childSpriteRenderer = candidate.GetComponentInChildren<SpriteRenderer>();
+        if (childSpriteRenderer != null)
+        {
+            return childSpriteRenderer.transform;
+        }
+
+        return candidate.transform;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (IsTargetCollider(other))
+        if (TryProcessTargetHit(other))
         {
             Destroy(gameObject);
         }
@@ -111,7 +167,7 @@ public class SC_AutoHomingProjectile : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (IsTargetCollider(collision.collider))
+        if (TryProcessTargetHit(collision.collider))
         {
             Destroy(gameObject);
         }
@@ -136,5 +192,26 @@ public class SC_AutoHomingProjectile : MonoBehaviour
         }
 
         return otherTransform.root != null && otherTransform.root.CompareTag(targetTag);
+    }
+
+    private bool TryProcessTargetHit(Collider2D other)
+    {
+        if (!IsTargetCollider(other))
+        {
+            return false;
+        }
+
+        SC_MonsterHealth monsterHealth = other.GetComponent<SC_MonsterHealth>();
+        if (monsterHealth == null)
+        {
+            monsterHealth = other.GetComponentInParent<SC_MonsterHealth>();
+        }
+
+        if (monsterHealth != null)
+        {
+            monsterHealth.TakeDamage(damage);
+        }
+
+        return true;
     }
 }

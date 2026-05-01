@@ -17,6 +17,9 @@ public class SC_CharacterMergeController : MonoBehaviour
     [Tooltip("합체 후 상속 속도의 최대값(0 이하면 제한 없음)")]
     [SerializeField] private float maxInheritedSpeed = 0f;
 
+    [Tooltip("합체를 허용할 실제 접촉 거리 오차(0이면 실제 접촉 시에만 합체)")]
+    [SerializeField] private float mergeContactTolerance = 0f;
+
     private bool isMerged;
 
     private void Reset()
@@ -90,6 +93,11 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
 
         if (myData.CharacterGrade != otherData.CharacterGrade)
+        {
+            return;
+        }
+
+        if (!IsActuallyTouching(otherMerge))
         {
             return;
         }
@@ -180,6 +188,24 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         Destroy(otherMerge.gameObject);
         Destroy(gameObject);
+    }
+
+    private bool IsActuallyTouching(SC_CharacterMergeController otherMerge)
+    {
+        if (otherMerge == null)
+        {
+            return false;
+        }
+
+        Collider2D myCollider = GetComponent<Collider2D>();
+        Collider2D otherCollider = otherMerge.GetComponent<Collider2D>();
+        if (myCollider == null || otherCollider == null)
+        {
+            return false;
+        }
+
+        ColliderDistance2D colliderDistance = myCollider.Distance(otherCollider);
+        return colliderDistance.distance <= Mathf.Max(0f, mergeContactTolerance);
     }
 
     private static void DisablePhysicsForMerge(SC_CharacterMergeController mergeController)
