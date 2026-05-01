@@ -165,6 +165,17 @@ public class SC_CharacterMergeController : MonoBehaviour
             mergedShoot.SetShotState(true);
         }
 
+        if (mergedCharacter.GetComponent<SC_CharacterAutoProjectileShooter>() == null)
+        {
+            mergedCharacter.AddComponent<SC_CharacterAutoProjectileShooter>();
+        }
+
+        SC_CharacterAutoProjectileShooter mergedAutoShooter = mergedCharacter.GetComponent<SC_CharacterAutoProjectileShooter>();
+        if (mergedAutoShooter != null)
+        {
+            mergedAutoShooter.SetRequireFirstCollisionBeforeAutoShoot(false);
+        }
+
         EnablePhysicsForMergedCharacter(mergedCharacter);
 
         Destroy(otherMerge.gameObject);

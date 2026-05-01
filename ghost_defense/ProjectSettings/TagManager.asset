@@ -3,7 +3,8 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Monster
   layers:
   - Default
   - TransparentFX
@@ -43,6 +44,9 @@ TagManager:
     locked: 0
   - name: Character
     uniqueID: 2771988371
+    locked: 0
+  - name: Missile
+    uniqueID: 13841857
     locked: 0
   m_RenderingLayers:
   - Default

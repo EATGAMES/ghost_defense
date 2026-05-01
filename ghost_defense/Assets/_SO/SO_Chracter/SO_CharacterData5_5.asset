@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f944b97db8b00b2449980b1e29f5ec76, type: 3}
+  m_Name: SO_CharacterData5_5
+  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterData
+  characterName: 
+  characterDescription: 
+  characterSprite: {fileID: -911510485638640311, guid: e667d1b9dd0fd4543a5d3fde926b3ef5, type: 3}
+  characterKind: 4
+  characterGrade: 5
+  attackType: 0
+  weight: 1
+  circleColliderRadius: 0.55
+  circleColliderOffset: {x: 0.02, y: -0.15}
+  nextGradeCharacterData: {fileID: 0}
+  autoProjectilePrefab: {fileID: 2416668273486641803, guid: f90d61c42c2971c48b1573de33fecda3, type: 3}
+  autoProjectileSpawnDelay: 1
+  autoProjectileSpeed: 9
