@@ -33,19 +33,22 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("전투 시작 시 적용할 시작 스테이지 번호입니다.")]
     [SerializeField] private int startStage = 1;
 
-    [Tooltip("로비에서 설정한 5종 캐릭터 순서입니다.")]
+    [Tooltip("상단 공격 캐릭터와 데미지 계산에 사용할 공격 캐릭터 데이터 목록입니다.")]
     [SerializeField] private SO_CharacterData[] equippedRoster = new SO_CharacterData[5];
+
+    [Tooltip("하단 필드 캐릭터 스프라이트에 사용할 필드 스킨 데이터 목록입니다.")]
+    [SerializeField] private SO_FieldCharacterSkinData[] equippedFieldSkins = new SO_FieldCharacterSkinData[5];
 
     [Tooltip("카드 선택 팝업이 열리기까지 필요한 공격 횟수입니다.")]
     [SerializeField] private int attackCountPerCard = 20;
 
-    [Tooltip("공격 큐를 처리할 때 각 공격 사이의 기본 간격(초)입니다.")]
+    [Tooltip("공격 요청 처리 사이의 기본 간격(초)입니다.")]
     [SerializeField] private float baseAttackInterval = 0.2f;
 
-    [Tooltip("카드 선택 중 전투를 일시정지할지 여부입니다.")]
+    [Tooltip("카드 선택 중 전투를 일시 정지할지 여부입니다.")]
     [SerializeField] private bool pauseWhenSelectingCard = true;
 
-    [Tooltip("20회 공격마다 열리는 카드 선택 팝업입니다.")]
+    [Tooltip("일정 공격 횟수마다 열릴 카드 선택 팝업입니다.")]
     [SerializeField] private SC_BattleCardPopup battleCardPopup;
 
     [Tooltip("상단 공격 캐릭터 연출 시간을 참조할 뷰입니다.")]
@@ -56,10 +59,14 @@ public class SC_BattleManager : MonoBehaviour
     private SC_MonsterHealth currentBoss;
     private Coroutine attackQueueCoroutine;
     private SO_CharacterData currentAttackCharacterData;
+    private int currentAttackGrade;
     private int currentAttackCount;
     private int openedCardSelectionCount;
     private bool isCardSelectionOpen;
     private bool isBattleFinished;
+    private bool isBattleClosing;
+    private bool isStageClearPending;
+    private SC_MonsterHealth pendingDefeatedBoss;
 
     public int MaxStage => Mathf.Max(1, maxStage);
     public int CurrentMergeAttackCount => currentAttackCount;
@@ -68,6 +75,7 @@ public class SC_BattleManager : MonoBehaviour
     public bool IsBattleFinished => isBattleFinished;
     public int PendingAttackQueueCount => pendingAttackRequests.Count;
     public SO_CharacterData CurrentAttackCharacterData => currentAttackCharacterData;
+    public int CurrentAttackGrade => Mathf.Clamp(currentAttackGrade, 0, 10);
 
     private void Awake()
     {
@@ -86,6 +94,7 @@ public class SC_BattleManager : MonoBehaviour
     {
         CurrentStage = Mathf.Clamp(startStage, 1, MaxStage);
         currentAttackCharacterData = GetStartingAttackCharacterData();
+        currentAttackGrade = currentAttackCharacterData != null ? 1 : 0;
 
         RaiseStageChanged();
         RaiseBossHealthChanged();
@@ -141,7 +150,7 @@ public class SC_BattleManager : MonoBehaviour
 
     public void NotifyMergeAttack(int mergedGrade)
     {
-        if (isBattleFinished || isCardSelectionOpen)
+        if (isBattleFinished || isBattleClosing || isCardSelectionOpen)
         {
             return;
         }
@@ -154,7 +163,7 @@ public class SC_BattleManager : MonoBehaviour
 
     public void NotifyBossDefeated(SC_MonsterHealth defeatedBoss)
     {
-        if (isBattleFinished)
+        if (isBattleFinished || isBattleClosing)
         {
             return;
         }
@@ -164,20 +173,13 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
-        isBattleFinished = true;
+        isBattleClosing = true;
         isCardSelectionOpen = false;
-        pendingAttackRequests.Clear();
-        currentAttackCount = 0;
+        pendingDefeatedBoss = defeatedBoss;
 
         if (pauseWhenSelectingCard && Time.timeScale == 0f)
         {
             Time.timeScale = 1f;
-        }
-
-        if (attackQueueCoroutine != null)
-        {
-            StopCoroutine(attackQueueCoroutine);
-            attackQueueCoroutine = null;
         }
 
         if (currentBoss != null)
@@ -186,9 +188,14 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         currentBoss = null;
-        RaiseMergeAttackGaugeChanged();
-        RaiseBossHealthChanged(0f, defeatedBoss != null ? defeatedBoss.MaxHp : 0f);
-        StageCleared?.Invoke(CurrentStage);
+
+        if (attackQueueCoroutine != null || pendingAttackRequests.Count > 0)
+        {
+            isStageClearPending = true;
+            return;
+        }
+
+        FinalizeBossDefeat();
     }
 
     public void NotifyBattleFailed()
@@ -244,8 +251,15 @@ public class SC_BattleManager : MonoBehaviour
 
     public Sprite GetFieldSpriteForGrade(int grade)
     {
-        SO_CharacterData characterData = GetCharacterDataForGrade(grade);
-        return characterData != null ? characterData.GetFieldSpriteForGrade(grade) : null;
+        if (equippedFieldSkins == null || equippedFieldSkins.Length <= 0)
+        {
+            return null;
+        }
+
+        int safeGrade = Mathf.Clamp(grade, 1, 10);
+        int skinIndex = (safeGrade - 1) % equippedFieldSkins.Length;
+        SO_FieldCharacterSkinData skinData = equippedFieldSkins[skinIndex];
+        return skinData != null ? skinData.GetFieldSpriteForGrade(safeGrade) : null;
     }
 
     public SO_CharacterData[] GetEquippedRosterSnapshot()
@@ -295,20 +309,13 @@ public class SC_BattleManager : MonoBehaviour
 
     private IEnumerator CoProcessAttackQueue()
     {
-        while (!isBattleFinished && !isCardSelectionOpen && pendingAttackRequests.Count > 0)
+        while (!isCardSelectionOpen && pendingAttackRequests.Count > 0)
         {
-            if (currentBoss == null || currentBoss.CurrentHp <= 0f)
-            {
-                pendingAttackRequests.Clear();
-                RaiseMergeAttackGaugeChanged();
-                break;
-            }
-
             AttackRequest request = pendingAttackRequests.Dequeue();
             SO_CharacterData attacker = request.CharacterData != null ? request.CharacterData : currentAttackCharacterData;
             if (attacker == null)
             {
-                break;
+                continue;
             }
 
             float attackStartDelay = currentAttackCharacterView != null ? currentAttackCharacterView.AttackStartDelay : 0f;
@@ -318,6 +325,7 @@ public class SC_BattleManager : MonoBehaviour
             }
 
             currentAttackCharacterData = attacker;
+            currentAttackGrade = request.Grade;
             RaiseCurrentAttackCharacterChanged(true);
 
             float finalDamage = attacker.CalculateAttackDamage(request.Grade);
@@ -331,24 +339,53 @@ public class SC_BattleManager : MonoBehaviour
             currentAttackCount++;
             RaiseMergeAttackGaugeChanged();
 
-            if (currentAttackCount >= MergeAttackCountPerCard)
+            float presentationDuration = currentAttackCharacterView != null ? currentAttackCharacterView.AttackAnimationDuration : 0f;
+
+            if (!isBattleClosing && currentAttackCount >= MergeAttackCountPerCard)
             {
+                if (presentationDuration > 0f)
+                {
+                    yield return new WaitForSeconds(presentationDuration);
+                }
+
                 OpenCardSelection();
                 break;
             }
 
             float attackInterval = Mathf.Max(0.01f, baseAttackInterval / Mathf.Max(0.01f, attacker.AttackQueueSpeedPercent));
-            float presentationDuration = currentAttackCharacterView != null ? currentAttackCharacterView.AttackAnimationDuration : 0f;
             float delay = presentationDuration + attackInterval;
             yield return new WaitForSeconds(delay);
         }
 
         attackQueueCoroutine = null;
 
+        if (isStageClearPending && pendingAttackRequests.Count <= 0)
+        {
+            FinalizeBossDefeat();
+            yield break;
+        }
+
         if (!isBattleFinished && !isCardSelectionOpen && pendingAttackRequests.Count > 0)
         {
             TryStartAttackQueueProcessing();
         }
+    }
+
+    private void FinalizeBossDefeat()
+    {
+        if (isBattleFinished)
+        {
+            return;
+        }
+
+        isBattleFinished = true;
+        isBattleClosing = false;
+        isStageClearPending = false;
+        currentAttackCount = 0;
+        RaiseMergeAttackGaugeChanged();
+        RaiseBossHealthChanged(0f, pendingDefeatedBoss != null ? pendingDefeatedBoss.MaxHp : 0f);
+        StageCleared?.Invoke(CurrentStage);
+        pendingDefeatedBoss = null;
     }
 
     private void ApplyDamageToBoss(float damage)

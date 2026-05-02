@@ -19,49 +19,45 @@ public class SO_CharacterData : ScriptableObject
     [TextArea(3, 8)]
     [SerializeField] private string characterDescription;
 
-    [Tooltip("상단 공격 캐릭터로 표시할 기본 스프라이트입니다.")]
+    [Tooltip("상단 공격 캐릭터 1순환(1~5단계) 스프라이트입니다.")]
     [FormerlySerializedAs("characterSprite")]
-    [SerializeField] private Sprite topCharacterSprite;
+    [SerializeField] private Sprite firstCycleTopCharacterSprite;
 
-    [Tooltip("이 캐릭터가 1회차로 등장할 때 사용할 필드 스프라이트입니다.")]
-    [SerializeField] private Sprite firstCycleFieldSprite;
-
-    [Tooltip("이 캐릭터가 2회차로 등장할 때 사용할 필드 스프라이트입니다.")]
-    [SerializeField] private Sprite secondCycleFieldSprite;
+    [Tooltip("상단 공격 캐릭터 2순환(6~10단계) 스프라이트입니다.")]
+    [SerializeField] private Sprite secondCycleTopCharacterSprite;
 
     [Tooltip("공격 역할 분류입니다.")]
     [SerializeField] private CharacterAttackRole attackRole = CharacterAttackRole.Single;
 
-    [Tooltip("캐릭터 기본 공격력입니다.")]
+    [Tooltip("캐릭터의 기본 공격력입니다.")]
     [SerializeField] private float baseAttackPower = 10f;
 
-    [Tooltip("머지 단계 1당 적용할 공격 배수입니다.")]
+    [Tooltip("합체 단계가 1 오를 때마다 적용할 공격 배수입니다.")]
     [SerializeField] private float mergeGradeMultiplierPerStep = 1f;
 
-    [Tooltip("최종 공격력 보정 배율입니다. 1이면 100%입니다.")]
+    [Tooltip("최종 공격력에 곱할 보정 배수입니다. 1이면 100%입니다.")]
     [SerializeField] private float attackPowerPercent = 1f;
 
     [Tooltip("고단계 보너스를 적용하기 시작할 단계입니다.")]
     [SerializeField] private int highGradeStart = 5;
 
-    [Tooltip("고단계 공격 시 추가할 보너스 배율입니다. 0.3이면 30%입니다.")]
+    [Tooltip("고단계 공격에 추가할 보너스 배수입니다. 0.3이면 30%입니다.")]
     [SerializeField] private float highGradeBonusPercent = 0f;
 
-    [Tooltip("10단계 공격 시 추가할 보너스 배율입니다. 0.5이면 50%입니다.")]
+    [Tooltip("10단계 공격에 추가할 보너스 배수입니다. 0.5이면 50%입니다.")]
     [SerializeField] private float finalGradeBonusPercent = 0f;
 
     [Tooltip("치명타 확률입니다. 0에서 1 사이 값을 사용합니다.")]
     [SerializeField] [Range(0f, 1f)] private float criticalChance = 0f;
 
-    [Tooltip("치명타 배율입니다. 1.5이면 150%입니다.")]
+    [Tooltip("치명타 배수입니다. 1.5이면 150%입니다.")]
     [SerializeField] private float criticalDamageMultiplier = 1.5f;
 
-    [Tooltip("공격 큐 처리 속도 배율입니다. 1이면 기본 속도입니다.")]
+    [Tooltip("공격 처리 속도 배수입니다. 1이면 기본 속도입니다.")]
     [SerializeField] private float attackQueueSpeedPercent = 1f;
 
     public string CharacterName => characterName;
     public string CharacterDescription => characterDescription;
-    public Sprite TopCharacterSprite => topCharacterSprite;
     public CharacterAttackRole AttackRole => attackRole;
     public float BaseAttackPower => baseAttackPower;
     public float MergeGradeMultiplierPerStep => mergeGradeMultiplierPerStep;
@@ -73,10 +69,16 @@ public class SO_CharacterData : ScriptableObject
     public float CriticalDamageMultiplier => Mathf.Max(1f, criticalDamageMultiplier);
     public float AttackQueueSpeedPercent => Mathf.Max(0.01f, attackQueueSpeedPercent);
 
-    public Sprite GetFieldSpriteForGrade(int grade)
+    public Sprite GetTopCharacterSpriteForGrade(int grade)
     {
         int cycleIndex = SC_GradeCharacterResolver.GetCycleIndex(grade);
-        return cycleIndex == 0 ? firstCycleFieldSprite : secondCycleFieldSprite;
+        Sprite cycleSprite = cycleIndex == 0 ? firstCycleTopCharacterSprite : secondCycleTopCharacterSprite;
+        if (cycleSprite != null)
+        {
+            return cycleSprite;
+        }
+
+        return firstCycleTopCharacterSprite;
     }
 
     public float CalculateAttackDamage(int mergeGrade)

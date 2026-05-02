@@ -3,34 +3,34 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SC_BattleCharacterSpawner : MonoBehaviour
 {
-    [Tooltip("발사 대기 머지 오브젝트를 생성할 프리팹입니다.")]
+    [Tooltip("하단에서 발사할 캐릭터 오브젝트를 생성할 프리팹입니다.")]
     [SerializeField] private GameObject characterPrefab;
 
-    [Tooltip("대기 오브젝트 생성 위치입니다. 비워두면 현재 오브젝트 위치를 사용합니다.")]
+    [Tooltip("대기 캐릭터를 생성할 위치입니다. 비워두면 현재 오브젝트 위치를 사용합니다.")]
     [SerializeField] private Transform spawnPoint;
 
-    [Tooltip("생성된 오브젝트의 부모 Transform입니다. 비워두면 루트에 생성됩니다.")]
+    [Tooltip("생성한 캐릭터를 넣어둘 부모 Transform입니다. 비워두면 루트에 생성합니다.")]
     [SerializeField] private Transform spawnedParent;
 
     [Tooltip("프리팹에 없을 때 SC_PlayerDragAndShoot를 자동으로 추가할지 여부입니다.")]
     [SerializeField] private bool addDragAndShootIfMissing = true;
 
-    [Tooltip("1단계가 생성될 가중치입니다.")]
+    [Tooltip("1단계 캐릭터 생성 가중치입니다.")]
     [SerializeField] private float grade1Weight = 25f;
 
-    [Tooltip("2단계가 생성될 가중치입니다.")]
+    [Tooltip("2단계 캐릭터 생성 가중치입니다.")]
     [SerializeField] private float grade2Weight = 25f;
 
-    [Tooltip("3단계가 생성될 가중치입니다.")]
+    [Tooltip("3단계 캐릭터 생성 가중치입니다.")]
     [SerializeField] private float grade3Weight = 20f;
 
-    [Tooltip("4단계가 생성될 가중치입니다.")]
+    [Tooltip("4단계 캐릭터 생성 가중치입니다.")]
     [SerializeField] private float grade4Weight = 18f;
 
-    [Tooltip("5단계가 생성될 가중치입니다.")]
+    [Tooltip("5단계 캐릭터 생성 가중치입니다.")]
     [SerializeField] private float grade5Weight = 12f;
 
-    [Tooltip("다음 대기 오브젝트를 다시 생성하기까지의 지연 시간(초)입니다.")]
+    [Tooltip("다음 대기 캐릭터를 다시 생성하기까지의 지연 시간(초)입니다.")]
     [SerializeField] private float respawnDelay = 0.1f;
 
     private SC_PlayerDragAndShoot currentWaitingCharacter;
@@ -89,7 +89,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     {
         if (characterPrefab == null)
         {
-            Debug.LogWarning("SC_BattleCharacterSpawner: characterPrefab이 비어 있습니다.");
+            Debug.LogWarning("SC_BattleCharacterSpawner: characterPrefab이 비어 있습니다.", this);
             return;
         }
 
@@ -110,7 +110,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
         if (shootComponent == null)
         {
-            Debug.LogWarning("SC_BattleCharacterSpawner: SC_PlayerDragAndShoot 컴포넌트를 찾지 못했습니다.");
+            Debug.LogWarning("SC_BattleCharacterSpawner: SC_PlayerDragAndShoot 컴포넌트를 찾지 못했습니다.", this);
             Destroy(mergeObject);
             return;
         }
@@ -128,7 +128,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         SC_CharacterPresenter presenter = mergeObject.GetComponent<SC_CharacterPresenter>();
         if (presenter == null)
         {
-            Debug.LogWarning("SC_BattleCharacterSpawner: SC_CharacterPresenter를 찾지 못했습니다.");
+            Debug.LogWarning("SC_BattleCharacterSpawner: SC_CharacterPresenter를 찾지 못했습니다.", this);
             return;
         }
 

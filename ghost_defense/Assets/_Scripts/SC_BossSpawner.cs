@@ -4,24 +4,12 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class SC_BossSpawner : MonoBehaviour
 {
-    [Tooltip("생성된 보스를 등록하고 종료를 처리할 배틀 매니저입니다.")]
+    [Tooltip("씬에 배치한 보스를 등록하고 전투 종료를 전달할 배틀 매니저입니다.")]
     [FormerlySerializedAs("waveManager")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("생성할 보스 프리팹입니다.")]
-    [SerializeField] private GameObject monsterPrefab;
-
-    [Tooltip("보스를 생성할 위치입니다. 비워두면 현재 오브젝트 위치를 사용합니다.")]
-    [SerializeField] private Transform spawnPoint;
-
-    [Tooltip("생성된 보스의 부모 Transform입니다. 비워두면 루트에 생성됩니다.")]
-    [SerializeField] private Transform spawnedMonsterParent;
-
-    [Tooltip("전투 시작 시 보스를 자동으로 생성할지 여부입니다.")]
-    [SerializeField] private bool spawnBossOnStart = true;
-
-    private GameObject currentSpawnedBossObject;
-    private SC_MonsterHealth currentSpawnedBossHealth;
+    [Tooltip("씬에 미리 배치한 보스 체력 컴포넌트입니다. 비워두면 자신 또는 자식에서 자동으로 찾습니다.")]
+    [SerializeField] private SC_MonsterHealth placedBossHealth;
 
     private void Awake()
     {
@@ -29,60 +17,67 @@ public class SC_BossSpawner : MonoBehaviour
         {
             battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
+
+        if (placedBossHealth == null)
+        {
+            placedBossHealth = GetComponent<SC_MonsterHealth>();
+        }
+
+        if (placedBossHealth == null)
+        {
+            placedBossHealth = GetComponentInChildren<SC_MonsterHealth>();
+        }
     }
 
     private void OnEnable()
     {
         SC_MonsterHealth.MonsterDied += OnMonsterDied;
-    }
 
-    private void Start()
-    {
-        if (spawnBossOnStart)
+        if (battleManager != null && placedBossHealth != null)
         {
-            SpawnBoss();
+            battleManager.RegisterBoss(placedBossHealth);
         }
     }
 
     private void OnDisable()
     {
         SC_MonsterHealth.MonsterDied -= OnMonsterDied;
+
+        if (battleManager != null && placedBossHealth != null)
+        {
+            battleManager.UnregisterBoss(placedBossHealth);
+        }
     }
 
     public void SpawnBoss()
     {
-        if (monsterPrefab == null)
+        if (battleManager == null)
         {
-            Debug.LogWarning("SC_BossSpawner: monsterPrefab이 비어 있습니다.");
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (placedBossHealth == null)
+        {
+            placedBossHealth = GetComponent<SC_MonsterHealth>();
+        }
+
+        if (placedBossHealth == null)
+        {
+            placedBossHealth = GetComponentInChildren<SC_MonsterHealth>();
+        }
+
+        if (battleManager == null || placedBossHealth == null)
+        {
+            Debug.LogWarning("SC_BossSpawner: 씬에 배치한 보스 또는 SC_BattleManager를 찾지 못했습니다.", this);
             return;
         }
 
-        ClearCurrentBossReference();
-
-        Vector3 spawnPosition = spawnPoint != null ? spawnPoint.position : transform.position;
-        Quaternion spawnRotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
-        currentSpawnedBossObject = Instantiate(monsterPrefab, spawnPosition, spawnRotation, spawnedMonsterParent);
-
-        if (currentSpawnedBossObject == null)
-        {
-            return;
-        }
-
-        currentSpawnedBossHealth = currentSpawnedBossObject.GetComponent<SC_MonsterHealth>();
-        if (currentSpawnedBossHealth == null)
-        {
-            currentSpawnedBossHealth = currentSpawnedBossObject.GetComponentInChildren<SC_MonsterHealth>();
-        }
-
-        if (currentSpawnedBossHealth != null && battleManager != null)
-        {
-            battleManager.RegisterBoss(currentSpawnedBossHealth);
-        }
+        battleManager.RegisterBoss(placedBossHealth);
     }
 
     private void OnMonsterDied(SC_MonsterHealth deadMonster)
     {
-        if (deadMonster == null || deadMonster != currentSpawnedBossHealth)
+        if (deadMonster == null || deadMonster != placedBossHealth)
         {
             return;
         }
@@ -91,18 +86,5 @@ public class SC_BossSpawner : MonoBehaviour
         {
             battleManager.NotifyBossDefeated(deadMonster);
         }
-
-        ClearCurrentBossReference();
-    }
-
-    private void ClearCurrentBossReference()
-    {
-        if (battleManager != null && currentSpawnedBossHealth != null)
-        {
-            battleManager.UnregisterBoss(currentSpawnedBossHealth);
-        }
-
-        currentSpawnedBossObject = null;
-        currentSpawnedBossHealth = null;
     }
 }

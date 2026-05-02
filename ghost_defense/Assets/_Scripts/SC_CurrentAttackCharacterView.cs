@@ -4,16 +4,16 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SC_CurrentAttackCharacterView : MonoBehaviour
 {
-    [Tooltip("현재 공격 캐릭터 정보를 전달할 배틀 매니저입니다.")]
+    [Tooltip("현재 공격 캐릭터 정보를 전달받을 배틀 매니저입니다.")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("상단 현재 공격 캐릭터로 사용할 프리팹입니다.")]
-    [SerializeField] private GameObject characterViewPrefab;
+    [Tooltip("상단에서 직접 배치해 둘 공격 캐릭터 루트 Transform입니다.")]
+    [SerializeField] private Transform animatedCharacterRoot;
 
-    [Tooltip("캐릭터를 생성하고 복귀 위치로 사용할 기준 Transform입니다.")]
-    [SerializeField] private Transform spawnAnchor;
+    [Tooltip("상단 공격 캐릭터 스프라이트를 표시할 SpriteRenderer입니다.")]
+    [SerializeField] private SpriteRenderer characterSpriteRenderer;
 
-    [Tooltip("머지 후 상단 공격 캐릭터가 바뀌기 전 대기 시간(초)입니다.")]
+    [Tooltip("공격 시작 전 대기 시간(초)입니다.")]
     [SerializeField] private float attackStartDelay = 0.08f;
 
     [Tooltip("공격 시작 전에 제자리에서 흔들리는 시간(초)입니다.")]
@@ -25,21 +25,18 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
     [Tooltip("공격 시작 전에 흔들리는 속도입니다.")]
     [SerializeField] private float attackShakeFrequency = 55f;
 
-    [Tooltip("공격 시 왼쪽으로 돌진하는 거리입니다.")]
+    [Tooltip("공격 때 왼쪽으로 돌진하는 거리입니다.")]
     [SerializeField] private float attackMoveDistance = 120f;
 
-    [Tooltip("공격 시 왼쪽으로 돌진하는 시간(초)입니다.")]
+    [Tooltip("공격 때 왼쪽으로 돌진하는 시간(초)입니다.")]
     [SerializeField] private float attackMoveDuration = 0.08f;
 
     [Tooltip("공격 후 원래 자리로 복귀하는 시간(초)입니다.")]
     [SerializeField] private float attackReturnDuration = 0.12f;
 
-    [Tooltip("상단 캐릭터 SpriteRenderer의 정렬 순서입니다.")]
-    [SerializeField] private int sortingOrder = 25;
-
-    private GameObject spawnedCharacterObject;
-    private SpriteRenderer spawnedSpriteRenderer;
     private Coroutine attackAnimationCoroutine;
+    private Vector3 initialLocalPosition;
+    private Quaternion initialLocalRotation;
 
     public float AttackStartDelay => Mathf.Max(0f, attackStartDelay);
     public float AttackAnimationDuration => Mathf.Max(0f, attackShakeDuration) + Mathf.Max(0.01f, attackMoveDuration) + Mathf.Max(0.01f, attackReturnDuration);
@@ -51,12 +48,18 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
             battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
 
-        if (spawnAnchor == null)
+        if (animatedCharacterRoot == null)
         {
-            spawnAnchor = transform;
+            animatedCharacterRoot = transform;
         }
 
-        EnsureSpawnedCharacter();
+        if (characterSpriteRenderer == null)
+        {
+            characterSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        }
+
+        CacheInitialTransform();
+        ApplyCharacterSprite(battleManager != null ? battleManager.CurrentAttackCharacterData : null);
     }
 
     private void OnEnable()
@@ -76,54 +79,6 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
         {
             battleManager.CurrentAttackCharacterChanged -= OnCurrentAttackCharacterChanged;
         }
-    }
-
-    private void EnsureSpawnedCharacter()
-    {
-        if (spawnedCharacterObject != null)
-        {
-            return;
-        }
-
-        if (characterViewPrefab == null)
-        {
-            Debug.LogWarning("SC_CurrentAttackCharacterView: characterViewPrefab이 비어 있습니다.");
-            return;
-        }
-
-        if (spawnAnchor == null)
-        {
-            Debug.LogWarning("SC_CurrentAttackCharacterView: spawnAnchor가 비어 있습니다.");
-            return;
-        }
-
-        spawnedCharacterObject = Instantiate(characterViewPrefab, spawnAnchor);
-        spawnedCharacterObject.name = "OBJ_CurrentAttackCharacter";
-        spawnedCharacterObject.transform.localPosition = Vector3.zero;
-        spawnedCharacterObject.transform.localRotation = Quaternion.identity;
-
-        spawnedSpriteRenderer = spawnedCharacterObject.GetComponentInChildren<SpriteRenderer>();
-        if (spawnedSpriteRenderer != null)
-        {
-            spawnedSpriteRenderer.sortingOrder = sortingOrder;
-        }
-    }
-
-    private void OnCurrentAttackCharacterChanged(SO_CharacterData characterData, bool playAttackAnimation)
-    {
-        EnsureSpawnedCharacter();
-        if (spawnedCharacterObject == null)
-        {
-            return;
-        }
-
-        if (spawnedSpriteRenderer != null)
-        {
-            spawnedSpriteRenderer.sprite = characterData != null ? characterData.TopCharacterSprite : null;
-        }
-
-        spawnedCharacterObject.SetActive(characterData != null);
-        ResetCharacterTransform();
 
         if (attackAnimationCoroutine != null)
         {
@@ -131,32 +86,63 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
             attackAnimationCoroutine = null;
         }
 
+        ResetCharacterTransform();
+    }
+
+    private void OnCurrentAttackCharacterChanged(SO_CharacterData characterData, bool playAttackAnimation)
+    {
+        ApplyCharacterSprite(characterData);
+
+        if (animatedCharacterRoot == null)
+        {
+            return;
+        }
+
+        if (attackAnimationCoroutine != null)
+        {
+            StopCoroutine(attackAnimationCoroutine);
+            attackAnimationCoroutine = null;
+        }
+
+        ResetCharacterTransform();
+
         if (playAttackAnimation && characterData != null)
         {
             attackAnimationCoroutine = StartCoroutine(CoPlayAttackAnimation());
         }
     }
 
+    private void ApplyCharacterSprite(SO_CharacterData characterData)
+    {
+        if (characterSpriteRenderer == null)
+        {
+            return;
+        }
+
+        int attackGrade = battleManager != null ? battleManager.CurrentAttackGrade : 0;
+        characterSpriteRenderer.sprite = characterData != null ? characterData.GetTopCharacterSpriteForGrade(attackGrade) : null;
+        characterSpriteRenderer.enabled = characterSpriteRenderer.sprite != null;
+    }
+
     private IEnumerator CoPlayAttackAnimation()
     {
-        if (spawnedCharacterObject == null)
+        if (animatedCharacterRoot == null)
         {
             yield break;
         }
 
-        Transform characterTransform = spawnedCharacterObject.transform;
-        Vector3 startPosition = Vector3.zero;
-        Vector3 dashTargetPosition = Vector3.left * Mathf.Max(0f, attackMoveDistance);
+        Vector3 startPosition = initialLocalPosition;
+        Vector3 dashTargetPosition = startPosition + Vector3.left * Mathf.Max(0f, attackMoveDistance);
 
-        yield return CoShake(characterTransform, startPosition);
-        yield return CoDash(characterTransform, startPosition, dashTargetPosition);
-        yield return CoReturn(characterTransform, dashTargetPosition, startPosition);
+        yield return CoShake(startPosition);
+        yield return CoDash(startPosition, dashTargetPosition);
+        yield return CoReturn(dashTargetPosition, startPosition);
 
         ResetCharacterTransform();
         attackAnimationCoroutine = null;
     }
 
-    private IEnumerator CoShake(Transform characterTransform, Vector3 startPosition)
+    private IEnumerator CoShake(Vector3 startPosition)
     {
         float duration = Mathf.Max(0f, attackShakeDuration);
         float elapsed = 0f;
@@ -165,14 +151,14 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float shakeOffsetX = Mathf.Sin(elapsed * Mathf.Max(0f, attackShakeFrequency)) * Mathf.Max(0f, attackShakeDistance);
-            characterTransform.localPosition = startPosition + Vector3.right * shakeOffsetX;
+            animatedCharacterRoot.localPosition = startPosition + Vector3.right * shakeOffsetX;
             yield return null;
         }
 
-        characterTransform.localPosition = startPosition;
+        animatedCharacterRoot.localPosition = startPosition;
     }
 
-    private IEnumerator CoDash(Transform characterTransform, Vector3 startPosition, Vector3 dashTargetPosition)
+    private IEnumerator CoDash(Vector3 startPosition, Vector3 dashTargetPosition)
     {
         float duration = Mathf.Max(0.01f, attackMoveDuration);
         float elapsed = 0f;
@@ -181,14 +167,13 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-            // 빠르게 치고 나가는 느낌을 위해 초반 가속을 강하게 준다.
             float easedT = 1f - Mathf.Pow(1f - t, 3f);
-            characterTransform.localPosition = Vector3.LerpUnclamped(startPosition, dashTargetPosition, easedT);
+            animatedCharacterRoot.localPosition = Vector3.LerpUnclamped(startPosition, dashTargetPosition, easedT);
             yield return null;
         }
     }
 
-    private IEnumerator CoReturn(Transform characterTransform, Vector3 dashTargetPosition, Vector3 startPosition)
+    private IEnumerator CoReturn(Vector3 dashTargetPosition, Vector3 startPosition)
     {
         float duration = Mathf.Max(0.01f, attackReturnDuration);
         float elapsed = 0f;
@@ -197,21 +182,31 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-            // 복귀는 살짝 부드럽게 돌아오도록 감속 곡선을 사용한다.
             float easedT = 1f - Mathf.Pow(1f - t, 2f);
-            characterTransform.localPosition = Vector3.LerpUnclamped(dashTargetPosition, startPosition, easedT);
+            animatedCharacterRoot.localPosition = Vector3.LerpUnclamped(dashTargetPosition, startPosition, easedT);
             yield return null;
         }
     }
 
-    private void ResetCharacterTransform()
+    private void CacheInitialTransform()
     {
-        if (spawnedCharacterObject == null)
+        if (animatedCharacterRoot == null)
         {
             return;
         }
 
-        spawnedCharacterObject.transform.localPosition = Vector3.zero;
-        spawnedCharacterObject.transform.localRotation = Quaternion.identity;
+        initialLocalPosition = animatedCharacterRoot.localPosition;
+        initialLocalRotation = animatedCharacterRoot.localRotation;
+    }
+
+    private void ResetCharacterTransform()
+    {
+        if (animatedCharacterRoot == null)
+        {
+            return;
+        }
+
+        animatedCharacterRoot.localPosition = initialLocalPosition;
+        animatedCharacterRoot.localRotation = initialLocalRotation;
     }
 }

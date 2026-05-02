@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SO_CharacterData
   characterName: 
   characterDescription: 
-  topCharacterSprite: {fileID: 21300000, guid: 4f569f59cdd806d41b69bd572709ae97, type: 3}
-  firstCycleFieldSprite: {fileID: 21300000, guid: 4f569f59cdd806d41b69bd572709ae97, type: 3}
-  secondCycleFieldSprite: {fileID: 21300000, guid: 2fb2fa4cc662150448267fb17d3652f5, type: 3}
+  firstCycleTopCharacterSprite: {fileID: 21300000, guid: 4f569f59cdd806d41b69bd572709ae97, type: 3}
+  secondCycleTopCharacterSprite: {fileID: 21300000, guid: 2fb2fa4cc662150448267fb17d3652f5, type: 3}
   attackRole: 0
   baseAttackPower: 10
   mergeGradeMultiplierPerStep: 1

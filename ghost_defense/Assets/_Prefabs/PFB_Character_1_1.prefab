@@ -99,8 +99,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.02, y: -0.15}
-  m_Radius: 0.55
+  m_Offset: {x: 0.1, y: -0.15}
+  m_Radius: 0.45
 --- !u!114 &4159833219662769503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158,11 +158,19 @@ MonoBehaviour:
   circleCollider2D: {fileID: 8719631040584362176}
   baseScale: 1
   scaleStep: 0.08
+  scaleByGrade:
+  - 1
+  - 1.08
+  - 1.16
+  - 1.25
+  - 1.35
+  - 1.46
+  - 1.58
+  - 1.71
+  - 1.85
+  - 2
   baseMass: 1
-  massStep: 0.2
-  baseColliderRadius: 0.55
-  colliderRadiusStep: 0.03
-  colliderOffset: {x: 0.02, y: -0.15}
+  massStep: 0
 --- !u!114 &560854494607647108
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -226,7 +234,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.7, y: 0.7, z: 1}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3430716556751482373}
