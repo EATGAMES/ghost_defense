@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SO_FieldCharacterSkinData
   firstCycleFieldSprite: {fileID: 21300000, guid: 2380add315fa6264e8a5d8afce5c9d6d, type: 3}
   secondCycleFieldSprite: {fileID: 21300000, guid: fc329ef30e225e448b2df363a645c67f, type: 3}
+  firstCyclePreviewSprite: {fileID: 21300000, guid: 64ffb3cf9e7e94445b510b406c096233, type: 3}
+  secondCyclePreviewSprite: {fileID: 21300000, guid: f878e28d4d53e5f40b2b100adcad4baa, type: 3}

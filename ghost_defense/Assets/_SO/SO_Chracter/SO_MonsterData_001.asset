@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: SO_MonsterData_001
   m_EditorClassIdentifier: Assembly-CSharp::SO_MonsterData
   monsterName: stage1
-  maxHp: 5000
+  maxHp: 7500
   weaknessDamageType: 0
   weaknessAttackStyle: 0

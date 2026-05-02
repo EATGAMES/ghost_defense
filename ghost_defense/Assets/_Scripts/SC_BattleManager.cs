@@ -30,16 +30,16 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("최대 스테이지 수입니다.")]
     [SerializeField] private int maxStage = 10;
 
-    [Tooltip("전투 시작 시 적용할 시작 스테이지 번호입니다.")]
+    [Tooltip("전투 시작 때 적용할 시작 스테이지 번호입니다.")]
     [SerializeField] private int startStage = 1;
 
-    [Tooltip("상단 공격 캐릭터와 데미지 계산에 사용할 공격 캐릭터 데이터 목록입니다.")]
+    [Tooltip("상단 공격 캐릭터의 데미지 계산에 사용할 공격 캐릭터 데이터 목록입니다.")]
     [SerializeField] private SO_CharacterData[] equippedRoster = new SO_CharacterData[5];
 
     [Tooltip("하단 필드 캐릭터 스프라이트에 사용할 필드 스킨 데이터 목록입니다.")]
     [SerializeField] private SO_FieldCharacterSkinData[] equippedFieldSkins = new SO_FieldCharacterSkinData[5];
 
-    [Tooltip("카드 선택 팝업이 뜨기까지 필요한 공격 횟수입니다.")]
+    [Tooltip("카드 선택 팝업을 열기까지 필요한 공격 횟수입니다.")]
     [SerializeField] private int attackCountPerCard = 20;
 
     [Tooltip("공격 요청 처리 사이 기본 간격(초)입니다.")]
@@ -260,6 +260,19 @@ public class SC_BattleManager : MonoBehaviour
         int skinIndex = (safeGrade - 1) % equippedFieldSkins.Length;
         SO_FieldCharacterSkinData skinData = equippedFieldSkins[skinIndex];
         return skinData != null ? skinData.GetFieldSpriteForGrade(safeGrade) : null;
+    }
+
+    public Sprite GetPreviewSpriteForGrade(int grade)
+    {
+        if (equippedFieldSkins == null || equippedFieldSkins.Length <= 0)
+        {
+            return null;
+        }
+
+        int safeGrade = Mathf.Clamp(grade, 1, 10);
+        int skinIndex = (safeGrade - 1) % equippedFieldSkins.Length;
+        SO_FieldCharacterSkinData skinData = equippedFieldSkins[skinIndex];
+        return skinData != null ? skinData.GetPreviewSpriteForGrade(safeGrade) : null;
     }
 
     public SO_CharacterData[] GetEquippedRosterSnapshot()

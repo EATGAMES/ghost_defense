@@ -29,7 +29,30 @@ public class SC_CharacterMergeController : MonoBehaviour
     [Tooltip("10단계 완성 오브젝트를 제거하기 전까지의 지연 시간(초)입니다.")]
     [SerializeField] private float finalMergeCleanupDelay = 0.15f;
 
+    [Tooltip("주변 밀치기 반경을 Circle Collider 2D 반지름 대비 몇 배로 사용할지 설정합니다.")]
+    [FormerlySerializedAs("pushEffectRadius")]
+    [SerializeField] private float pushEffectRadiusMultiplier = 1.75f;
+
+    [Tooltip("6단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [SerializeField] private float pushEffectForceGrade6 = 5f;
+
+    [Tooltip("7단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [SerializeField] private float pushEffectForceGrade7 = 6f;
+
+    [Tooltip("8단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [SerializeField] private float pushEffectForceGrade8 = 7f;
+
+    [Tooltip("9단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [SerializeField] private float pushEffectForceGrade9 = 8f;
+
+    [Tooltip("10단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [SerializeField] private float pushEffectForceGrade10 = 9f;
+
+    [Tooltip("주변 밀치기 방향에 추가할 위쪽 보정값입니다.")]
+    [SerializeField] private float pushEffectUpwardBias = 0.2f;
+
     private bool isMerged;
+    private readonly Collider2D[] pushEffectResults = new Collider2D[16];
 
     private void Reset()
     {
@@ -56,7 +79,7 @@ public class SC_CharacterMergeController : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        TryMerge(collision.collider);
+        TryMerge(collision.collider, true);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -64,41 +87,51 @@ public class SC_CharacterMergeController : MonoBehaviour
         TryMerge(other);
     }
 
-    private void TryMerge(Collider2D otherCollider)
+    public bool TryMergeFromCollision(Collider2D otherCollider)
+    {
+        return TryMerge(otherCollider, true);
+    }
+
+    private bool TryMerge(Collider2D otherCollider, bool skipTouchCheck = false)
     {
         if (isMerged || otherCollider == null)
         {
-            return;
+            return false;
         }
 
         SC_CharacterMergeController otherMerge = otherCollider.GetComponent<SC_CharacterMergeController>();
+        if (otherMerge == null)
+        {
+            otherMerge = otherCollider.GetComponentInParent<SC_CharacterMergeController>();
+        }
+
         if (otherMerge == null || otherMerge.isMerged || otherMerge == this)
         {
-            return;
+            return false;
         }
 
         if (presenter == null || otherMerge.presenter == null)
         {
-            return;
+            return false;
         }
 
         SC_PlayerDragAndShoot myShoot = GetComponent<SC_PlayerDragAndShoot>();
         SC_PlayerDragAndShoot otherShoot = otherMerge.GetComponent<SC_PlayerDragAndShoot>();
         if (myShoot == null || otherShoot == null || !myShoot.IsShot || !otherShoot.IsShot)
         {
-            return;
+            return false;
         }
 
         int myGrade = presenter.MergeGrade;
         int otherGrade = otherMerge.presenter.MergeGrade;
         if (myGrade != otherGrade)
         {
-            return;
+            return false;
         }
 
-        if (!IsActuallyTouching(otherMerge))
+        if (!skipTouchCheck && !IsActuallyTouching(otherMerge))
         {
-            return;
+            return false;
         }
 
         int nextGrade = Mathf.Clamp(myGrade + 1, 1, 10);
@@ -139,7 +172,9 @@ public class SC_CharacterMergeController : MonoBehaviour
             mergedShoot.SetShotState(true);
         }
 
+        ReportMergedGradeToPreviewUI(nextGrade);
         EnablePhysicsForMergedCharacter(mergedObject);
+        ApplyMergePushEffect(mergedObject, nextGrade);
         NotifyMergeCreated(nextGrade);
 
         if (nextGrade >= 10)
@@ -150,6 +185,98 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         Destroy(otherMerge.gameObject);
         Destroy(gameObject);
+        return true;
+    }
+
+    private static void ReportMergedGradeToPreviewUI(int mergedGrade)
+    {
+        SC_CharacterGradePreviewUI previewUI = FindAnyObjectByType<SC_CharacterGradePreviewUI>();
+        if (previewUI == null)
+        {
+            return;
+        }
+
+        previewUI.ReportReachedGrade(mergedGrade);
+    }
+
+    private void ApplyMergePushEffect(GameObject mergedObject, int mergedGrade)
+    {
+        float pushForce = GetPushEffectForce(mergedGrade);
+        float pushRadius = ResolvePushEffectRadius(mergedObject);
+        if (mergedObject == null || pushRadius <= 0f || pushForce <= 0f)
+        {
+            return;
+        }
+
+        int hitCount = Physics2D.OverlapCircle(mergedObject.transform.position, pushRadius, ContactFilter2D.noFilter, pushEffectResults);
+        Vector2 center = mergedObject.transform.position;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D hitCollider = pushEffectResults[i];
+            if (hitCollider == null)
+            {
+                continue;
+            }
+
+            Rigidbody2D targetRb2D = hitCollider.attachedRigidbody;
+            if (targetRb2D == null || targetRb2D.gameObject == mergedObject)
+            {
+                continue;
+            }
+
+            SC_CharacterMergeController targetMerge = targetRb2D.GetComponent<SC_CharacterMergeController>();
+            if (targetMerge == null || targetMerge == this || targetMerge.isMerged)
+            {
+                continue;
+            }
+
+            Vector2 pushDirection = (targetRb2D.position - center) + Vector2.up * pushEffectUpwardBias;
+            if (pushDirection.sqrMagnitude <= Mathf.Epsilon)
+            {
+                pushDirection = Vector2.up;
+            }
+
+            targetRb2D.AddForce(pushDirection.normalized * pushForce, ForceMode2D.Impulse);
+        }
+    }
+
+    private float ResolvePushEffectRadius(GameObject mergedObject)
+    {
+        if (mergedObject == null || pushEffectRadiusMultiplier <= 0f)
+        {
+            return 0f;
+        }
+
+        CircleCollider2D circleCollider2D = mergedObject.GetComponent<CircleCollider2D>();
+        if (circleCollider2D == null)
+        {
+            return pushEffectRadiusMultiplier;
+        }
+
+        Vector3 lossyScale = mergedObject.transform.lossyScale;
+        float maxScale = Mathf.Max(Mathf.Abs(lossyScale.x), Mathf.Abs(lossyScale.y));
+        float worldRadius = circleCollider2D.radius * Mathf.Max(0.01f, maxScale);
+        return worldRadius * pushEffectRadiusMultiplier;
+    }
+
+    private float GetPushEffectForce(int mergedGrade)
+    {
+        switch (mergedGrade)
+        {
+            case 6:
+                return pushEffectForceGrade6;
+            case 7:
+                return pushEffectForceGrade7;
+            case 8:
+                return pushEffectForceGrade8;
+            case 9:
+                return pushEffectForceGrade9;
+            case 10:
+                return pushEffectForceGrade10;
+            default:
+                return 0f;
+        }
     }
 
     private void NotifyMergeCreated(int mergedGrade)
@@ -189,18 +316,8 @@ public class SC_CharacterMergeController : MonoBehaviour
     {
         if (myRb2D != null && otherRb2D != null)
         {
-            bool isMyFaster = myRb2D.linearVelocity.magnitude >= otherRb2D.linearVelocity.magnitude;
-            Rigidbody2D fastRb2D = isMyFaster ? myRb2D : otherRb2D;
-            Rigidbody2D upperRb2D = myRb2D.position.y >= otherRb2D.position.y ? myRb2D : otherRb2D;
-
-            Vector2 direction = upperRb2D.linearVelocity.normalized;
-            if (direction.sqrMagnitude <= Mathf.Epsilon)
-            {
-                direction = fastRb2D.linearVelocity.normalized;
-            }
-
-            float inheritedSpeed = fastRb2D.linearVelocity.magnitude;
-            return direction * inheritedSpeed;
+            Rigidbody2D lowerRb2D = myRb2D.position.y <= otherRb2D.position.y ? myRb2D : otherRb2D;
+            return lowerRb2D.linearVelocity;
         }
 
         if (myRb2D != null)

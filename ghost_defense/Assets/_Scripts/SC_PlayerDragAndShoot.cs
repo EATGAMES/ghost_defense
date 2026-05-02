@@ -9,6 +9,18 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("드래그 가능한 최대 X 좌표(월드 좌표)")]
     [SerializeField] private float maxX = 3.5f;
 
+    [Tooltip("캐릭터 대신 넓은 입력 존에서 드래그 시작을 허용할지 여부")]
+    [SerializeField] private bool useWideInputZone = true;
+
+    [Tooltip("드래그 시작을 허용할 입력 존의 가로 길이(월드 좌표)")]
+    [SerializeField] private float inputZoneWidth = 5.5f;
+
+    [Tooltip("드래그 시작을 허용할 입력 존의 세로 길이(월드 좌표)")]
+    [SerializeField] private float inputZoneHeight = 2.2f;
+
+    [Tooltip("입력 존 중심 위치에 더할 오프셋(월드 좌표)")]
+    [SerializeField] private Vector2 inputZoneOffset = new Vector2(0f, 0.2f);
+
     [Tooltip("발사 시작 속도(+Y 방향)")]
     [SerializeField] private float shootSpeed = 12f;
 
@@ -133,7 +145,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (isPressed && !wasTouchPressed)
         {
-            if (IsPointerOverSelf(worldPoint))
+            if (CanStartDrag(worldPoint))
             {
                 isDragging = true;
                 dragStartPosition = transform.position;
@@ -178,7 +190,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (isPressed && !wasMousePressed)
         {
-            if (IsPointerOverSelf(worldPoint))
+            if (CanStartDrag(worldPoint))
             {
                 isDragging = true;
                 dragStartPosition = transform.position;
@@ -220,6 +232,35 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         return col2D.OverlapPoint(worldPoint);
     }
 
+    private bool CanStartDrag(Vector3 worldPoint)
+    {
+        if (useWideInputZone && IsPointerInsideWideInputZone(worldPoint))
+        {
+            return true;
+        }
+
+        return IsPointerOverSelf(worldPoint);
+    }
+
+    private bool IsPointerInsideWideInputZone(Vector3 worldPoint)
+    {
+        Vector2 zoneCenter = GetInputZoneCenter();
+        float halfWidth = Mathf.Max(0.01f, inputZoneWidth) * 0.5f;
+        float halfHeight = Mathf.Max(0.01f, inputZoneHeight) * 0.5f;
+
+        return worldPoint.x >= zoneCenter.x - halfWidth &&
+            worldPoint.x <= zoneCenter.x + halfWidth &&
+            worldPoint.y >= zoneCenter.y - halfHeight &&
+            worldPoint.y <= zoneCenter.y + halfHeight;
+    }
+
+    private Vector2 GetInputZoneCenter()
+    {
+        float baseY = lockYPosition ? fixedY : transform.position.y;
+        Vector2 basePosition = new Vector2(transform.position.x, baseY);
+        return basePosition + inputZoneOffset;
+    }
+
     private void DragTo(Vector3 worldPoint)
     {
         float clampedX = Mathf.Clamp(worldPoint.x, minX, maxX);
@@ -257,6 +298,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
 
         SetShotState(true);
+        ReportShotGradeToPreviewUI();
 
         if (rb2D != null)
         {
@@ -264,9 +306,32 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
     }
 
+    private void ReportShotGradeToPreviewUI()
+    {
+        SC_CharacterPresenter presenter = GetComponent<SC_CharacterPresenter>();
+        if (presenter == null)
+        {
+            return;
+        }
+
+        SC_CharacterGradePreviewUI previewUI = FindAnyObjectByType<SC_CharacterGradePreviewUI>();
+        if (previewUI == null)
+        {
+            return;
+        }
+
+        previewUI.ReportReachedGrade(presenter.MergeGrade);
+    }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (rb2D == null)
+        {
+            return;
+        }
+
+        SC_CharacterMergeController myMerge = GetComponent<SC_CharacterMergeController>();
+        if (myMerge != null && myMerge.TryMergeFromCollision(collision.collider))
         {
             return;
         }
@@ -385,6 +450,14 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
+        if (useWideInputZone)
+        {
+            Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
+            Vector2 zoneCenter = GetInputZoneCenter();
+            Vector3 zoneSize = new Vector3(inputZoneWidth, inputZoneHeight, 0f);
+            Gizmos.DrawWireCube(zoneCenter, zoneSize);
+        }
+
         if (!blockShootWhenOverlappingCharacter)
         {
             return;

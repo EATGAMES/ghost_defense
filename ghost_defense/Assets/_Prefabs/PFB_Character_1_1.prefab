@@ -50,7 +50,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 5
   m_LinearDamping: 0.2
   m_AngularDamping: 0.05
   m_GravityScale: 0
@@ -113,17 +113,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4dcc710ac45bff74cbffc0b8ffad17c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SC_PlayerDragAndShoot
-  minX: -2.8
-  maxX: 2.8
+  minX: -2.5
+  maxX: 2.5
+  useWideInputZone: 1
+  inputZoneWidth: 5.5
+  inputZoneHeight: 2.2
+  inputZoneOffset: {x: 0, y: 0.2}
   shootSpeed: 15
   lockYPosition: 1
   fixedY: -7
-  deceleration: 0.5
+  deceleration: 0.4
   collisionDamping: 0.5
   sideSlipDamping: 0.5
   useCollisionAngleJitter: 1
   collisionAngleJitterMax: 45
-  stopSpeedThreshold: 0.03
+  stopSpeedThreshold: 0.01
   downwardBrakeMultiplier: 8
   disableCollisionBeforeShot: 1
   blockShootWhenOverlappingCharacter: 1
@@ -170,7 +174,7 @@ MonoBehaviour:
   - 1.71
   - 1.85
   - 2
-  baseMass: 1
+  baseMass: 5
   massStep: 0
 --- !u!114 &560854494607647108
 MonoBehaviour:
@@ -188,10 +192,17 @@ MonoBehaviour:
   spawnParent: {fileID: 0}
   presenter: {fileID: 3986356179992966670}
   battleManager: {fileID: 0}
-  mergeSpeedMultiplier: 0.4
+  mergeSpeedMultiplier: 0.8
   maxInheritedSpeed: 5
   mergeContactTolerance: 0
-  finalMergeCleanupDelay: 0.15
+  finalMergeCleanupDelay: 0.6
+  pushEffectRadiusMultiplier: 1.8
+  pushEffectForceGrade6: 100
+  pushEffectForceGrade7: 100
+  pushEffectForceGrade8: 100
+  pushEffectForceGrade9: 100
+  pushEffectForceGrade10: 100
+  pushEffectUpwardBias: 1
 --- !u!114 &3051682432527465309
 MonoBehaviour:
   m_ObjectHideFlags: 0
