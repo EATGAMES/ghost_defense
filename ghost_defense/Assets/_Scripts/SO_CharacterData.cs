@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum CharacterAttackRole
 {
@@ -18,8 +19,15 @@ public class SO_CharacterData : ScriptableObject
     [TextArea(3, 8)]
     [SerializeField] private string characterDescription;
 
-    [Tooltip("상단 대기열과 필드 스킨에 사용할 스프라이트입니다.")]
-    [SerializeField] private Sprite characterSprite;
+    [Tooltip("상단 공격 캐릭터로 표시할 기본 스프라이트입니다.")]
+    [FormerlySerializedAs("characterSprite")]
+    [SerializeField] private Sprite topCharacterSprite;
+
+    [Tooltip("이 캐릭터가 1회차로 등장할 때 사용할 필드 스프라이트입니다.")]
+    [SerializeField] private Sprite firstCycleFieldSprite;
+
+    [Tooltip("이 캐릭터가 2회차로 등장할 때 사용할 필드 스프라이트입니다.")]
+    [SerializeField] private Sprite secondCycleFieldSprite;
 
     [Tooltip("공격 역할 분류입니다.")]
     [SerializeField] private CharacterAttackRole attackRole = CharacterAttackRole.Single;
@@ -53,7 +61,7 @@ public class SO_CharacterData : ScriptableObject
 
     public string CharacterName => characterName;
     public string CharacterDescription => characterDescription;
-    public Sprite CharacterSprite => characterSprite;
+    public Sprite TopCharacterSprite => topCharacterSprite;
     public CharacterAttackRole AttackRole => attackRole;
     public float BaseAttackPower => baseAttackPower;
     public float MergeGradeMultiplierPerStep => mergeGradeMultiplierPerStep;
@@ -64,6 +72,12 @@ public class SO_CharacterData : ScriptableObject
     public float CriticalChance => criticalChance;
     public float CriticalDamageMultiplier => Mathf.Max(1f, criticalDamageMultiplier);
     public float AttackQueueSpeedPercent => Mathf.Max(0.01f, attackQueueSpeedPercent);
+
+    public Sprite GetFieldSpriteForGrade(int grade)
+    {
+        int cycleIndex = SC_GradeCharacterResolver.GetCycleIndex(grade);
+        return cycleIndex == 0 ? firstCycleFieldSprite : secondCycleFieldSprite;
+    }
 
     public float CalculateAttackDamage(int mergeGrade)
     {

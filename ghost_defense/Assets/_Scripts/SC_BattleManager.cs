@@ -6,12 +6,24 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SC_BattleManager : MonoBehaviour
 {
+    private readonly struct AttackRequest
+    {
+        public readonly int Grade;
+        public readonly SO_CharacterData CharacterData;
+
+        public AttackRequest(int grade, SO_CharacterData characterData)
+        {
+            Grade = grade;
+            CharacterData = characterData;
+        }
+    }
+
     public static int CurrentStage { get; private set; } = 1;
 
     public event Action<int, int> StageChanged;
     public event Action<float, float> BossHealthChanged;
     public event Action<int, int> MergeAttackGaugeChanged;
-    public event Action StageRosterChanged;
+    public event Action<SO_CharacterData, bool> CurrentAttackCharacterChanged;
     public event Action<int> StageCleared;
     public event Action<int> StageFailed;
 
@@ -21,7 +33,7 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("전투 시작 시 적용할 시작 스테이지 번호입니다.")]
     [SerializeField] private int startStage = 1;
 
-    [Tooltip("로비에서 설정한 5명의 공격 캐릭터 순서입니다.")]
+    [Tooltip("로비에서 설정한 5종 캐릭터 순서입니다.")]
     [SerializeField] private SO_CharacterData[] equippedRoster = new SO_CharacterData[5];
 
     [Tooltip("카드 선택 팝업이 열리기까지 필요한 공격 횟수입니다.")]
@@ -36,11 +48,14 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("20회 공격마다 열리는 카드 선택 팝업입니다.")]
     [SerializeField] private SC_BattleCardPopup battleCardPopup;
 
-    private readonly List<SO_CharacterData> runtimeRoster = new List<SO_CharacterData>(5);
-    private readonly Queue<int> pendingMergeGrades = new Queue<int>();
+    [Tooltip("상단 공격 캐릭터 연출 시간을 참조할 뷰입니다.")]
+    [SerializeField] private SC_CurrentAttackCharacterView currentAttackCharacterView;
+
+    private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
 
     private SC_MonsterHealth currentBoss;
     private Coroutine attackQueueCoroutine;
+    private SO_CharacterData currentAttackCharacterData;
     private int currentAttackCount;
     private int openedCardSelectionCount;
     private bool isCardSelectionOpen;
@@ -51,7 +66,8 @@ public class SC_BattleManager : MonoBehaviour
     public int MergeAttackCountPerCard => Mathf.Max(1, attackCountPerCard);
     public bool IsCardSelectionOpen => isCardSelectionOpen;
     public bool IsBattleFinished => isBattleFinished;
-    public int PendingAttackQueueCount => pendingMergeGrades.Count;
+    public int PendingAttackQueueCount => pendingAttackRequests.Count;
+    public SO_CharacterData CurrentAttackCharacterData => currentAttackCharacterData;
 
     private void Awake()
     {
@@ -60,16 +76,21 @@ public class SC_BattleManager : MonoBehaviour
             battleCardPopup = FindAnyObjectByType<SC_BattleCardPopup>();
         }
 
-        RebuildRuntimeRoster();
+        if (currentAttackCharacterView == null)
+        {
+            currentAttackCharacterView = FindAnyObjectByType<SC_CurrentAttackCharacterView>();
+        }
     }
 
     private void Start()
     {
         CurrentStage = Mathf.Clamp(startStage, 1, MaxStage);
+        currentAttackCharacterData = GetStartingAttackCharacterData();
+
         RaiseStageChanged();
         RaiseBossHealthChanged();
         RaiseMergeAttackGaugeChanged();
-        RaiseRosterChanged();
+        RaiseCurrentAttackCharacterChanged(false);
     }
 
     private void OnDisable()
@@ -125,7 +146,8 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
-        pendingMergeGrades.Enqueue(Mathf.Clamp(mergedGrade, 1, 10));
+        SO_CharacterData targetCharacterData = GetCharacterDataForGrade(mergedGrade);
+        pendingAttackRequests.Enqueue(new AttackRequest(Mathf.Clamp(mergedGrade, 1, 10), targetCharacterData));
         TryStartAttackQueueProcessing();
         RaiseMergeAttackGaugeChanged();
     }
@@ -144,7 +166,7 @@ public class SC_BattleManager : MonoBehaviour
 
         isBattleFinished = true;
         isCardSelectionOpen = false;
-        pendingMergeGrades.Clear();
+        pendingAttackRequests.Clear();
         currentAttackCount = 0;
 
         if (pauseWhenSelectingCard && Time.timeScale == 0f)
@@ -178,7 +200,7 @@ public class SC_BattleManager : MonoBehaviour
 
         isBattleFinished = true;
         isCardSelectionOpen = false;
-        pendingMergeGrades.Clear();
+        pendingAttackRequests.Clear();
         currentAttackCount = 0;
 
         if (pauseWhenSelectingCard && Time.timeScale == 0f)
@@ -215,19 +237,45 @@ public class SC_BattleManager : MonoBehaviour
         TryStartAttackQueueProcessing();
     }
 
-    public SO_CharacterData GetRandomRosterCharacterData()
+    public SO_CharacterData GetCharacterDataForGrade(int grade)
     {
-        if (runtimeRoster.Count <= 0)
+        return SC_GradeCharacterResolver.GetCharacterDataForGrade(equippedRoster, grade);
+    }
+
+    public Sprite GetFieldSpriteForGrade(int grade)
+    {
+        SO_CharacterData characterData = GetCharacterDataForGrade(grade);
+        return characterData != null ? characterData.GetFieldSpriteForGrade(grade) : null;
+    }
+
+    public SO_CharacterData[] GetEquippedRosterSnapshot()
+    {
+        if (equippedRoster == null)
+        {
+            return Array.Empty<SO_CharacterData>();
+        }
+
+        SO_CharacterData[] copied = new SO_CharacterData[equippedRoster.Length];
+        Array.Copy(equippedRoster, copied, equippedRoster.Length);
+        return copied;
+    }
+
+    private SO_CharacterData GetStartingAttackCharacterData()
+    {
+        if (equippedRoster == null)
         {
             return null;
         }
 
-        return runtimeRoster[UnityEngine.Random.Range(0, runtimeRoster.Count)];
-    }
+        for (int i = 0; i < equippedRoster.Length; i++)
+        {
+            if (equippedRoster[i] != null)
+            {
+                return equippedRoster[i];
+            }
+        }
 
-    public SO_CharacterData[] GetRuntimeRosterSnapshot()
-    {
-        return runtimeRoster.ToArray();
+        return null;
     }
 
     private void TryStartAttackQueueProcessing()
@@ -237,7 +285,7 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
-        if (pendingMergeGrades.Count <= 0)
+        if (pendingAttackRequests.Count <= 0)
         {
             return;
         }
@@ -247,25 +295,33 @@ public class SC_BattleManager : MonoBehaviour
 
     private IEnumerator CoProcessAttackQueue()
     {
-        while (!isBattleFinished && !isCardSelectionOpen && pendingMergeGrades.Count > 0)
+        while (!isBattleFinished && !isCardSelectionOpen && pendingAttackRequests.Count > 0)
         {
             if (currentBoss == null || currentBoss.CurrentHp <= 0f)
             {
-                pendingMergeGrades.Clear();
+                pendingAttackRequests.Clear();
                 RaiseMergeAttackGaugeChanged();
                 break;
             }
 
-            int mergedGrade = pendingMergeGrades.Dequeue();
-            SO_CharacterData attacker = GetCurrentAttacker();
+            AttackRequest request = pendingAttackRequests.Dequeue();
+            SO_CharacterData attacker = request.CharacterData != null ? request.CharacterData : currentAttackCharacterData;
             if (attacker == null)
             {
                 break;
             }
 
-            float finalDamage = attacker.CalculateAttackDamage(mergedGrade);
+            float attackStartDelay = currentAttackCharacterView != null ? currentAttackCharacterView.AttackStartDelay : 0f;
+            if (attackStartDelay > 0f)
+            {
+                yield return new WaitForSeconds(attackStartDelay);
+            }
+
+            currentAttackCharacterData = attacker;
+            RaiseCurrentAttackCharacterChanged(true);
+
+            float finalDamage = attacker.CalculateAttackDamage(request.Grade);
             ApplyDamageToBoss(finalDamage);
-            RotateRoster();
 
             if (isBattleFinished)
             {
@@ -281,64 +337,17 @@ public class SC_BattleManager : MonoBehaviour
                 break;
             }
 
-            float delay = Mathf.Max(0.01f, baseAttackInterval / Mathf.Max(0.01f, attacker.AttackQueueSpeedPercent));
+            float attackInterval = Mathf.Max(0.01f, baseAttackInterval / Mathf.Max(0.01f, attacker.AttackQueueSpeedPercent));
+            float presentationDuration = currentAttackCharacterView != null ? currentAttackCharacterView.AttackAnimationDuration : 0f;
+            float delay = presentationDuration + attackInterval;
             yield return new WaitForSeconds(delay);
         }
 
         attackQueueCoroutine = null;
 
-        if (!isBattleFinished && !isCardSelectionOpen && pendingMergeGrades.Count > 0)
+        if (!isBattleFinished && !isCardSelectionOpen && pendingAttackRequests.Count > 0)
         {
             TryStartAttackQueueProcessing();
-        }
-    }
-
-    private SO_CharacterData GetCurrentAttacker()
-    {
-        if (runtimeRoster.Count <= 0)
-        {
-            RebuildRuntimeRoster();
-        }
-
-        if (runtimeRoster.Count <= 0)
-        {
-            return null;
-        }
-
-        return runtimeRoster[0];
-    }
-
-    private void RotateRoster()
-    {
-        if (runtimeRoster.Count <= 1)
-        {
-            return;
-        }
-
-        SO_CharacterData first = runtimeRoster[0];
-        runtimeRoster.RemoveAt(0);
-        runtimeRoster.Add(first);
-        RaiseRosterChanged();
-    }
-
-    private void RebuildRuntimeRoster()
-    {
-        runtimeRoster.Clear();
-
-        if (equippedRoster == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < equippedRoster.Length; i++)
-        {
-            SO_CharacterData candidate = equippedRoster[i];
-            if (candidate == null)
-            {
-                continue;
-            }
-
-            runtimeRoster.Add(candidate);
         }
     }
 
@@ -421,9 +430,9 @@ public class SC_BattleManager : MonoBehaviour
         MergeAttackGaugeChanged?.Invoke(currentAttackCount, MergeAttackCountPerCard);
     }
 
-    private void RaiseRosterChanged()
+    private void RaiseCurrentAttackCharacterChanged(bool playAttackAnimation)
     {
-        StageRosterChanged?.Invoke();
+        CurrentAttackCharacterChanged?.Invoke(currentAttackCharacterData, playAttackAnimation);
     }
 
     private static void CancelAllPendingCharacterDrags()

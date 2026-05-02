@@ -4,11 +4,15 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class SC_CharacterPresenter : MonoBehaviour
 {
-    [Tooltip("현재 필드 오브젝트의 머지 단계입니다.")]
+    [Tooltip("현재 필드 캐릭터의 머지 단계입니다.")]
     [SerializeField] private int mergeGrade = 1;
 
-    [Tooltip("단계별로 사용할 필드 오브젝트 이미지 목록입니다. 0번이 1단계입니다.")]
-    [SerializeField] private Sprite[] gradeSprites;
+    [Tooltip("현재 단계 외형을 계산할 배틀 매니저입니다.")]
+    [SerializeField] private SC_BattleManager battleManager;
+
+    [Tooltip("배틀 매니저를 찾지 못했을 때 사용할 단계별 대체 스프라이트입니다.")]
+    [FormerlySerializedAs("gradeSprites")]
+    [SerializeField] private Sprite[] fallbackGradeSprites;
 
     [Tooltip("단계 이미지를 표시할 SpriteRenderer입니다.")]
     [SerializeField] private SpriteRenderer spriteRenderer;
@@ -42,7 +46,6 @@ public class SC_CharacterPresenter : MonoBehaviour
     [SerializeField] private Vector2 colliderOffset = new Vector2(0.02f, -0.15f);
 
     public int MergeGrade => Mathf.Clamp(mergeGrade, 1, 10);
-    public Sprite CurrentGradeSprite => GetSpriteForGrade(MergeGrade);
 
     private void Reset()
     {
@@ -53,6 +56,11 @@ public class SC_CharacterPresenter : MonoBehaviour
 
     private void Awake()
     {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
         ApplyData();
     }
 
@@ -103,7 +111,7 @@ public class SC_CharacterPresenter : MonoBehaviour
 
         if (spriteRenderer != null)
         {
-            spriteRenderer.sprite = GetSpriteForGrade(MergeGrade);
+            spriteRenderer.sprite = ResolveSpriteForCurrentGrade();
         }
 
         if (cachedRigidbody2D != null)
@@ -118,14 +126,28 @@ public class SC_CharacterPresenter : MonoBehaviour
         }
     }
 
-    private Sprite GetSpriteForGrade(int grade)
+    private Sprite ResolveSpriteForCurrentGrade()
     {
-        if (gradeSprites == null || gradeSprites.Length <= 0)
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (battleManager != null)
+        {
+            Sprite rosterSprite = battleManager.GetFieldSpriteForGrade(MergeGrade);
+            if (rosterSprite != null)
+            {
+                return rosterSprite;
+            }
+        }
+
+        if (fallbackGradeSprites == null || fallbackGradeSprites.Length <= 0)
         {
             return null;
         }
 
-        int spriteIndex = Mathf.Clamp(grade - 1, 0, gradeSprites.Length - 1);
-        return gradeSprites[spriteIndex];
+        int spriteIndex = Mathf.Clamp(MergeGrade - 1, 0, fallbackGradeSprites.Length - 1);
+        return fallbackGradeSprites[spriteIndex];
     }
 }
