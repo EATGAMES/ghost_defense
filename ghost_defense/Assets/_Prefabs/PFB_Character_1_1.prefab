@@ -128,6 +128,7 @@ MonoBehaviour:
   disableCollisionBeforeShot: 1
   blockShootWhenOverlappingCharacter: 1
   shootBlockCheckHeight: 2
+  syncPhysicsBeforeShot: 1
 --- !u!114 &3986356179992966670
 MonoBehaviour:
   m_ObjectHideFlags: 0

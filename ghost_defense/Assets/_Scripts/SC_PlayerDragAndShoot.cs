@@ -48,6 +48,9 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("발사 차단을 검사할 세로 높이(월드 좌표)")]
     [SerializeField] private float shootBlockCheckHeight = 1.2f;
 
+    [Tooltip("발사 직전 물리 좌표를 강제로 동기화할지 여부")]
+    [SerializeField] private bool syncPhysicsBeforeShot = true;
+
     private Camera mainCamera;
     private Rigidbody2D rb2D;
     private Collider2D col2D;
@@ -221,7 +224,18 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     {
         float clampedX = Mathf.Clamp(worldPoint.x, minX, maxX);
         float targetY = lockYPosition ? fixedY : worldPoint.y;
-        transform.position = new Vector3(clampedX, targetY, transform.position.z);
+        Vector3 targetPosition = new Vector3(clampedX, targetY, transform.position.z);
+
+        if (rb2D == null)
+        {
+            transform.position = targetPosition;
+            return;
+        }
+
+        // Dynamic Rigidbody2D를 transform으로 직접 끌면 발사 순간 물리 좌표와 렌더 좌표가 어긋나 끊겨 보일 수 있다.
+        rb2D.linearVelocity = Vector2.zero;
+        rb2D.angularVelocity = 0f;
+        rb2D.position = new Vector2(targetPosition.x, targetPosition.y);
     }
 
     private void ShootForward()
@@ -229,6 +243,17 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         if (blockShootWhenOverlappingCharacter && IsShootBlockedByCharacter())
         {
             return;
+        }
+
+        if (rb2D != null)
+        {
+            rb2D.linearVelocity = Vector2.zero;
+            rb2D.angularVelocity = 0f;
+
+            if (syncPhysicsBeforeShot)
+            {
+                Physics2D.SyncTransforms();
+            }
         }
 
         SetShotState(true);
