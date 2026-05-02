@@ -7,10 +7,10 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
     [Tooltip("현재 공격 캐릭터 정보를 전달받을 배틀 매니저입니다.")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("상단에서 직접 배치해 둘 공격 캐릭터 루트 Transform입니다.")]
+    [Tooltip("상단에서 직접 움직일 공격 캐릭터 루트 트랜스폼입니다.")]
     [SerializeField] private Transform animatedCharacterRoot;
 
-    [Tooltip("상단 공격 캐릭터 스프라이트를 표시할 SpriteRenderer입니다.")]
+    [Tooltip("상단 공격 캐릭터 스프라이트를 표시할 렌더러입니다.")]
     [SerializeField] private SpriteRenderer characterSpriteRenderer;
 
     [Tooltip("공격 시작 전 대기 시간(초)입니다.")]
@@ -39,7 +39,8 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
     private Quaternion initialLocalRotation;
 
     public float AttackStartDelay => Mathf.Max(0f, attackStartDelay);
-    public float AttackAnimationDuration => Mathf.Max(0f, attackShakeDuration) + Mathf.Max(0.01f, attackMoveDuration) + Mathf.Max(0.01f, attackReturnDuration);
+    public float AttackImpactDelay => Mathf.Max(0f, attackShakeDuration) + Mathf.Max(0.01f, attackMoveDuration);
+    public float AttackAnimationDuration => AttackImpactDelay + Mathf.Max(0.01f, attackReturnDuration);
 
     private void Awake()
     {
@@ -171,6 +172,8 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
             animatedCharacterRoot.localPosition = Vector3.LerpUnclamped(startPosition, dashTargetPosition, easedT);
             yield return null;
         }
+
+        animatedCharacterRoot.localPosition = dashTargetPosition;
     }
 
     private IEnumerator CoReturn(Vector3 dashTargetPosition, Vector3 startPosition)
@@ -186,6 +189,8 @@ public class SC_CurrentAttackCharacterView : MonoBehaviour
             animatedCharacterRoot.localPosition = Vector3.LerpUnclamped(dashTargetPosition, startPosition, easedT);
             yield return null;
         }
+
+        animatedCharacterRoot.localPosition = startPosition;
     }
 
     private void CacheInitialTransform()

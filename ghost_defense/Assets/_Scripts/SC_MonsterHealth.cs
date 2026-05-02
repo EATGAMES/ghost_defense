@@ -7,12 +7,10 @@ public class SC_MonsterHealth : MonoBehaviour
     public static event Action<SC_MonsterHealth> MonsterDied;
 
     public event Action<float, float> HealthChanged;
+    public event Action<float, Vector3> DamageTaken;
 
-    [Tooltip("보스의 기본 최대 체력입니다.")]
-    [SerializeField] private float maxHp = 10f;
-
-    [Tooltip("스테이지가 올라갈 때 적용할 체력 증가 비율입니다. 0.3이면 30%입니다.")]
-    [SerializeField] private float hpIncreasePerStage = 0.3f;
+    [Tooltip("보스가 사용할 몬스터 데이터입니다.")]
+    [SerializeField] private SO_MonsterData monsterData;
 
     [Tooltip("체력이 0 이하가 되면 오브젝트를 자동 파괴할지 여부입니다.")]
     [SerializeField] private bool destroyOnDeath = true;
@@ -24,14 +22,13 @@ public class SC_MonsterHealth : MonoBehaviour
     public float MaxHp => runtimeMaxHp;
     public float CurrentHp => currentHp;
     public float NormalizedHp => runtimeMaxHp > 0f ? Mathf.Clamp01(currentHp / runtimeMaxHp) : 0f;
+    public SO_MonsterData MonsterData => monsterData;
+    public MonsterWeaknessDamageType WeaknessDamageType => monsterData != null ? monsterData.WeaknessDamageType : MonsterWeaknessDamageType.None;
+    public MonsterWeaknessAttackStyle WeaknessAttackStyle => monsterData != null ? monsterData.WeaknessAttackStyle : MonsterWeaknessAttackStyle.None;
 
     private void Awake()
     {
-        int stage = Mathf.Max(1, SC_BattleManager.CurrentStage);
-        float increaseRate = Mathf.Max(0f, hpIncreasePerStage);
-        float multiplier = Mathf.Pow(1f + increaseRate, stage - 1);
-
-        runtimeMaxHp = Mathf.Max(0f, maxHp * multiplier);
+        runtimeMaxHp = monsterData != null ? Mathf.Max(0f, monsterData.MaxHp) : 0f;
         currentHp = runtimeMaxHp;
         RaiseHealthChanged();
     }
@@ -43,8 +40,10 @@ public class SC_MonsterHealth : MonoBehaviour
             return;
         }
 
-        currentHp = Mathf.Max(0f, currentHp - damage);
+        float appliedDamage = Mathf.Min(currentHp, Mathf.Max(0f, damage));
+        currentHp = Mathf.Max(0f, currentHp - appliedDamage);
         RaiseHealthChanged();
+        DamageTaken?.Invoke(appliedDamage, transform.position);
 
         if (currentHp <= 0f)
         {

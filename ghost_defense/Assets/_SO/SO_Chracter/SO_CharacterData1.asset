@@ -16,13 +16,21 @@ MonoBehaviour:
   characterDescription: 
   firstCycleTopCharacterSprite: {fileID: 21300000, guid: 4f569f59cdd806d41b69bd572709ae97, type: 3}
   secondCycleTopCharacterSprite: {fileID: 21300000, guid: 2fb2fa4cc662150448267fb17d3652f5, type: 3}
+  damageType: 0
+  attackStyle: 1
   attackRole: 0
   baseAttackPower: 10
-  mergeGradeMultiplierPerStep: 1
-  attackPowerPercent: 1
-  highGradeStart: 5
-  highGradeBonusPercent: 0
-  finalGradeBonusPercent: 0
+  gradeDamageMultipliers:
+  - 1
+  - 1.5
+  - 2
+  - 3
+  - 4.5
+  - 6.5
+  - 9
+  - 13
+  - 20
+  - 40
   criticalChance: 0
   criticalDamageMultiplier: 1.5
   attackQueueSpeedPercent: 1

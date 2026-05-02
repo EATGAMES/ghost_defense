@@ -39,10 +39,10 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("하단 필드 캐릭터 스프라이트에 사용할 필드 스킨 데이터 목록입니다.")]
     [SerializeField] private SO_FieldCharacterSkinData[] equippedFieldSkins = new SO_FieldCharacterSkinData[5];
 
-    [Tooltip("카드 선택 팝업이 열리기까지 필요한 공격 횟수입니다.")]
+    [Tooltip("카드 선택 팝업이 뜨기까지 필요한 공격 횟수입니다.")]
     [SerializeField] private int attackCountPerCard = 20;
 
-    [Tooltip("공격 요청 처리 사이의 기본 간격(초)입니다.")]
+    [Tooltip("공격 요청 처리 사이 기본 간격(초)입니다.")]
     [SerializeField] private float baseAttackInterval = 0.2f;
 
     [Tooltip("카드 선택 중 전투를 일시 정지할지 여부입니다.")]
@@ -51,7 +51,7 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("일정 공격 횟수마다 열릴 카드 선택 팝업입니다.")]
     [SerializeField] private SC_BattleCardPopup battleCardPopup;
 
-    [Tooltip("상단 공격 캐릭터 연출 시간을 참조할 뷰입니다.")]
+    [Tooltip("상단 공격 캐릭터의 연출 시간을 참조할 뷰입니다.")]
     [SerializeField] private SC_CurrentAttackCharacterView currentAttackCharacterView;
 
     private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
@@ -328,6 +328,12 @@ public class SC_BattleManager : MonoBehaviour
             currentAttackGrade = request.Grade;
             RaiseCurrentAttackCharacterChanged(true);
 
+            float attackImpactDelay = currentAttackCharacterView != null ? currentAttackCharacterView.AttackImpactDelay : 0f;
+            if (attackImpactDelay > 0f)
+            {
+                yield return new WaitForSeconds(attackImpactDelay);
+            }
+
             float finalDamage = attacker.CalculateAttackDamage(request.Grade);
             ApplyDamageToBoss(finalDamage);
 
@@ -340,12 +346,13 @@ public class SC_BattleManager : MonoBehaviour
             RaiseMergeAttackGaugeChanged();
 
             float presentationDuration = currentAttackCharacterView != null ? currentAttackCharacterView.AttackAnimationDuration : 0f;
+            float remainingPresentationDuration = Mathf.Max(0f, presentationDuration - attackImpactDelay);
 
             if (!isBattleClosing && currentAttackCount >= MergeAttackCountPerCard)
             {
-                if (presentationDuration > 0f)
+                if (remainingPresentationDuration > 0f)
                 {
-                    yield return new WaitForSeconds(presentationDuration);
+                    yield return new WaitForSeconds(remainingPresentationDuration);
                 }
 
                 OpenCardSelection();
@@ -353,7 +360,7 @@ public class SC_BattleManager : MonoBehaviour
             }
 
             float attackInterval = Mathf.Max(0.01f, baseAttackInterval / Mathf.Max(0.01f, attacker.AttackQueueSpeedPercent));
-            float delay = presentationDuration + attackInterval;
+            float delay = remainingPresentationDuration + attackInterval;
             yield return new WaitForSeconds(delay);
         }
 
