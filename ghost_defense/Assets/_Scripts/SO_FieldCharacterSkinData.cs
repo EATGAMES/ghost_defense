@@ -26,4 +26,9 @@ public class SO_FieldCharacterSkinData : ScriptableObject
         int cycleIndex = SC_GradeCharacterResolver.GetCycleIndex(grade);
         return cycleIndex == 0 ? firstCyclePreviewSprite : secondCyclePreviewSprite;
     }
+
+    public Sprite GetSecondCycleFieldSprite()
+    {
+        return secondCycleFieldSprite != null ? secondCycleFieldSprite : firstCycleFieldSprite;
+    }
 }

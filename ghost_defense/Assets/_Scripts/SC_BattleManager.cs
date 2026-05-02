@@ -59,6 +59,8 @@ public class SC_BattleManager : MonoBehaviour
     private SC_MonsterHealth currentBoss;
     private Coroutine attackQueueCoroutine;
     private SO_CharacterData currentAttackCharacterData;
+    private SO_CharacterData[] defaultEquippedRoster;
+    private SO_FieldCharacterSkinData[] defaultEquippedFieldSkins;
     private int currentAttackGrade;
     private int currentAttackCount;
     private int openedCardSelectionCount;
@@ -79,6 +81,10 @@ public class SC_BattleManager : MonoBehaviour
 
     private void Awake()
     {
+        defaultEquippedRoster = CloneRoster(equippedRoster);
+        defaultEquippedFieldSkins = CloneFieldSkins(equippedFieldSkins);
+        ApplySavedRosterOrder();
+
         if (battleCardPopup == null)
         {
             battleCardPopup = FindAnyObjectByType<SC_BattleCardPopup>();
@@ -96,6 +102,7 @@ public class SC_BattleManager : MonoBehaviour
         currentAttackCharacterData = GetStartingAttackCharacterData();
         currentAttackGrade = currentAttackCharacterData != null ? 1 : 0;
 
+        RefreshGradePreviewUI();
         RaiseStageChanged();
         RaiseBossHealthChanged();
         RaiseMergeAttackGaugeChanged();
@@ -251,27 +258,15 @@ public class SC_BattleManager : MonoBehaviour
 
     public Sprite GetFieldSpriteForGrade(int grade)
     {
-        if (equippedFieldSkins == null || equippedFieldSkins.Length <= 0)
-        {
-            return null;
-        }
-
         int safeGrade = Mathf.Clamp(grade, 1, 10);
-        int skinIndex = (safeGrade - 1) % equippedFieldSkins.Length;
-        SO_FieldCharacterSkinData skinData = equippedFieldSkins[skinIndex];
+        SO_FieldCharacterSkinData skinData = GetEquippedFieldSkinDataForGrade(safeGrade);
         return skinData != null ? skinData.GetFieldSpriteForGrade(safeGrade) : null;
     }
 
     public Sprite GetPreviewSpriteForGrade(int grade)
     {
-        if (equippedFieldSkins == null || equippedFieldSkins.Length <= 0)
-        {
-            return null;
-        }
-
         int safeGrade = Mathf.Clamp(grade, 1, 10);
-        int skinIndex = (safeGrade - 1) % equippedFieldSkins.Length;
-        SO_FieldCharacterSkinData skinData = equippedFieldSkins[skinIndex];
+        SO_FieldCharacterSkinData skinData = GetEquippedFieldSkinDataForGrade(safeGrade);
         return skinData != null ? skinData.GetPreviewSpriteForGrade(safeGrade) : null;
     }
 
@@ -505,5 +500,97 @@ public class SC_BattleManager : MonoBehaviour
 
             shooter.CancelDragAndResetToStartPosition();
         }
+    }
+
+    private SO_FieldCharacterSkinData GetEquippedFieldSkinDataForGrade(int grade)
+    {
+        if (equippedFieldSkins == null || equippedFieldSkins.Length <= 0)
+        {
+            return null;
+        }
+
+        int skinIndex = (Mathf.Clamp(grade, 1, 10) - 1) % equippedFieldSkins.Length;
+        return skinIndex >= 0 && skinIndex < equippedFieldSkins.Length ? equippedFieldSkins[skinIndex] : null;
+    }
+
+    private void ApplySavedRosterOrder()
+    {
+        int slotCount = Mathf.Max(
+            defaultEquippedRoster != null ? defaultEquippedRoster.Length : 0,
+            defaultEquippedFieldSkins != null ? defaultEquippedFieldSkins.Length : 0);
+
+        int[] savedOrder = SC_RosterSave.LoadOrder(slotCount);
+        equippedRoster = ReorderRoster(defaultEquippedRoster, savedOrder);
+        equippedFieldSkins = ReorderFieldSkins(defaultEquippedFieldSkins, savedOrder);
+    }
+
+    private void RefreshGradePreviewUI()
+    {
+        SC_CharacterGradePreviewUI gradePreviewUI = FindAnyObjectByType<SC_CharacterGradePreviewUI>();
+        if (gradePreviewUI == null)
+        {
+            return;
+        }
+
+        gradePreviewUI.RefreshPreviewImages();
+        gradePreviewUI.RefreshPointerPosition();
+    }
+
+    private static SO_CharacterData[] CloneRoster(SO_CharacterData[] source)
+    {
+        if (source == null)
+        {
+            return Array.Empty<SO_CharacterData>();
+        }
+
+        SO_CharacterData[] copied = new SO_CharacterData[source.Length];
+        Array.Copy(source, copied, source.Length);
+        return copied;
+    }
+
+    private static SO_FieldCharacterSkinData[] CloneFieldSkins(SO_FieldCharacterSkinData[] source)
+    {
+        if (source == null)
+        {
+            return Array.Empty<SO_FieldCharacterSkinData>();
+        }
+
+        SO_FieldCharacterSkinData[] copied = new SO_FieldCharacterSkinData[source.Length];
+        Array.Copy(source, copied, source.Length);
+        return copied;
+    }
+
+    private static SO_CharacterData[] ReorderRoster(SO_CharacterData[] source, int[] order)
+    {
+        if (source == null || source.Length <= 0)
+        {
+            return Array.Empty<SO_CharacterData>();
+        }
+
+        SO_CharacterData[] reordered = new SO_CharacterData[source.Length];
+        for (int i = 0; i < reordered.Length; i++)
+        {
+            int sourceIndex = order != null && i < order.Length ? order[i] : i;
+            reordered[i] = sourceIndex >= 0 && sourceIndex < source.Length ? source[sourceIndex] : null;
+        }
+
+        return reordered;
+    }
+
+    private static SO_FieldCharacterSkinData[] ReorderFieldSkins(SO_FieldCharacterSkinData[] source, int[] order)
+    {
+        if (source == null || source.Length <= 0)
+        {
+            return Array.Empty<SO_FieldCharacterSkinData>();
+        }
+
+        SO_FieldCharacterSkinData[] reordered = new SO_FieldCharacterSkinData[source.Length];
+        for (int i = 0; i < reordered.Length; i++)
+        {
+            int sourceIndex = order != null && i < order.Length ? order[i] : i;
+            reordered[i] = sourceIndex >= 0 && sourceIndex < source.Length ? source[sourceIndex] : null;
+        }
+
+        return reordered;
     }
 }

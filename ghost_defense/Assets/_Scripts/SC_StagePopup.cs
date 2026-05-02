@@ -13,6 +13,9 @@ public class SC_StagePopup : MonoBehaviour
     [Tooltip("클릭 시 팝업을 닫는 버튼입니다.")]
     [SerializeField] private Button closeButton;
 
+    [Tooltip("팝업 안 편성 슬롯 UI를 새로고침할 편성 관리자입니다.")]
+    [SerializeField] private SC_StageRosterEditor stageRosterEditor;
+
     [Tooltip("Dim Image의 Raycast Target을 강제로 켤지 여부입니다.")]
     [SerializeField] private bool blockBackgroundInput = true;
 
@@ -21,6 +24,12 @@ public class SC_StagePopup : MonoBehaviour
         if (closeButton != null)
         {
             closeButton.onClick.AddListener(ClosePopup);
+        }
+
+        if (stageRosterEditor != null)
+        {
+            stageRosterEditor.InitializeIfNeeded();
+            stageRosterEditor.RefreshRosterUI();
         }
 
         ApplyDimRaycastSetting();
@@ -40,6 +49,11 @@ public class SC_StagePopup : MonoBehaviour
         if (!gameObject.activeSelf)
         {
             gameObject.SetActive(true);
+        }
+
+        if (stageRosterEditor != null)
+        {
+            stageRosterEditor.RefreshRosterUI();
         }
 
         SetPopupVisible(true);
