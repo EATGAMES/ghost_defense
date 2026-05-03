@@ -1,8 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class SC_PlayerDragAndShoot : MonoBehaviour
 {
+    private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
+    private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
+    private static bool hasAnyDragGuideBeenViewed;
+
     [Tooltip("드래그 가능한 최소 X 좌표(월드 좌표)")]
     [SerializeField] private float minX = -3.5f;
 
@@ -63,24 +68,61 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("발사 직전 물리 좌표를 강제로 동기화할지 여부")]
     [SerializeField] private bool syncPhysicsBeforeShot = true;
 
+    [Tooltip("드래그 중에만 표시할 가이드 오브젝트입니다.")]
+    [SerializeField] private GameObject guideObject;
+
+    [Tooltip("첫 드래그 전까지 표시할 오른쪽 화살표 이미지입니다.")]
+    [SerializeField] private GameObject dragArrowRightObject;
+
+    [Tooltip("첫 드래그 전까지 표시할 왼쪽 화살표 이미지입니다.")]
+    [SerializeField] private GameObject dragArrowLeftObject;
+
     private Camera mainCamera;
     private Rigidbody2D rb2D;
     private Collider2D col2D;
     private bool isDragging;
     private bool isShot;
+    private bool hasCollidedAfterShot;
     private float zDepthFromCamera;
     private bool wasMousePressed;
     private bool wasTouchPressed;
+    private bool hasViewedDragGuide;
     private Vector3 dragStartPosition;
+    private Vector3 guideOriginalLocalScale = Vector3.one;
     private readonly Collider2D[] overlapResults = new Collider2D[16];
 
     public bool IsShot => isShot;
+    public bool HasCollidedAfterShot => hasCollidedAfterShot;
 
     private void Awake()
     {
         mainCamera = Camera.main;
         rb2D = GetComponent<Rigidbody2D>();
         col2D = GetComponent<Collider2D>();
+
+        if (guideObject == null)
+        {
+            Transform guideTransform = transform.Find("OBJ_Guide");
+            if (guideTransform != null)
+            {
+                guideObject = guideTransform.gameObject;
+            }
+        }
+
+        if (guideObject != null)
+        {
+            guideOriginalLocalScale = guideObject.transform.localScale;
+        }
+
+        if (dragArrowRightObject == null)
+        {
+            dragArrowRightObject = FindSceneObjectByExactName(DragArrowRightRootName);
+        }
+
+        if (dragArrowLeftObject == null)
+        {
+            dragArrowLeftObject = FindSceneObjectByExactName(DragArrowLeftRootName);
+        }
 
         if (lockYPosition && Mathf.Approximately(fixedY, -7f))
         {
@@ -92,7 +134,20 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             zDepthFromCamera = Mathf.Abs(transform.position.z - mainCamera.transform.position.z);
         }
 
+        hasViewedDragGuide = hasAnyDragGuideBeenViewed;
         ApplyCollisionState();
+        SetGuideVisible(false);
+        RefreshDragArrowVisibility();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     private void Update()
@@ -149,6 +204,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             {
                 isDragging = true;
                 dragStartPosition = transform.position;
+                HandleDragStarted();
             }
         }
         else if (isPressed && wasTouchPressed)
@@ -194,6 +250,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             {
                 isDragging = true;
                 dragStartPosition = transform.position;
+                HandleDragStarted();
             }
         }
         else if (isPressed && wasMousePressed)
@@ -267,6 +324,11 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         float targetY = lockYPosition ? fixedY : worldPoint.y;
         Vector3 targetPosition = new Vector3(clampedX, targetY, transform.position.z);
 
+        if (guideObject != null && guideObject.activeSelf && !guideObject.transform.IsChildOf(transform))
+        {
+            guideObject.transform.position = targetPosition;
+        }
+
         if (rb2D == null)
         {
             transform.position = targetPosition;
@@ -286,6 +348,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             return;
         }
 
+        SetGuideVisible(false);
+
         if (rb2D != null)
         {
             rb2D.linearVelocity = Vector2.zero;
@@ -298,6 +362,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
 
         SetShotState(true);
+        SetPostLaunchCollisionState(false);
         ReportShotGradeToPreviewUI();
 
         if (rb2D != null)
@@ -328,6 +393,11 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         if (rb2D == null)
         {
             return;
+        }
+
+        if (isShot && !IsExcludedPostLaunchCollision(collision.collider))
+        {
+            SetPostLaunchCollisionState(true);
         }
 
         SC_CharacterMergeController myMerge = GetComponent<SC_CharacterMergeController>();
@@ -367,7 +437,17 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     public void SetShotState(bool shot)
     {
         isShot = shot;
+        if (!shot)
+        {
+            hasCollidedAfterShot = false;
+        }
+
         ApplyCollisionState();
+    }
+
+    public void SetPostLaunchCollisionState(bool collided)
+    {
+        hasCollidedAfterShot = collided;
     }
 
     public void CancelDragAndResetToStartPosition()
@@ -385,6 +465,112 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         isDragging = false;
         wasMousePressed = false;
         wasTouchPressed = false;
+        SetGuideVisible(false);
+    }
+
+    private void HandleDragStarted()
+    {
+        SetGuideVisible(true);
+
+        if (hasAnyDragGuideBeenViewed)
+        {
+            hasViewedDragGuide = true;
+            RefreshDragArrowVisibility();
+            return;
+        }
+
+        hasAnyDragGuideBeenViewed = true;
+        hasViewedDragGuide = true;
+        RefreshDragArrowVisibility();
+    }
+
+    private void SetGuideVisible(bool isVisible)
+    {
+        if (guideObject == null)
+        {
+            return;
+        }
+
+        guideObject.SetActive(isVisible);
+        if (isVisible)
+        {
+            if (guideObject.transform.IsChildOf(transform))
+            {
+                guideObject.transform.localPosition = Vector3.zero;
+                guideObject.transform.localScale = new Vector3(
+                    transform.lossyScale.x != 0f ? guideOriginalLocalScale.x / transform.lossyScale.x : guideOriginalLocalScale.x,
+                    transform.lossyScale.y != 0f ? guideOriginalLocalScale.y / transform.lossyScale.y : guideOriginalLocalScale.y,
+                    transform.lossyScale.z != 0f ? guideOriginalLocalScale.z / transform.lossyScale.z : guideOriginalLocalScale.z);
+            }
+            else
+            {
+                guideObject.transform.position = transform.position;
+                guideObject.transform.localScale = guideOriginalLocalScale;
+            }
+        }
+        else
+        {
+            guideObject.transform.localScale = guideOriginalLocalScale;
+        }
+    }
+
+    private void RefreshDragArrowVisibility()
+    {
+        hasViewedDragGuide = hasAnyDragGuideBeenViewed;
+        bool isVisible = !hasViewedDragGuide;
+        SetSceneObjectActiveByExactName(DragArrowRightRootName, isVisible);
+        SetSceneObjectActiveByExactName(DragArrowLeftRootName, isVisible);
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
+    {
+        dragArrowRightObject = FindSceneObjectByExactName(DragArrowRightRootName);
+        dragArrowLeftObject = FindSceneObjectByExactName(DragArrowLeftRootName);
+        RefreshDragArrowVisibility();
+        SetGuideVisible(false);
+    }
+
+    private static GameObject FindSceneObjectByExactName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        GameObject[] allObjects = Resources.FindObjectsOfTypeAll<GameObject>();
+        for (int i = 0; i < allObjects.Length; i++)
+        {
+            GameObject targetObject = allObjects[i];
+            if (targetObject == null)
+            {
+                continue;
+            }
+
+            if (targetObject.name != objectName)
+            {
+                continue;
+            }
+
+            if (!targetObject.scene.IsValid() || !targetObject.scene.isLoaded)
+            {
+                continue;
+            }
+
+            return targetObject;
+        }
+
+        return null;
+    }
+
+    private static void SetSceneObjectActiveByExactName(string objectName, bool isActive)
+    {
+        GameObject targetObject = FindSceneObjectByExactName(objectName);
+        if (targetObject == null)
+        {
+            return;
+        }
+
+        targetObject.SetActive(isActive);
     }
 
     private void ApplyCollisionState()
@@ -425,6 +611,17 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static bool IsExcludedPostLaunchCollision(Collider2D other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        return other.GetComponent<SC_FieldDetectTrigger>() != null
+            || other.GetComponentInParent<SC_FieldDetectTrigger>() != null;
     }
 
     private static Vector2 RotateVector2(Vector2 vector, float degrees)

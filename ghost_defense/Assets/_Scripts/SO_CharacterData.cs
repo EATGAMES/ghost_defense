@@ -99,17 +99,20 @@ public class SO_CharacterData : ScriptableObject
         return Mathf.Max(0f, gradeDamageMultipliers[safeIndex]);
     }
 
-    public float CalculateAttackDamage(int mergeGrade)
+    public float GetBaseDamage(int mergeGrade)
     {
         int safeGrade = Mathf.Clamp(mergeGrade, 1, 10);
-        float damage = Mathf.Max(0f, baseAttackPower) * GetGradeDamageMultiplier(safeGrade);
+        return Mathf.Max(0f, baseAttackPower) * GetGradeDamageMultiplier(safeGrade);
+    }
 
-        if (criticalChance > 0f && Random.value <= criticalChance)
-        {
-            damage *= CriticalDamageMultiplier;
-        }
+    public float GetCriticalChance()
+    {
+        return Mathf.Clamp01(criticalChance);
+    }
 
-        return Mathf.Max(0f, damage);
+    public float GetCriticalDamageMultiplier()
+    {
+        return Mathf.Max(1f, criticalDamageMultiplier);
     }
 
     private void EnsureGradeDamageMultipliers()

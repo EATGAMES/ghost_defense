@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
@@ -17,6 +18,9 @@ public class SC_BattleUI : MonoBehaviour
     [Tooltip("UI에 전투 정보를 전달할 배틀 매니저입니다.")]
     [FormerlySerializedAs("waveManager")]
     [SerializeField] private SC_BattleManager battleManager;
+
+    [Tooltip("패배 시 임시로 이동할 씬 이름입니다.")]
+    [SerializeField] private string failSceneName = "SCN_Lobby";
 
     private void Awake()
     {
@@ -98,5 +102,13 @@ public class SC_BattleUI : MonoBehaviour
         {
             attackGaugeText.text = "FAIL";
         }
+
+        if (string.IsNullOrWhiteSpace(failSceneName))
+        {
+            Debug.LogWarning("SC_BattleUI: 패배 이동용 씬 이름이 비어 있습니다.", this);
+            return;
+        }
+
+        SceneManager.LoadScene(failSceneName);
     }
 }

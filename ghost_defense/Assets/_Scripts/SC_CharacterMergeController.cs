@@ -170,6 +170,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         if (mergedShoot != null)
         {
             mergedShoot.SetShotState(true);
+            mergedShoot.SetPostLaunchCollisionState(true);
         }
 
         ReportMergedGradeToPreviewUI(nextGrade);

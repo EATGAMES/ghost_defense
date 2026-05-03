@@ -10,11 +10,13 @@ public class SC_BattleManager : MonoBehaviour
     {
         public readonly int Grade;
         public readonly SO_CharacterData CharacterData;
+        public readonly bool ApplyFirstMergedAttackBonus;
 
-        public AttackRequest(int grade, SO_CharacterData characterData)
+        public AttackRequest(int grade, SO_CharacterData characterData, bool applyFirstMergedAttackBonus)
         {
             Grade = grade;
             CharacterData = characterData;
+            ApplyFirstMergedAttackBonus = applyFirstMergedAttackBonus;
         }
     }
 
@@ -54,6 +56,9 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("상단 공격 캐릭터의 연출 시간을 참조할 뷰입니다.")]
     [SerializeField] private SC_CurrentAttackCharacterView currentAttackCharacterView;
 
+    [Tooltip("최종 전투 데미지 공식을 계산할 계산기입니다.")]
+    [SerializeField] private SC_DamageCalculator damageCalculator;
+
     private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
 
     private SC_MonsterHealth currentBoss;
@@ -68,6 +73,7 @@ public class SC_BattleManager : MonoBehaviour
     private bool isBattleFinished;
     private bool isBattleClosing;
     private bool isStageClearPending;
+    private bool isNextMergedAttackBonusArmed;
     private SC_MonsterHealth pendingDefeatedBoss;
 
     public int MaxStage => Mathf.Max(1, maxStage);
@@ -93,6 +99,11 @@ public class SC_BattleManager : MonoBehaviour
         if (currentAttackCharacterView == null)
         {
             currentAttackCharacterView = FindAnyObjectByType<SC_CurrentAttackCharacterView>();
+        }
+
+        if (damageCalculator == null)
+        {
+            damageCalculator = GetComponent<SC_DamageCalculator>();
         }
     }
 
@@ -163,9 +174,16 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         SO_CharacterData targetCharacterData = GetCharacterDataForGrade(mergedGrade);
-        pendingAttackRequests.Enqueue(new AttackRequest(Mathf.Clamp(mergedGrade, 1, 10), targetCharacterData));
+        bool applyFirstMergedAttackBonus = isNextMergedAttackBonusArmed;
+        isNextMergedAttackBonusArmed = false;
+        pendingAttackRequests.Enqueue(new AttackRequest(Mathf.Clamp(mergedGrade, 1, 10), targetCharacterData, applyFirstMergedAttackBonus));
         TryStartAttackQueueProcessing();
         RaiseMergeAttackGaugeChanged();
+    }
+
+    public void ArmNextMergedAttackDamageBonus()
+    {
+        isNextMergedAttackBonusArmed = true;
     }
 
     public void NotifyBossDefeated(SC_MonsterHealth defeatedBoss)
@@ -342,7 +360,7 @@ public class SC_BattleManager : MonoBehaviour
                 yield return new WaitForSeconds(attackImpactDelay);
             }
 
-            float finalDamage = attacker.CalculateAttackDamage(request.Grade);
+            float finalDamage = CalculateFinalDamage(attacker, request.Grade, request.ApplyFirstMergedAttackBonus);
             ApplyDamageToBoss(finalDamage);
 
             if (isBattleFinished)
@@ -449,6 +467,30 @@ public class SC_BattleManager : MonoBehaviour
         {
             battleCardPopup.OpenCardSelection(openedCardSelectionCount);
         }
+    }
+
+    private float CalculateFinalDamage(SO_CharacterData attacker, int mergeGrade, bool applyFirstMergedAttackBonus)
+    {
+        if (attacker == null)
+        {
+            return 0f;
+        }
+
+        if (damageCalculator == null)
+        {
+            damageCalculator = GetComponent<SC_DamageCalculator>();
+        }
+
+        if (damageCalculator == null)
+        {
+            return attacker.GetBaseDamage(mergeGrade);
+        }
+
+        SC_DamageCalculator.DamageContext damageContext =
+            new SC_DamageCalculator.DamageContext(attacker, currentBoss, mergeGrade, applyFirstMergedAttackBonus);
+
+        SC_DamageCalculator.DamageResult damageResult = damageCalculator.CalculateDamage(damageContext);
+        return damageResult.FinalDamage;
     }
 
     private void OnBossHealthChanged(float currentHp, float maxHp)
