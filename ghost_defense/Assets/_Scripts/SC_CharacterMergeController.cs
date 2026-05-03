@@ -4,7 +4,7 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class SC_CharacterMergeController : MonoBehaviour
 {
-    [Tooltip("머지 결과로 생성할 프리팹입니다. 비워두면 자기 자신 프리팹을 재사용합니다.")]
+    [Tooltip("머지 결과로 생성할 프리팹입니다. 비워두면 자기 자신 프리팹을 사용합니다.")]
     [SerializeField] private GameObject mergeObjectPrefab;
 
     [Tooltip("머지 결과 오브젝트를 생성할 부모 Transform입니다.")]
@@ -13,17 +13,17 @@ public class SC_CharacterMergeController : MonoBehaviour
     [Tooltip("현재 머지 오브젝트의 단계와 이미지를 표시하는 프레젠터입니다.")]
     [SerializeField] private SC_CharacterPresenter presenter;
 
-    [Tooltip("머지 성공 시 공격 큐를 전달할 배틀 매니저입니다.")]
+    [Tooltip("머지 성공 후 공격 요청을 전달할 배틀 매니저입니다.")]
     [FormerlySerializedAs("waveManager")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("머지 후 이어받을 속도에 곱할 배율입니다.")]
+    [Tooltip("머지 후 이어받을 속도에 곱할 배수입니다.")]
     [SerializeField] private float mergeSpeedMultiplier = 0.6667f;
 
     [Tooltip("머지 후 이어받을 최대 속도입니다. 0 이하면 제한하지 않습니다.")]
     [SerializeField] private float maxInheritedSpeed = 0f;
 
-    [Tooltip("겹침 판정 시 허용할 추가 거리입니다. 0이면 실제 접촉일 때만 머지됩니다.")]
+    [Tooltip("겹침 판정에 허용할 추가 거리입니다. 0이면 실제 접촉할 때만 머지됩니다.")]
     [SerializeField] private float mergeContactTolerance = 0f;
 
     [Tooltip("10단계 완성 오브젝트를 제거하기 전까지의 지연 시간(초)입니다.")]
@@ -33,19 +33,19 @@ public class SC_CharacterMergeController : MonoBehaviour
     [FormerlySerializedAs("pushEffectRadius")]
     [SerializeField] private float pushEffectRadiusMultiplier = 1.75f;
 
-    [Tooltip("6단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [Tooltip("6단계 합체 후 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
     [SerializeField] private float pushEffectForceGrade6 = 5f;
 
-    [Tooltip("7단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [Tooltip("7단계 합체 후 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
     [SerializeField] private float pushEffectForceGrade7 = 6f;
 
-    [Tooltip("8단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [Tooltip("8단계 합체 후 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
     [SerializeField] private float pushEffectForceGrade8 = 7f;
 
-    [Tooltip("9단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [Tooltip("9단계 합체 후 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
     [SerializeField] private float pushEffectForceGrade9 = 8f;
 
-    [Tooltip("10단계 합체 시 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
+    [Tooltip("10단계 합체 후 주변 캐릭터를 밀어낼 힘의 크기입니다.")]
     [SerializeField] private float pushEffectForceGrade10 = 9f;
 
     [Tooltip("주변 밀치기 방향에 추가할 위쪽 보정값입니다.")]

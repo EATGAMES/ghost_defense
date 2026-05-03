@@ -126,12 +126,12 @@ MonoBehaviour:
   collisionDamping: 0.5
   sideSlipDamping: 0.5
   useCollisionAngleJitter: 1
-  collisionAngleJitterMax: 45
+  collisionAngleJitterMax: 30
   stopSpeedThreshold: 0.01
   downwardBrakeMultiplier: 8
   disableCollisionBeforeShot: 1
   blockShootWhenOverlappingCharacter: 1
-  shootBlockCheckHeight: 2
+  shootBlockCheckHeight: 1.7
   syncPhysicsBeforeShot: 1
 --- !u!114 &3986356179992966670
 MonoBehaviour:
@@ -196,13 +196,13 @@ MonoBehaviour:
   maxInheritedSpeed: 5
   mergeContactTolerance: 0
   finalMergeCleanupDelay: 0.6
-  pushEffectRadiusMultiplier: 1.8
-  pushEffectForceGrade6: 100
-  pushEffectForceGrade7: 100
-  pushEffectForceGrade8: 100
-  pushEffectForceGrade9: 100
-  pushEffectForceGrade10: 100
-  pushEffectUpwardBias: 1
+  pushEffectRadiusMultiplier: 2
+  pushEffectForceGrade6: 10
+  pushEffectForceGrade7: 10
+  pushEffectForceGrade8: 10
+  pushEffectForceGrade9: 10
+  pushEffectForceGrade10: 10
+  pushEffectUpwardBias: 10
 --- !u!114 &3051682432527465309
 MonoBehaviour:
   m_ObjectHideFlags: 0
