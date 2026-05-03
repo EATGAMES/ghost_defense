@@ -19,6 +19,8 @@ public class SC_FinalMergePopup : MonoBehaviour
 
     private Coroutine popupCoroutine;
 
+    public bool IsPopupOpen => popupRoot != null && popupRoot.activeInHierarchy;
+
     private void Awake()
     {
         SetPopupVisible(false);

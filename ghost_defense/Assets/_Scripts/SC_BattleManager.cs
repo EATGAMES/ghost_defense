@@ -100,6 +100,7 @@ public class SC_BattleManager : MonoBehaviour
     private bool isBattleFinished;
     private bool isBattleClosing;
     private bool isStageClearPending;
+    private bool isBattleClearedThisSession;
     private bool isNextMergedAttackBonusArmed;
     private bool wasStageClearedOnBattleStart;
     private bool hasGrantedBaseClearRewardThisBattle;
@@ -114,6 +115,7 @@ public class SC_BattleManager : MonoBehaviour
     public int MergeAttackCountPerCard => Mathf.Max(1, attackCountPerCard);
     public bool IsCardSelectionOpen => isCardSelectionOpen;
     public bool IsBattleFinished => isBattleFinished;
+    public bool IsBattleClearedThisSession => isBattleClearedThisSession;
     public int PendingAttackQueueCount => pendingAttackRequests.Count;
     public SO_CharacterData CurrentAttackCharacterData => currentAttackCharacterData;
     public int CurrentAttackGrade => Mathf.Clamp(currentAttackGrade, 0, 10);
@@ -153,6 +155,7 @@ public class SC_BattleManager : MonoBehaviour
 
     private void Start()
     {
+        isBattleClearedThisSession = false;
         int savedSelectedStage = SC_SaveDataManager.Instance != null ? SC_SaveDataManager.Instance.SelectedStage : startStage;
         CurrentStage = Mathf.Clamp(savedSelectedStage, 1, MaxStage);
         wasStageClearedOnBattleStart =
@@ -307,6 +310,7 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         isBattleFinished = true;
+        isBattleClearedThisSession = false;
         isCardSelectionOpen = false;
         pendingAttackRequests.Clear();
         currentAttackCount = 0;
@@ -554,6 +558,7 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         isBattleFinished = true;
+        isBattleClearedThisSession = true;
         isBattleClosing = false;
         isStageClearPending = false;
         currentAttackCount = 0;

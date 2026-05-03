@@ -59,12 +59,6 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     [Tooltip("발사 전에는 물리 충돌을 비활성화할지 여부")]
     [SerializeField] private bool disableCollisionBeforeShot = true;
 
-    [Tooltip("주변에 다른 캐릭터가 겹치면 발사를 막을지 여부")]
-    [SerializeField] private bool blockShootWhenOverlappingCharacter = true;
-
-    [Tooltip("발사 차단을 검사할 세로 높이(월드 좌표)")]
-    [SerializeField] private float shootBlockCheckHeight = 1.2f;
-
     [Tooltip("발사 직전 물리 좌표를 강제로 동기화할지 여부")]
     [SerializeField] private bool syncPhysicsBeforeShot = true;
 
@@ -90,8 +84,10 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private float cardShootSpeedBonus;
     private Vector3 dragStartPosition;
     private Vector3 guideOriginalLocalScale = Vector3.one;
-    private readonly Collider2D[] overlapResults = new Collider2D[16];
-
+    private bool suppressDragUntilPointerReleased;
+    private SC_BattleManager battleManager;
+    private SC_FinalMergePopup finalMergePopup;
+    private SC_ClearPopup clearPopup;
     public bool IsShot => isShot;
     public bool HasCollidedAfterShot => hasCollidedAfterShot;
 
@@ -148,6 +144,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         {
             SetCardShootSpeedBonus(cardManager.AttackQueueSpeedBonus);
         }
+
+        ResolvePopupReferences();
     }
 
     private void OnEnable()
@@ -164,6 +162,12 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     {
         if (mainCamera == null || isShot)
         {
+            return;
+        }
+
+        if (IsInputBlockedByPopup())
+        {
+            CancelDragAndSuppressUntilRelease();
             return;
         }
 
@@ -200,6 +204,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         if (Touchscreen.current == null)
         {
             wasTouchPressed = false;
+            suppressDragUntilPointerReleased = false;
             return;
         }
 
@@ -207,6 +212,17 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         Vector2 screenPoint = primaryTouch.position.ReadValue();
         bool isPressed = primaryTouch.press.isPressed;
         Vector3 worldPoint = ScreenToWorldPoint(screenPoint);
+
+        if (suppressDragUntilPointerReleased)
+        {
+            wasTouchPressed = isPressed;
+            if (!isPressed)
+            {
+                suppressDragUntilPointerReleased = false;
+            }
+
+            return;
+        }
 
         if (isPressed && !wasTouchPressed)
         {
@@ -253,6 +269,17 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         Vector2 screenPoint = Mouse.current.position.ReadValue();
         bool isPressed = Mouse.current.leftButton.isPressed;
         Vector3 worldPoint = ScreenToWorldPoint(screenPoint);
+
+        if (suppressDragUntilPointerReleased)
+        {
+            wasMousePressed = isPressed;
+            if (!isPressed)
+            {
+                suppressDragUntilPointerReleased = false;
+            }
+
+            return;
+        }
 
         if (isPressed && !wasMousePressed)
         {
@@ -353,11 +380,6 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void ShootForward()
     {
-        if (blockShootWhenOverlappingCharacter && IsShootBlockedByCharacter())
-        {
-            return;
-        }
-
         SetGuideVisible(false);
 
         if (rb2D != null)
@@ -472,15 +494,39 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             return;
         }
 
+        if (rb2D != null)
+        {
+            rb2D.linearVelocity = Vector2.zero;
+            rb2D.angularVelocity = 0f;
+        }
+
         if (isDragging)
         {
-            transform.position = dragStartPosition;
+            if (rb2D != null)
+            {
+                rb2D.position = new Vector2(dragStartPosition.x, dragStartPosition.y);
+            }
+            else
+            {
+                transform.position = dragStartPosition;
+            }
         }
 
         isDragging = false;
         wasMousePressed = false;
         wasTouchPressed = false;
         SetGuideVisible(false);
+    }
+
+    public void CancelDragAndSuppressUntilRelease()
+    {
+        if (!isDragging && !wasMousePressed && !wasTouchPressed)
+        {
+            return;
+        }
+
+        CancelDragAndResetToStartPosition();
+        suppressDragUntilPointerReleased = true;
     }
 
     private void HandleDragStarted()
@@ -598,36 +644,6 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         col2D.isTrigger = !isShot;
     }
 
-    private bool IsShootBlockedByCharacter()
-    {
-        if (col2D == null)
-        {
-            return false;
-        }
-
-        float checkWidth = GetCharacterWidthForShootBlock();
-        Vector2 checkSize = new Vector2(checkWidth, shootBlockCheckHeight);
-        ContactFilter2D contactFilter = default;
-        contactFilter.useTriggers = true;
-        int hitCount = Physics2D.OverlapBox(transform.position, checkSize, 0f, contactFilter, overlapResults);
-        for (int i = 0; i < hitCount; i++)
-        {
-            Collider2D hit = overlapResults[i];
-            if (hit == null || hit == col2D)
-            {
-                continue;
-            }
-
-            SC_CharacterMergeController otherCharacter = hit.GetComponentInParent<SC_CharacterMergeController>();
-            if (otherCharacter != null && otherCharacter.gameObject != gameObject)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static bool IsExcludedPostLaunchCollision(Collider2D other)
     {
         if (other == null)
@@ -650,19 +666,44 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         );
     }
 
-    private float GetCharacterWidthForShootBlock()
-    {
-        if (col2D == null)
-        {
-            return 1f;
-        }
-
-        return Mathf.Max(0.01f, col2D.bounds.size.x);
-    }
-
     private float GetFinalShootSpeed()
     {
         return Mathf.Max(0f, shootSpeed + cardShootSpeedBonus);
+    }
+
+    private bool IsInputBlockedByPopup()
+    {
+        ResolvePopupReferences();
+
+        if (battleManager != null && battleManager.IsCardSelectionOpen)
+        {
+            return true;
+        }
+
+        if (finalMergePopup != null && finalMergePopup.IsPopupOpen)
+        {
+            return true;
+        }
+
+        return clearPopup != null && clearPopup.IsPopupOpen;
+    }
+
+    private void ResolvePopupReferences()
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (finalMergePopup == null)
+        {
+            finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();
+        }
+
+        if (clearPopup == null)
+        {
+            clearPopup = FindAnyObjectByType<SC_ClearPopup>();
+        }
     }
 
     private void OnDrawGizmosSelected()
@@ -675,14 +716,5 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             Gizmos.DrawWireCube(zoneCenter, zoneSize);
         }
 
-        if (!blockShootWhenOverlappingCharacter)
-        {
-            return;
-        }
-
-        Gizmos.color = Color.red;
-        float checkWidth = GetCharacterWidthForShootBlock();
-        Vector3 checkSize = new Vector3(checkWidth, shootBlockCheckHeight, 0f);
-        Gizmos.DrawWireCube(transform.position, checkSize);
     }
 }

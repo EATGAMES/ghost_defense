@@ -45,6 +45,9 @@ public class SC_ClearPopup : MonoBehaviour
     [Tooltip("닫기 시 이동할 로비 씬 이름입니다.")]
     [SerializeField] private string lobbySceneName = "SCN_Lobby";
 
+    public bool IsPopupOpen => popupRoot != null && popupRoot.activeInHierarchy;
+    private bool isExitConfirmMode;
+
     private void Awake()
     {
         if (battleManager == null)
@@ -105,6 +108,7 @@ public class SC_ClearPopup : MonoBehaviour
             return;
         }
 
+        isExitConfirmMode = false;
         SC_BattleManager.ClearRewardResult rewardResult = battleManager.BuildAndGrantClearRewardResult();
         RefreshTexts(rewardResult);
         RefreshButtons(rewardResult.ShowCloseCenterOnly);
@@ -115,9 +119,19 @@ public class SC_ClearPopup : MonoBehaviour
             this);
     }
 
+    public void OpenExitConfirmPopup()
+    {
+        isExitConfirmMode = true;
+        RefreshTexts(new SC_BattleManager.ClearRewardResult(0, 0, 0, 0, false));
+        RefreshButtons(false);
+        Time.timeScale = 0f;
+        SetPopupVisible(true);
+    }
+
     public void ClosePopup()
     {
         Time.timeScale = 1f;
+        isExitConfirmMode = false;
         SetPopupVisible(false);
     }
 
@@ -129,6 +143,7 @@ public class SC_ClearPopup : MonoBehaviour
     private void OnClickClose()
     {
         Time.timeScale = 1f;
+        isExitConfirmMode = false;
 
         if (!string.IsNullOrWhiteSpace(lobbySceneName))
         {

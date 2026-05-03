@@ -131,8 +131,6 @@ MonoBehaviour:
   stopSpeedThreshold: 0.01
   downwardBrakeMultiplier: 8
   disableCollisionBeforeShot: 1
-  blockShootWhenOverlappingCharacter: 0
-  shootBlockCheckHeight: 1.7
   syncPhysicsBeforeShot: 1
   guideObject: {fileID: 5505103737445721466}
   dragArrowRightObject: {fileID: 0}

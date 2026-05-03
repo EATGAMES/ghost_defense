@@ -16,36 +16,37 @@ public class SC_BossSpawner : MonoBehaviour
 
     private void Awake()
     {
-        if (battleManager == null)
-        {
-            battleManager = FindAnyObjectByType<SC_BattleManager>();
-        }
-
-        if (placedBossHealth == null)
-        {
-            placedBossHealth = GetComponent<SC_MonsterHealth>();
-        }
-
-        if (placedBossHealth == null)
-        {
-            placedBossHealth = GetComponentInChildren<SC_MonsterHealth>();
-        }
+        ResolveReferences();
     }
 
     private void OnEnable()
     {
         SC_MonsterHealth.MonsterDied += OnMonsterDied;
-        ApplyStageMonsterData();
 
-        if (battleManager != null && placedBossHealth != null)
+        if (battleManager == null)
         {
-            battleManager.RegisterBoss(placedBossHealth);
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
+
+        if (battleManager != null)
+        {
+            battleManager.StageChanged += OnStageChanged;
+        }
+    }
+
+    private void Start()
+    {
+        ApplyStageMonsterDataAndRegisterBoss();
     }
 
     private void OnDisable()
     {
         SC_MonsterHealth.MonsterDied -= OnMonsterDied;
+
+        if (battleManager != null)
+        {
+            battleManager.StageChanged -= OnStageChanged;
+        }
 
         if (battleManager != null && placedBossHealth != null)
         {
@@ -55,20 +56,7 @@ public class SC_BossSpawner : MonoBehaviour
 
     public void SpawnBoss()
     {
-        if (battleManager == null)
-        {
-            battleManager = FindAnyObjectByType<SC_BattleManager>();
-        }
-
-        if (placedBossHealth == null)
-        {
-            placedBossHealth = GetComponent<SC_MonsterHealth>();
-        }
-
-        if (placedBossHealth == null)
-        {
-            placedBossHealth = GetComponentInChildren<SC_MonsterHealth>();
-        }
+        ResolveReferences();
 
         if (battleManager == null || placedBossHealth == null)
         {
@@ -76,8 +64,7 @@ public class SC_BossSpawner : MonoBehaviour
             return;
         }
 
-        ApplyStageMonsterData();
-        battleManager.RegisterBoss(placedBossHealth);
+        ApplyStageMonsterDataAndRegisterBoss();
     }
 
     private void OnMonsterDied(SC_MonsterHealth deadMonster)
@@ -108,5 +95,39 @@ public class SC_BossSpawner : MonoBehaviour
         }
 
         placedBossHealth.SetMonsterData(targetMonsterData);
+    }
+
+    private void ApplyStageMonsterDataAndRegisterBoss()
+    {
+        ResolveReferences();
+        ApplyStageMonsterData();
+
+        if (battleManager != null && placedBossHealth != null)
+        {
+            battleManager.RegisterBoss(placedBossHealth);
+        }
+    }
+
+    private void OnStageChanged(int currentStage, int maxStage)
+    {
+        ApplyStageMonsterDataAndRegisterBoss();
+    }
+
+    private void ResolveReferences()
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (placedBossHealth == null)
+        {
+            placedBossHealth = GetComponent<SC_MonsterHealth>();
+        }
+
+        if (placedBossHealth == null)
+        {
+            placedBossHealth = GetComponentInChildren<SC_MonsterHealth>();
+        }
     }
 }

@@ -17,6 +17,9 @@ public class SC_LobbyStageSelector : MonoBehaviour
     [Tooltip("선택 가능한 최대 스테이지입니다.")]
     [SerializeField] private int maxStage = 10;
 
+    [Tooltip("시작 시 가장 먼저 입장 가능한 스테이지를 자동 선택할지 여부입니다.")]
+    [SerializeField] private bool autoSelectHighestUnlockedStageOnStart = true;
+
     [Tooltip("클리어하지 않았지만 현재 입장 가능한 스테이지 색상입니다.")]
     [SerializeField] private Color playableStageColor = Color.white;
 
@@ -43,7 +46,16 @@ public class SC_LobbyStageSelector : MonoBehaviour
 
     private void Start()
     {
-        selectedStage = Mathf.Clamp(GetHighestUnlockedStage(), 1, Mathf.Max(1, maxStage));
+        if (autoSelectHighestUnlockedStageOnStart)
+        {
+            selectedStage = GetHighestUnlockedStage();
+        }
+        else if (SC_SaveDataManager.Instance != null)
+        {
+            selectedStage = SC_SaveDataManager.Instance.SelectedStage;
+        }
+
+        selectedStage = Mathf.Clamp(selectedStage, 1, Mathf.Max(1, maxStage));
         SaveSelectedStage();
         RefreshUI();
     }
