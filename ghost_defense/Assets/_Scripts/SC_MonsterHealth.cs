@@ -12,7 +12,7 @@ public class SC_MonsterHealth : MonoBehaviour
     [Tooltip("보스가 사용할 몬스터 데이터입니다.")]
     [SerializeField] private SO_MonsterData monsterData;
 
-    [Tooltip("체력이 0 이하가 되면 오브젝트를 자동 파괴할지 여부입니다.")]
+    [Tooltip("체력이 0 이하가 되면 오브젝트를 자동으로 제거할지 여부입니다.")]
     [SerializeField] private bool destroyOnDeath = true;
 
     private float runtimeMaxHp;
@@ -28,9 +28,12 @@ public class SC_MonsterHealth : MonoBehaviour
 
     private void Awake()
     {
-        runtimeMaxHp = monsterData != null ? Mathf.Max(0f, monsterData.MaxHp) : 0f;
-        currentHp = runtimeMaxHp;
-        RaiseHealthChanged();
+        ApplyMonsterData(monsterData);
+    }
+
+    public void SetMonsterData(SO_MonsterData newMonsterData)
+    {
+        ApplyMonsterData(newMonsterData);
     }
 
     public void TakeDamage(float damage)
@@ -59,6 +62,15 @@ public class SC_MonsterHealth : MonoBehaviour
     public void HealFull()
     {
         currentHp = runtimeMaxHp;
+        RaiseHealthChanged();
+    }
+
+    private void ApplyMonsterData(SO_MonsterData newMonsterData)
+    {
+        monsterData = newMonsterData;
+        runtimeMaxHp = monsterData != null ? Mathf.Max(0f, monsterData.MaxHp) : 0f;
+        currentHp = runtimeMaxHp;
+        isDeathNotified = false;
         RaiseHealthChanged();
     }
 

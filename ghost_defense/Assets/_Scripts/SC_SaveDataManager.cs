@@ -41,6 +41,7 @@ public class SC_GameSaveData
     public int TotalGold;
     public int Diamond;
     public int TotalDiamond;
+    public int SelectedStage = 1;
     public List<SaveIntEntry> StageClearEntries = new List<SaveIntEntry>();
     public List<SaveIntEntry> StageGrade10CreatedEntries = new List<SaveIntEntry>();
     public List<SaveIntEntry> GradeSpawnCountEntries = new List<SaveIntEntry>();
@@ -68,6 +69,7 @@ public class SC_SaveDataManager : MonoBehaviour
     public int TotalGold => saveData != null ? Mathf.Max(0, saveData.TotalGold) : 0;
     public int Diamond => saveData != null ? Mathf.Max(0, saveData.Diamond) : 0;
     public int TotalDiamond => saveData != null ? Mathf.Max(0, saveData.TotalDiamond) : 0;
+    public int SelectedStage => saveData != null ? Mathf.Max(1, saveData.SelectedStage) : 1;
     public bool HasVipMembership => saveData != null && saveData.HasVipMembership;
     public int TotalAdViewCount => saveData != null ? Mathf.Max(0, saveData.TotalAdViewCount) : 0;
 
@@ -200,6 +202,12 @@ public class SC_SaveDataManager : MonoBehaviour
     public bool HasCreatedGrade10InStage(int stageId)
     {
         return GetIntEntryValue(saveData.StageGrade10CreatedEntries, stageId) > 0;
+    }
+
+    public void SetSelectedStage(int stageId)
+    {
+        saveData.SelectedStage = Mathf.Max(1, stageId);
+        SaveIfNeeded();
     }
 
     public void SetCreatedGrade10InStage(int stageId, bool hasCreated)

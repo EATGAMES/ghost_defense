@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c058df8bf43e49b479a8afcd49c8cc43, type: 3}
+  m_Name: SO_CardData_043
+  m_EditorClassIdentifier: Assembly-CSharp::SO_CardData
+  cardId: 043
+  cardName: "\uB7A9\uB2E4\uC774\uC544\uBAAC\uB4DC"
+  description: "\uC2A4\uD14C\uC774\uC9C0 \uD074\uB9AC\uC5B4 \uC2DC \uB2E4\uC774\uC544\uB97C
+    3 \uB354 \uD68D\uB4DD\uD569\uB2C8\uB2E4"
+  effectType: 14
+  rarity: 1
+  effectValue: 3
+  isOneTimeCard: 0

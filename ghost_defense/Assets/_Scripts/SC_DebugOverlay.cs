@@ -140,6 +140,7 @@ public class SC_DebugOverlay : MonoBehaviour
             return;
         }
 
-        debugText.text = SC_SaveDataManager.Instance.BuildDebugSummary();
+        debugText.text =
+            $"[Battle]\nCurrent Stage: {SC_BattleManager.CurrentStage}\nSelected Stage: {SC_SaveDataManager.Instance.SelectedStage}\n\n{SC_SaveDataManager.Instance.BuildDebugSummary()}";
     }
 }

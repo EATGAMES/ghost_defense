@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -29,6 +30,12 @@ public class SC_CharacterMergeController : MonoBehaviour
     [Tooltip("10단계 완성 오브젝트를 제거하기 전까지의 지연 시간(초)입니다.")]
     [SerializeField] private float finalMergeCleanupDelay = 0.15f;
 
+    [Tooltip("10단계 최종 머지 팝업이 뜨기 전 대기 시간(초)입니다.")]
+    [SerializeField] private float finalMergePopupDelay = 0.3f;
+
+    [Tooltip("10단계 최종 머지 연출 팝업입니다.")]
+    [SerializeField] private SC_FinalMergePopup finalMergePopup;
+
     [Tooltip("주변 밀치기 반경을 Circle Collider 2D 반지름 대비 몇 배로 사용할지 설정합니다.")]
     [FormerlySerializedAs("pushEffectRadius")]
     [SerializeField] private float pushEffectRadiusMultiplier = 1.75f;
@@ -52,6 +59,7 @@ public class SC_CharacterMergeController : MonoBehaviour
     [SerializeField] private float pushEffectUpwardBias = 0.2f;
 
     private bool isMerged;
+    private bool isFinalMergeSequenceRunning;
     private readonly Collider2D[] pushEffectResults = new Collider2D[16];
 
     private void Reset()
@@ -69,6 +77,11 @@ public class SC_CharacterMergeController : MonoBehaviour
         if (battleManager == null)
         {
             battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (finalMergePopup == null)
+        {
+            finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();
         }
 
         if (mergeObjectPrefab == null)
@@ -176,17 +189,50 @@ public class SC_CharacterMergeController : MonoBehaviour
         ReportMergedGradeToPreviewUI(nextGrade);
         EnablePhysicsForMergedCharacter(mergedObject);
         ApplyMergePushEffect(mergedObject, nextGrade);
-        NotifyMergeCreated(nextGrade);
 
         if (nextGrade >= 10)
         {
             DisablePhysicsForFinalMerge(mergedObject);
-            Destroy(mergedObject, Mathf.Max(0f, finalMergeCleanupDelay));
+
+            SC_CharacterMergeController mergedMergeController = mergedObject.GetComponent<SC_CharacterMergeController>();
+            if (mergedMergeController != null)
+            {
+                mergedMergeController.BeginFinalMergeSequence();
+            }
+            else
+            {
+                Destroy(mergedObject, Mathf.Max(0f, finalMergeCleanupDelay));
+            }
+        }
+        else
+        {
+            NotifyMergeCreated(nextGrade);
         }
 
         Destroy(otherMerge.gameObject);
         Destroy(gameObject);
         return true;
+    }
+
+    public void BeginFinalMergeSequence()
+    {
+        if (isFinalMergeSequenceRunning)
+        {
+            return;
+        }
+
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (battleManager != null)
+        {
+            battleManager.NotifyCreatedGrade10ThisBattle();
+        }
+
+        isFinalMergeSequenceRunning = true;
+        StartCoroutine(CoHandleFinalMergeSequence());
     }
 
     private static void ReportMergedGradeToPreviewUI(int mergedGrade)
@@ -293,6 +339,62 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
 
         battleManager.NotifyMergeAttack(mergedGrade);
+    }
+
+    private IEnumerator CoHandleFinalMergeSequence()
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, finalMergePopupDelay));
+
+        if (finalMergePopup == null)
+        {
+            finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();
+        }
+
+        if (finalMergePopup != null)
+        {
+            Sprite finalMergeSprite = ResolveFinalMergePopupSprite();
+            finalMergePopup.SetCharacterSprite(finalMergeSprite);
+            yield return finalMergePopup.CoOpenAndWait();
+        }
+
+        yield return new WaitForSeconds(Mathf.Max(0f, finalMergeCleanupDelay));
+
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (battleManager != null && battleManager.HasAliveBoss)
+        {
+            battleManager.NotifyFinalMergeAttack(10);
+        }
+        else if (battleManager != null)
+        {
+            battleManager.OpenClearPopup();
+        }
+
+        Destroy(gameObject);
+    }
+
+    private Sprite ResolveFinalMergePopupSprite()
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (battleManager == null)
+        {
+            return null;
+        }
+
+        Sprite previewSprite = battleManager.GetPreviewSpriteForGrade(10);
+        if (previewSprite != null)
+        {
+            return previewSprite;
+        }
+
+        return battleManager.GetFieldSpriteForGrade(10);
     }
 
     private bool IsActuallyTouching(SC_CharacterMergeController otherMerge)

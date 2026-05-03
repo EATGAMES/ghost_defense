@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 public class SC_TabSwitcher : MonoBehaviour
 {
@@ -17,12 +17,16 @@ public class SC_TabSwitcher : MonoBehaviour
         [Tooltip("선택되었을 때 표시할 오브젝트")]
         [SerializeField] private GameObject selectedStateObject;
 
+        [Tooltip("이 탭을 선택했을 때 보여줄 화면 루트 오브젝트")]
+        [SerializeField] private GameObject contentRootObject;
+
         public Button Button => button;
         public GameObject NormalStateObject => normalStateObject;
         public GameObject SelectedStateObject => selectedStateObject;
+        public GameObject ContentRootObject => contentRootObject;
     }
 
-    [Tooltip("탭 순서대로(1번부터) 등록할 탭 목록")]
+    [Tooltip("탭 순서대로 1번부터 등록할 목록")]
     [SerializeField] private TabItem[] tabs;
 
     [Tooltip("시작 시 선택할 탭 번호(1부터 시작)")]
@@ -127,6 +131,11 @@ public class SC_TabSwitcher : MonoBehaviour
             if (tabs[i].SelectedStateObject != null)
             {
                 tabs[i].SelectedStateObject.SetActive(isSelected);
+            }
+
+            if (tabs[i].ContentRootObject != null)
+            {
+                tabs[i].ContentRootObject.SetActive(isSelected);
             }
         }
     }

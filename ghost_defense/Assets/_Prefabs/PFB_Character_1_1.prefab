@@ -120,7 +120,7 @@ MonoBehaviour:
   inputZoneWidth: 5.5
   inputZoneHeight: 2.2
   inputZoneOffset: {x: 0, y: 0.2}
-  shootSpeed: 15
+  shootSpeed: 18
   lockYPosition: 1
   fixedY: -7
   deceleration: 0.4
@@ -199,7 +199,9 @@ MonoBehaviour:
   mergeSpeedMultiplier: 0.8
   maxInheritedSpeed: 5
   mergeContactTolerance: 0
-  finalMergeCleanupDelay: 0.6
+  finalMergeCleanupDelay: 1.5
+  finalMergePopupDelay: 0.3
+  finalMergePopup: {fileID: 0}
   pushEffectRadiusMultiplier: 2
   pushEffectForceGrade6: 10
   pushEffectForceGrade7: 10

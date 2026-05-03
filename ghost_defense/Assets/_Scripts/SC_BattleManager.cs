@@ -6,6 +6,24 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SC_BattleManager : MonoBehaviour
 {
+    public readonly struct ClearRewardResult
+    {
+        public readonly int BaseGold;
+        public readonly int BonusGold;
+        public readonly int BaseDiamond;
+        public readonly int BonusDiamond;
+        public readonly bool ShowCloseCenterOnly;
+
+        public ClearRewardResult(int baseGold, int bonusGold, int baseDiamond, int bonusDiamond, bool showCloseCenterOnly)
+        {
+            BaseGold = Mathf.Max(0, baseGold);
+            BonusGold = Mathf.Max(0, bonusGold);
+            BaseDiamond = Mathf.Max(0, baseDiamond);
+            BonusDiamond = Mathf.Max(0, bonusDiamond);
+            ShowCloseCenterOnly = showCloseCenterOnly;
+        }
+    }
+
     private readonly struct AttackRequest
     {
         public readonly int Grade;
@@ -19,6 +37,8 @@ public class SC_BattleManager : MonoBehaviour
             ApplyFirstMergedAttackBonus = applyFirstMergedAttackBonus;
         }
     }
+
+    private const int FinalMergeClearBonusDiamondReward = 50;
 
     public static int CurrentStage { get; private set; } = 1;
 
@@ -41,7 +61,7 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("하단 필드 캐릭터 스프라이트에 사용할 필드 스킨 데이터 목록입니다.")]
     [SerializeField] private SO_FieldCharacterSkinData[] equippedFieldSkins = new SO_FieldCharacterSkinData[5];
 
-    [Tooltip("카드 선택 팝업을 열기까지 필요한 공격 횟수입니다.")]
+    [Tooltip("카드 선택 팝업이 열리기까지 필요한 공격 횟수입니다.")]
     [SerializeField] private int attackCountPerCard = 20;
 
     [Tooltip("공격 요청 처리 사이 기본 간격(초)입니다.")]
@@ -59,6 +79,12 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("최종 전투 데미지 공식을 계산할 계산기입니다.")]
     [SerializeField] private SC_DamageCalculator damageCalculator;
 
+    [Tooltip("전투 중 카드 효과를 관리할 카드 매니저입니다.")]
+    [SerializeField] private SC_CardManager cardManager;
+
+    [Tooltip("스테이지 클리어 보상을 표시할 클리어 팝업입니다.")]
+    [SerializeField] private SC_ClearPopup clearPopup;
+
     private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
 
     private SC_MonsterHealth currentBoss;
@@ -66,6 +92,7 @@ public class SC_BattleManager : MonoBehaviour
     private SO_CharacterData currentAttackCharacterData;
     private SO_CharacterData[] defaultEquippedRoster;
     private SO_FieldCharacterSkinData[] defaultEquippedFieldSkins;
+    private SO_MonsterData clearedMonsterData;
     private int currentAttackGrade;
     private int currentAttackCount;
     private int openedCardSelectionCount;
@@ -74,6 +101,12 @@ public class SC_BattleManager : MonoBehaviour
     private bool isBattleClosing;
     private bool isStageClearPending;
     private bool isNextMergedAttackBonusArmed;
+    private bool wasStageClearedOnBattleStart;
+    private bool hasGrantedBaseClearRewardThisBattle;
+    private bool hasCreatedGrade10ThisBattle;
+    private bool hasGrantedGrade10RewardThisBattle;
+    private float nextAttackDamageMultiplier = 1f;
+    private float cardAttackQueueSpeedBonus;
     private SC_MonsterHealth pendingDefeatedBoss;
 
     public int MaxStage => Mathf.Max(1, maxStage);
@@ -84,6 +117,7 @@ public class SC_BattleManager : MonoBehaviour
     public int PendingAttackQueueCount => pendingAttackRequests.Count;
     public SO_CharacterData CurrentAttackCharacterData => currentAttackCharacterData;
     public int CurrentAttackGrade => Mathf.Clamp(currentAttackGrade, 0, 10);
+    public bool HasAliveBoss => currentBoss != null && currentBoss.CurrentHp > 0f && !isBattleClosing && !isBattleFinished;
 
     private void Awake()
     {
@@ -105,11 +139,24 @@ public class SC_BattleManager : MonoBehaviour
         {
             damageCalculator = GetComponent<SC_DamageCalculator>();
         }
+
+        if (cardManager == null)
+        {
+            cardManager = FindAnyObjectByType<SC_CardManager>();
+        }
+
+        if (clearPopup == null)
+        {
+            clearPopup = FindClearPopupIncludingInactive();
+        }
     }
 
     private void Start()
     {
-        CurrentStage = Mathf.Clamp(startStage, 1, MaxStage);
+        int savedSelectedStage = SC_SaveDataManager.Instance != null ? SC_SaveDataManager.Instance.SelectedStage : startStage;
+        CurrentStage = Mathf.Clamp(savedSelectedStage, 1, MaxStage);
+        wasStageClearedOnBattleStart =
+            SC_SaveDataManager.Instance != null && SC_SaveDataManager.Instance.IsStageCleared(CurrentStage);
         currentAttackCharacterData = GetStartingAttackCharacterData();
         currentAttackGrade = currentAttackCharacterData != null ? 1 : 0;
 
@@ -145,6 +192,7 @@ public class SC_BattleManager : MonoBehaviour
         if (currentBoss != null)
         {
             currentBoss.HealthChanged += OnBossHealthChanged;
+            clearedMonsterData = currentBoss.MonsterData;
         }
 
         RaiseBossHealthChanged();
@@ -181,9 +229,36 @@ public class SC_BattleManager : MonoBehaviour
         RaiseMergeAttackGaugeChanged();
     }
 
+    public void NotifyFinalMergeAttack(int mergedGrade)
+    {
+        if (!HasAliveBoss)
+        {
+            OpenClearPopup();
+            return;
+        }
+
+        NotifyMergeAttack(mergedGrade);
+    }
+
+    public void NotifyCreatedGrade10ThisBattle()
+    {
+        hasCreatedGrade10ThisBattle = true;
+    }
+
     public void ArmNextMergedAttackDamageBonus()
     {
+        ArmCardNextAttackDamageMultiplier(10f);
+    }
+
+    public void ArmCardNextAttackDamageMultiplier(float damageMultiplier)
+    {
         isNextMergedAttackBonusArmed = true;
+        nextAttackDamageMultiplier = Mathf.Max(1f, damageMultiplier);
+    }
+
+    public void SetCardAttackQueueSpeedBonus(float speedBonus)
+    {
+        cardAttackQueueSpeedBonus = Mathf.Max(0f, speedBonus);
     }
 
     public void NotifyBossDefeated(SC_MonsterHealth defeatedBoss)
@@ -201,6 +276,7 @@ public class SC_BattleManager : MonoBehaviour
         isBattleClosing = true;
         isCardSelectionOpen = false;
         pendingDefeatedBoss = defeatedBoss;
+        clearedMonsterData = defeatedBoss != null ? defeatedBoss.MonsterData : clearedMonsterData;
 
         if (pauseWhenSelectingCard && Time.timeScale == 0f)
         {
@@ -250,11 +326,16 @@ public class SC_BattleManager : MonoBehaviour
         StageFailed?.Invoke(CurrentStage);
     }
 
-    public void NotifyCardSelected()
+    public void NotifyCardSelected(SO_CardData selectedCardData)
     {
         if (!isCardSelectionOpen)
         {
             return;
+        }
+
+        if (selectedCardData != null && cardManager != null)
+        {
+            cardManager.ApplySelectedCard(selectedCardData);
         }
 
         isCardSelectionOpen = false;
@@ -298,6 +379,66 @@ public class SC_BattleManager : MonoBehaviour
         SO_CharacterData[] copied = new SO_CharacterData[equippedRoster.Length];
         Array.Copy(equippedRoster, copied, equippedRoster.Length);
         return copied;
+    }
+
+    public void OpenClearPopup()
+    {
+        if (clearPopup == null)
+        {
+            clearPopup = FindClearPopupIncludingInactive();
+        }
+
+        if (clearPopup == null)
+        {
+            Debug.LogWarning("SC_BattleManager: SC_ClearPopup을 찾지 못해서 클리어 팝업을 열 수 없습니다.", this);
+            return;
+        }
+
+        clearPopup.OpenPopup();
+    }
+
+    public ClearRewardResult BuildAndGrantClearRewardResult()
+    {
+        bool isFirstClearReward = !wasStageClearedOnBattleStart;
+        int baseGold = 0;
+        int baseDiamond = 0;
+        int bonusGold = 0;
+        int bonusDiamond = 0;
+
+        if (!hasGrantedBaseClearRewardThisBattle && clearedMonsterData != null)
+        {
+            baseGold = isFirstClearReward ? clearedMonsterData.FirstClearGoldReward : clearedMonsterData.RepeatClearGoldReward;
+            baseDiamond = isFirstClearReward ? clearedMonsterData.FirstClearDiamondReward : clearedMonsterData.RepeatClearDiamondReward;
+            bonusGold = CalculateGoldCardBonus(baseGold);
+            bonusDiamond = CalculateDiamondCardBonus();
+
+            GrantCurrencyReward(baseGold + bonusGold, baseDiamond + bonusDiamond);
+            hasGrantedBaseClearRewardThisBattle = true;
+
+            if (SC_SaveDataManager.Instance != null)
+            {
+                SC_SaveDataManager.Instance.SetStageCleared(CurrentStage, true);
+            }
+        }
+
+        if (CanGrantFinalMergeClearBonus())
+        {
+            bonusDiamond += FinalMergeClearBonusDiamondReward;
+            GrantCurrencyReward(0, FinalMergeClearBonusDiamondReward);
+            hasGrantedGrade10RewardThisBattle = true;
+
+            if (SC_SaveDataManager.Instance != null)
+            {
+                SC_SaveDataManager.Instance.SetCreatedGrade10InStage(CurrentStage, true);
+            }
+        }
+
+        return new ClearRewardResult(
+            baseGold,
+            bonusGold,
+            baseDiamond,
+            bonusDiamond,
+            HasCreatedGrade10HistoryForCurrentStage());
     }
 
     private SO_CharacterData GetStartingAttackCharacterData()
@@ -385,7 +526,8 @@ public class SC_BattleManager : MonoBehaviour
                 break;
             }
 
-            float attackInterval = Mathf.Max(0.01f, baseAttackInterval / Mathf.Max(0.01f, attacker.AttackQueueSpeedPercent));
+            float attackSpeedMultiplier = Mathf.Max(0.01f, attacker.AttackQueueSpeedPercent + cardAttackQueueSpeedBonus);
+            float attackInterval = Mathf.Max(0.01f, baseAttackInterval / attackSpeedMultiplier);
             float delay = remainingPresentationDuration + attackInterval;
             yield return new WaitForSeconds(delay);
         }
@@ -419,6 +561,7 @@ public class SC_BattleManager : MonoBehaviour
         RaiseBossHealthChanged(0f, pendingDefeatedBoss != null ? pendingDefeatedBoss.MaxHp : 0f);
         StageCleared?.Invoke(CurrentStage);
         pendingDefeatedBoss = null;
+        OpenClearPopup();
     }
 
     private void ApplyDamageToBoss(float damage)
@@ -487,9 +630,14 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         SC_DamageCalculator.DamageContext damageContext =
-            new SC_DamageCalculator.DamageContext(attacker, currentBoss, mergeGrade, applyFirstMergedAttackBonus);
+            new SC_DamageCalculator.DamageContext(attacker, currentBoss, mergeGrade, applyFirstMergedAttackBonus, nextAttackDamageMultiplier);
 
         SC_DamageCalculator.DamageResult damageResult = damageCalculator.CalculateDamage(damageContext);
+        if (applyFirstMergedAttackBonus)
+        {
+            nextAttackDamageMultiplier = 1f;
+        }
+
         return damageResult.FinalDamage;
     }
 
@@ -576,6 +724,108 @@ public class SC_BattleManager : MonoBehaviour
 
         gradePreviewUI.RefreshPreviewImages();
         gradePreviewUI.RefreshPointerPosition();
+    }
+
+    private static SC_ClearPopup FindClearPopupIncludingInactive()
+    {
+        SC_ClearPopup activePopup = FindAnyObjectByType<SC_ClearPopup>();
+        if (activePopup != null)
+        {
+            return activePopup;
+        }
+
+        SC_ClearPopup[] allPopups = Resources.FindObjectsOfTypeAll<SC_ClearPopup>();
+        for (int i = 0; i < allPopups.Length; i++)
+        {
+            SC_ClearPopup popup = allPopups[i];
+            if (popup == null || popup.hideFlags != HideFlags.None)
+            {
+                continue;
+            }
+
+            if (!popup.gameObject.scene.IsValid())
+            {
+                continue;
+            }
+
+            return popup;
+        }
+
+        return null;
+    }
+
+    private int CalculateGoldCardBonus(int baseGold)
+    {
+        if (cardManager == null || baseGold <= 0)
+        {
+            return 0;
+        }
+
+        float rawBonus = Mathf.Max(0f, cardManager.BonusGoldReward);
+        float bonusRate = rawBonus > 1f ? rawBonus * 0.01f : rawBonus;
+        return Mathf.Max(0, Mathf.RoundToInt(baseGold * bonusRate));
+    }
+
+    private int CalculateDiamondCardBonus()
+    {
+        if (cardManager == null)
+        {
+            return 0;
+        }
+
+        return Mathf.Max(0, Mathf.RoundToInt(cardManager.BonusDiamondReward));
+    }
+
+    private bool CanGrantFinalMergeClearBonus()
+    {
+        if (!hasCreatedGrade10ThisBattle || hasGrantedGrade10RewardThisBattle || wasStageClearedOnBattleStart)
+        {
+            return false;
+        }
+
+        if (SC_SaveDataManager.Instance == null)
+        {
+            return true;
+        }
+
+        return !SC_SaveDataManager.Instance.HasCreatedGrade10InStage(CurrentStage);
+    }
+
+    private bool HasCreatedGrade10HistoryForCurrentStage()
+    {
+        if (hasCreatedGrade10ThisBattle)
+        {
+            return true;
+        }
+
+        return SC_SaveDataManager.Instance != null && SC_SaveDataManager.Instance.HasCreatedGrade10InStage(CurrentStage);
+    }
+
+    private static void GrantCurrencyReward(int goldAmount, int diamondAmount)
+    {
+        if (goldAmount > 0)
+        {
+            if (SC_CurrencyManager.Instance != null)
+            {
+                SC_CurrencyManager.Instance.AddGold(goldAmount);
+            }
+            else if (SC_SaveDataManager.Instance != null)
+            {
+                SC_SaveDataManager.Instance.AddGold(goldAmount);
+            }
+        }
+
+        if (diamondAmount > 0)
+        {
+            if (SC_CurrencyManager.Instance != null)
+            {
+                SC_CurrencyManager.Instance.AddDiamond(diamondAmount);
+            }
+            else if (SC_SaveDataManager.Instance != null)
+            {
+                SC_SaveDataManager.Instance.AddDiamond(diamondAmount);
+            }
+        }
     }
 
     private static SO_CharacterData[] CloneRoster(SO_CharacterData[] source)

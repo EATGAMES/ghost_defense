@@ -1,7 +1,5 @@
-using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class SC_BattleCardPopup : MonoBehaviour
@@ -16,30 +14,23 @@ public class SC_BattleCardPopup : MonoBehaviour
     [FormerlySerializedAs("waveManager")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("왼쪽 카드 버튼입니다.")]
-    [SerializeField] private Button leftCardButton;
+    [Tooltip("카드 UI 프리팹입니다.")]
+    [SerializeField] private SC_BattleCardItem cardItemPrefab;
 
-    [Tooltip("오른쪽 카드 버튼입니다.")]
-    [SerializeField] private Button rightCardButton;
+    [Tooltip("왼쪽 카드 UI가 생성될 부모 오브젝트입니다.")]
+    [SerializeField] private Transform leftCardParent;
 
-    [Tooltip("왼쪽 카드 이름을 표시할 TMP_Text입니다.")]
-    [SerializeField] private TMP_Text leftCardTitleText;
+    [Tooltip("오른쪽 카드 UI가 생성될 부모 오브젝트입니다.")]
+    [SerializeField] private Transform rightCardParent;
 
-    [Tooltip("오른쪽 카드 이름을 표시할 TMP_Text입니다.")]
-    [SerializeField] private TMP_Text rightCardTitleText;
+    [Tooltip("전투 중 등장시킬 카드 데이터 목록입니다.")]
+    [SerializeField] private SO_CardData[] cardDataPool;
 
-    [Tooltip("임시로 사용할 카드 이름 목록입니다.")]
-    [SerializeField] private string[] cardNamePool =
-    {
-        "ATTACK DAMAGE UP",
-        "HIGH GRADE BONUS",
-        "FIELD CLEAR",
-        "NEXT OBJECT UP",
-        "CLEAR REWARD UP"
-    };
+    [Tooltip("전투 중 카드 상태를 참조할 카드 매니저입니다.")]
+    [SerializeField] private SC_CardManager cardManager;
 
-    private int leftCardIndex = -1;
-    private int rightCardIndex = -1;
+    private SC_BattleCardItem leftCardItem;
+    private SC_BattleCardItem rightCardItem;
 
     private void Awake()
     {
@@ -48,16 +39,12 @@ public class SC_BattleCardPopup : MonoBehaviour
             battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
 
-        if (leftCardButton != null)
+        if (cardManager == null)
         {
-            leftCardButton.onClick.AddListener(OnClickLeftCard);
+            cardManager = FindAnyObjectByType<SC_CardManager>();
         }
 
-        if (rightCardButton != null)
-        {
-            rightCardButton.onClick.AddListener(OnClickRightCard);
-        }
-
+        EnsureCardItems();
         SetPopupVisible(false);
     }
 
@@ -68,23 +55,53 @@ public class SC_BattleCardPopup : MonoBehaviour
             gameObject.SetActive(true);
         }
 
+        EnsureCardItems();
         RefreshCardOptions();
         SetPopupVisible(true);
     }
 
-    private void RefreshCardOptions()
+    private void EnsureCardItems()
     {
-        int count = cardNamePool != null ? cardNamePool.Length : 0;
-        if (count <= 0)
+        if (cardItemPrefab == null)
         {
-            SetCardTexts("CARD A", "CARD B");
-            leftCardIndex = 0;
-            rightCardIndex = 1;
             return;
         }
 
-        leftCardIndex = Random.Range(0, count);
-        rightCardIndex = leftCardIndex;
+        if (leftCardItem == null && leftCardParent != null)
+        {
+            leftCardItem = Instantiate(cardItemPrefab, leftCardParent);
+            leftCardItem.Initialize(OnCardSelected);
+        }
+
+        if (rightCardItem == null && rightCardParent != null)
+        {
+            rightCardItem = Instantiate(cardItemPrefab, rightCardParent);
+            rightCardItem.Initialize(OnCardSelected);
+        }
+    }
+
+    private void RefreshCardOptions()
+    {
+        SO_CardData[] selectableCards = GetSelectableCards();
+        int count = selectableCards.Length;
+        if (count <= 0)
+        {
+            if (leftCardItem != null)
+            {
+                leftCardItem.BindCard(null);
+            }
+
+            if (rightCardItem != null)
+            {
+                rightCardItem.BindCard(null);
+            }
+
+            return;
+        }
+
+        int leftCardIndex = Random.Range(0, count);
+        int rightCardIndex = leftCardIndex;
+
         if (count > 1)
         {
             while (rightCardIndex == leftCardIndex)
@@ -93,44 +110,51 @@ public class SC_BattleCardPopup : MonoBehaviour
             }
         }
 
-        SetCardTexts(cardNamePool[leftCardIndex], cardNamePool[rightCardIndex]);
-    }
-
-    private void SetCardTexts(string leftText, string rightText)
-    {
-        if (leftCardTitleText != null)
+        if (leftCardItem != null)
         {
-            leftCardTitleText.text = leftText;
+            leftCardItem.BindCard(selectableCards[leftCardIndex]);
         }
 
-        if (rightCardTitleText != null)
+        if (rightCardItem != null)
         {
-            rightCardTitleText.text = rightText;
+            rightCardItem.BindCard(selectableCards[rightCardIndex]);
         }
     }
 
-    private void OnClickLeftCard()
+    private SO_CardData[] GetSelectableCards()
     {
-        SelectCard(leftCardIndex);
-    }
-
-    private void OnClickRightCard()
-    {
-        SelectCard(rightCardIndex);
-    }
-
-    private void SelectCard(int selectedCardIndex)
-    {
-        if (cardNamePool != null && selectedCardIndex >= 0 && selectedCardIndex < cardNamePool.Length)
+        if (cardDataPool == null || cardDataPool.Length <= 0)
         {
-            Debug.Log($"Selected Card: {cardNamePool[selectedCardIndex]}");
+            return System.Array.Empty<SO_CardData>();
         }
 
+        if (cardManager == null)
+        {
+            return cardDataPool;
+        }
+
+        System.Collections.Generic.List<SO_CardData> selectableCards = new System.Collections.Generic.List<SO_CardData>();
+        for (int i = 0; i < cardDataPool.Length; i++)
+        {
+            SO_CardData cardData = cardDataPool[i];
+            if (!cardManager.CanOfferCard(cardData))
+            {
+                continue;
+            }
+
+            selectableCards.Add(cardData);
+        }
+
+        return selectableCards.ToArray();
+    }
+
+    private void OnCardSelected(SO_CardData selectedCardData)
+    {
         SetPopupVisible(false);
 
         if (battleManager != null)
         {
-            battleManager.NotifyCardSelected();
+            battleManager.NotifyCardSelected(selectedCardData);
         }
     }
 

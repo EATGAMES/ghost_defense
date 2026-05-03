@@ -87,6 +87,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private bool wasMousePressed;
     private bool wasTouchPressed;
     private bool hasViewedDragGuide;
+    private float cardShootSpeedBonus;
     private Vector3 dragStartPosition;
     private Vector3 guideOriginalLocalScale = Vector3.one;
     private readonly Collider2D[] overlapResults = new Collider2D[16];
@@ -138,6 +139,15 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         ApplyCollisionState();
         SetGuideVisible(false);
         RefreshDragArrowVisibility();
+    }
+
+    private void Start()
+    {
+        SC_CardManager cardManager = FindAnyObjectByType<SC_CardManager>();
+        if (cardManager != null)
+        {
+            SetCardShootSpeedBonus(cardManager.AttackQueueSpeedBonus);
+        }
     }
 
     private void OnEnable()
@@ -367,7 +377,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         if (rb2D != null)
         {
-            rb2D.linearVelocity = Vector2.up * shootSpeed;
+            rb2D.linearVelocity = Vector2.up * GetFinalShootSpeed();
         }
     }
 
@@ -448,6 +458,11 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     public void SetPostLaunchCollisionState(bool collided)
     {
         hasCollidedAfterShot = collided;
+    }
+
+    public void SetCardShootSpeedBonus(float speedBonus)
+    {
+        cardShootSpeedBonus = Mathf.Max(0f, speedBonus);
     }
 
     public void CancelDragAndResetToStartPosition()
@@ -643,6 +658,11 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
 
         return Mathf.Max(0.01f, col2D.bounds.size.x);
+    }
+
+    private float GetFinalShootSpeed()
+    {
+        return Mathf.Max(0f, shootSpeed + cardShootSpeedBonus);
     }
 
     private void OnDrawGizmosSelected()

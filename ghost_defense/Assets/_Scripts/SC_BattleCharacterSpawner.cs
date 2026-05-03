@@ -33,6 +33,9 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     [Tooltip("다음 대기 캐릭터를 다시 생성하기까지의 지연 시간(초)입니다.")]
     [SerializeField] private float respawnDelay = 0.1f;
 
+    [Tooltip("전투 중 카드 효과를 참조할 카드 매니저입니다.")]
+    [SerializeField] private SC_CardManager cardManager;
+
     private SC_PlayerDragAndShoot currentWaitingCharacter;
     private float respawnTimer;
     private bool isRespawnScheduled;
@@ -40,6 +43,11 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
     private void Start()
     {
+        if (cardManager == null)
+        {
+            cardManager = FindAnyObjectByType<SC_CardManager>();
+        }
+
         TrySpawnWaitingCharacter();
     }
 
@@ -137,39 +145,46 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
     private int PickWeightedSpawnGrade()
     {
+        int excludedMaxGrade = cardManager != null ? Mathf.Clamp(cardManager.ExcludeLowGradeSpawnMaxGrade, 0, 5) : 0;
+        float grade1EffectiveWeight = excludedMaxGrade >= 1 ? 0f : Mathf.Max(0f, grade1Weight);
+        float grade2EffectiveWeight = excludedMaxGrade >= 2 ? 0f : Mathf.Max(0f, grade2Weight);
+        float grade3EffectiveWeight = excludedMaxGrade >= 3 ? 0f : Mathf.Max(0f, grade3Weight);
+        float grade4EffectiveWeight = excludedMaxGrade >= 4 ? 0f : Mathf.Max(0f, grade4Weight);
+        float grade5EffectiveWeight = excludedMaxGrade >= 5 ? 0f : Mathf.Max(0f, grade5Weight);
+
         float totalWeight =
-            Mathf.Max(0f, grade1Weight) +
-            Mathf.Max(0f, grade2Weight) +
-            Mathf.Max(0f, grade3Weight) +
-            Mathf.Max(0f, grade4Weight) +
-            Mathf.Max(0f, grade5Weight);
+            grade1EffectiveWeight +
+            grade2EffectiveWeight +
+            grade3EffectiveWeight +
+            grade4EffectiveWeight +
+            grade5EffectiveWeight;
 
         if (totalWeight <= 0f)
         {
-            return 1;
+            return Mathf.Clamp(excludedMaxGrade + 1, 1, 5);
         }
 
         float roll = Random.Range(0f, totalWeight);
 
-        float accumulatedWeight = Mathf.Max(0f, grade1Weight);
+        float accumulatedWeight = grade1EffectiveWeight;
         if (roll < accumulatedWeight)
         {
             return 1;
         }
 
-        accumulatedWeight += Mathf.Max(0f, grade2Weight);
+        accumulatedWeight += grade2EffectiveWeight;
         if (roll < accumulatedWeight)
         {
             return 2;
         }
 
-        accumulatedWeight += Mathf.Max(0f, grade3Weight);
+        accumulatedWeight += grade3EffectiveWeight;
         if (roll < accumulatedWeight)
         {
             return 3;
         }
 
-        accumulatedWeight += Mathf.Max(0f, grade4Weight);
+        accumulatedWeight += grade4EffectiveWeight;
         if (roll < accumulatedWeight)
         {
             return 4;
