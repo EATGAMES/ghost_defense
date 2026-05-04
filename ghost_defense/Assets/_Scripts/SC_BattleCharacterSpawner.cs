@@ -53,7 +53,14 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (currentWaitingCharacter != null && currentWaitingCharacter.IsShot)
+        // 대기 캐릭터가 발사됐거나 합체/삭제로 사라졌다면 다음 스폰을 예약한다.
+        if (currentWaitingCharacter == null)
+        {
+            ScheduleRespawn();
+            return;
+        }
+
+        if (currentWaitingCharacter.IsShot)
         {
             currentWaitingCharacter = null;
             ScheduleRespawn();
