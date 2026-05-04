@@ -42,6 +42,12 @@ public class SC_FinalMergePopup : MonoBehaviour
             popupCoroutine = null;
         }
 
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+
+        CancelAllPendingCharacterDrags();
         SetPopupVisible(true);
         Time.timeScale = 0f;
         yield return new WaitForSecondsRealtime(Mathf.Max(0f, autoCloseDelay));
@@ -71,6 +77,21 @@ public class SC_FinalMergePopup : MonoBehaviour
         if (popupRoot != null)
         {
             popupRoot.SetActive(isVisible);
+        }
+    }
+
+    private static void CancelAllPendingCharacterDrags()
+    {
+        SC_PlayerDragAndShoot[] allShooters = FindObjectsByType<SC_PlayerDragAndShoot>(FindObjectsSortMode.None);
+        for (int i = 0; i < allShooters.Length; i++)
+        {
+            SC_PlayerDragAndShoot shooter = allShooters[i];
+            if (shooter == null || shooter.IsShot)
+            {
+                continue;
+            }
+
+            shooter.CancelDragAndResetToStartPosition();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SO_CardData_012
   m_EditorClassIdentifier: Assembly-CSharp::SO_CardData
   cardId: 012
-  cardName: 행운의 부적
-  description: 크리티컬 확률이 7% 증가합니다
-  effectType: 8
-  rarity: 2
-  effectValue: 0.07
-  isOneTimeCard: 0
+  cardName: "\uC0C1\uD5A5 \uD3C9\uC900\uD654"
+  description: "\uBAA8\uB4E0 \uB370\uBBF8\uC9C0\uAC00 n% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  cardImage: {fileID: 0}
+  effectType: 7
+  baseEffectValue: 0.02
+  effectValuePerLevel: 0.01

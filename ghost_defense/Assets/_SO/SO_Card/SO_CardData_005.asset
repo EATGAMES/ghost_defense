@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SO_CardData_005
   m_EditorClassIdentifier: Assembly-CSharp::SO_CardData
   cardId: 005
-  cardName: "\uAE30\uC2B5"
-  description: "\uB2E4\uC74C \uACF5\uACA9 1\uD68C \uB370\uBBF8\uC9C0 10\uBC30"
-  effectType: 10
-  rarity: 3
-  effectValue: 10
-  isOneTimeCard: 0
+  cardName: "\uC18C\uD658\uC0AC"
+  description: "\uC18C\uD658\uACF5\uACA9 \uB370\uBBF8\uC9C0\uAC00 n% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  cardImage: {fileID: 0}
+  effectType: 6
+  baseEffectValue: 0.05
+  effectValuePerLevel: 0.05

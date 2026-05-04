@@ -112,6 +112,7 @@ public class SC_ClearPopup : MonoBehaviour
         SC_BattleManager.ClearRewardResult rewardResult = battleManager.BuildAndGrantClearRewardResult();
         RefreshTexts(rewardResult);
         RefreshButtons(rewardResult.ShowCloseCenterOnly);
+        CancelAllPendingCharacterDrags();
         Time.timeScale = 0f;
         SetPopupVisible(true);
         Debug.Log(
@@ -124,6 +125,7 @@ public class SC_ClearPopup : MonoBehaviour
         isExitConfirmMode = true;
         RefreshTexts(new SC_BattleManager.ClearRewardResult(0, 0, 0, 0, false));
         RefreshButtons(false);
+        CancelAllPendingCharacterDrags();
         Time.timeScale = 0f;
         SetPopupVisible(true);
     }
@@ -228,5 +230,20 @@ public class SC_ClearPopup : MonoBehaviour
     private static string FormatBonusText(int amount)
     {
         return amount > 0 ? $"+{amount:N0}" : string.Empty;
+    }
+
+    private static void CancelAllPendingCharacterDrags()
+    {
+        SC_PlayerDragAndShoot[] allShooters = FindObjectsByType<SC_PlayerDragAndShoot>(FindObjectsSortMode.None);
+        for (int i = 0; i < allShooters.Length; i++)
+        {
+            SC_PlayerDragAndShoot shooter = allShooters[i];
+            if (shooter == null || shooter.IsShot)
+            {
+                continue;
+            }
+
+            shooter.CancelDragAndResetToStartPosition();
+        }
     }
 }

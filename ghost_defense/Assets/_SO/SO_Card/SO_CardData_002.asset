@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: SO_CardData_002
   m_EditorClassIdentifier: Assembly-CSharp::SO_CardData
   cardId: 002
-  cardName: "\uAE54\uB054\uD55C \uC131\uACA9"
-  description: "\uD544\uB4DC\uC5D0 \uC788\uB294 2\uB2E8\uACC4 \uC774\uD558 \uCE90\uB9AD\uD130\uB97C
-    \uBAA8\uB450 \uC81C\uAC70 \uD574\uC90D\uB2C8\uB2E4"
-  effectType: 11
-  rarity: 3
-  effectValue: 2
-  isOneTimeCard: 0
+  cardName: "\uAC74\uB9DD\uC99D"
+  description: "N\uBC88 \uBC1C\uC0AC \uB3D9\uC548 1\uB2E8\uACC4 \uCE90\uB9AD\uD130\uAC00
+    \uB4F1\uC7A5\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+  cardImage: {fileID: 0}
+  effectType: 12
+  baseEffectValue: 1
+  effectValuePerLevel: 1

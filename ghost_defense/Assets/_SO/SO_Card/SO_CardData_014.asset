@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: SO_CardData_014
   m_EditorClassIdentifier: Assembly-CSharp::SO_CardData
   cardId: 014
-  cardName: 강력한 파워
-  description: 물리 공격 데미지가 5% 증가합니다
-  effectType: 1
-  rarity: 0
-  effectValue: 0.05
-  isOneTimeCard: 0
+  cardName: "\uB7A9\uB2E4\uC774\uC544\uBAAC\uB4DC"
+  description: "\uC2B9\uB9AC \uC2DC \uB2E4\uC774\uC544\uB97C n\uAC1C \uCD94\uAC00\uB85C
+    \uD68D\uB4DD\uD569\uB2C8\uB2E4."
+  cardImage: {fileID: 0}
+  effectType: 14
+  baseEffectValue: 2
+  effectValuePerLevel: 1

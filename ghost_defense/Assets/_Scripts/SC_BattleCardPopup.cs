@@ -88,12 +88,12 @@ public class SC_BattleCardPopup : MonoBehaviour
         {
             if (leftCardItem != null)
             {
-                leftCardItem.BindCard(null);
+                leftCardItem.BindCard(null, 0);
             }
 
             if (rightCardItem != null)
             {
-                rightCardItem.BindCard(null);
+                rightCardItem.BindCard(null, 0);
             }
 
             return;
@@ -112,12 +112,14 @@ public class SC_BattleCardPopup : MonoBehaviour
 
         if (leftCardItem != null)
         {
-            leftCardItem.BindCard(selectableCards[leftCardIndex]);
+            SO_CardData leftCardData = selectableCards[leftCardIndex];
+            leftCardItem.BindCard(leftCardData, GetCurrentCardLevel(leftCardData));
         }
 
         if (rightCardItem != null)
         {
-            rightCardItem.BindCard(selectableCards[rightCardIndex]);
+            SO_CardData rightCardData = selectableCards[rightCardIndex];
+            rightCardItem.BindCard(rightCardData, GetCurrentCardLevel(rightCardData));
         }
     }
 
@@ -146,6 +148,16 @@ public class SC_BattleCardPopup : MonoBehaviour
         }
 
         return selectableCards.ToArray();
+    }
+
+    private int GetCurrentCardLevel(SO_CardData cardData)
+    {
+        if (cardManager == null)
+        {
+            return 0;
+        }
+
+        return cardManager.GetCardLevel(cardData);
     }
 
     private void OnCardSelected(SO_CardData selectedCardData)

@@ -7,10 +7,11 @@ public class SC_CardManager : MonoBehaviour
     [Tooltip("전투 데미지 계산기에 카드 보너스를 반영합니다.")]
     [SerializeField] private SC_DamageCalculator damageCalculator;
 
-    [Tooltip("1회성 카드 효과를 전투 매니저에 전달합니다.")]
+    [Tooltip("카드 효과를 전투 매니저에 전달합니다.")]
     [SerializeField] private SC_BattleManager battleManager;
 
     private readonly List<SO_CardData> ownedCards = new List<SO_CardData>();
+    private readonly Dictionary<SO_CardData, int> selectedCardLevels = new Dictionary<SO_CardData, int>();
     private readonly Dictionary<CardEffectType, float> additiveEffectTotals = new Dictionary<CardEffectType, float>();
 
     private float bonusDiamondReward;
@@ -18,6 +19,11 @@ public class SC_CardManager : MonoBehaviour
     private int excludeLowGradeSpawnMaxGrade;
     private int fieldClearMaxGrade;
     private float attackQueueSpeedBonus;
+    private int lowerGradeAdditionalAttackCount;
+    private int collisionEraseCount;
+    private int nextSpawnPreviewCount;
+    private int shrinkShotCount;
+    private int removeBottomCharacterCount;
 
     public IReadOnlyList<SO_CardData> OwnedCards => ownedCards;
     public float BonusDiamondReward => bonusDiamondReward;
@@ -25,6 +31,11 @@ public class SC_CardManager : MonoBehaviour
     public int ExcludeLowGradeSpawnMaxGrade => excludeLowGradeSpawnMaxGrade;
     public int FieldClearMaxGrade => fieldClearMaxGrade;
     public float AttackQueueSpeedBonus => attackQueueSpeedBonus;
+    public int LowerGradeAdditionalAttackCount => lowerGradeAdditionalAttackCount;
+    public int CollisionEraseCount => collisionEraseCount;
+    public int NextSpawnPreviewCount => nextSpawnPreviewCount;
+    public int ShrinkShotCount => shrinkShotCount;
+    public int RemoveBottomCharacterCount => removeBottomCharacterCount;
 
     private void Awake()
     {
@@ -48,62 +59,78 @@ public class SC_CardManager : MonoBehaviour
             return;
         }
 
-        ownedCards.Add(cardData);
+        int nextLevel = GetCardLevel(cardData) + 1;
+        if (SC_SaveDataManager.Instance != null)
+        {
+            SC_SaveDataManager.Instance.SetCardLevel(cardData.CardId, nextLevel);
+            SC_SaveDataManager.Instance.AddCardUseCount(cardData.CardId);
+        }
+
+        if (!ownedCards.Contains(cardData))
+        {
+            ownedCards.Add(cardData);
+        }
+
+        selectedCardLevels[cardData] = nextLevel;
+        float effectValue = cardData.GetEffectValueForLevel(nextLevel);
 
         switch (cardData.EffectType)
         {
             case CardEffectType.NextAttackDamageMultiplier:
                 if (battleManager != null)
                 {
-                    battleManager.ArmCardNextAttackDamageMultiplier(cardData.EffectValue);
+                    battleManager.ArmCardNextAttackDamageMultiplier(effectValue);
                 }
                 break;
             case CardEffectType.FieldClear:
-                fieldClearMaxGrade = Mathf.Max(fieldClearMaxGrade, Mathf.RoundToInt(cardData.EffectValue));
-                ClearFieldCharactersUpToGrade(fieldClearMaxGrade);
-                break;
-            case CardEffectType.ExcludeLowGradeSpawn:
-                excludeLowGradeSpawnMaxGrade = Mathf.Max(excludeLowGradeSpawnMaxGrade, Mathf.RoundToInt(cardData.EffectValue));
-                break;
-            case CardEffectType.BonusDiamondReward:
-                bonusDiamondReward += cardData.EffectValue;
-                break;
-            case CardEffectType.BonusGoldReward:
-                bonusGoldReward += cardData.EffectValue;
-                break;
-            default:
-                AddAdditiveEffect(cardData.EffectType, cardData.EffectValue);
+                ClearFieldCharactersUpToGrade(Mathf.RoundToInt(effectValue));
                 break;
         }
 
-        ApplyAllEffects();
+        RebuildRuntimeEffects();
     }
 
     public void ResetRuntimeState()
     {
         ownedCards.Clear();
+        selectedCardLevels.Clear();
         additiveEffectTotals.Clear();
         bonusDiamondReward = 0f;
         bonusGoldReward = 0f;
         excludeLowGradeSpawnMaxGrade = 0;
         fieldClearMaxGrade = 0;
         attackQueueSpeedBonus = 0f;
+        lowerGradeAdditionalAttackCount = 0;
+        collisionEraseCount = 0;
+        nextSpawnPreviewCount = 0;
+        shrinkShotCount = 0;
+        removeBottomCharacterCount = 0;
         ApplyAllEffects();
     }
 
     public bool CanOfferCard(SO_CardData cardData)
     {
+        return cardData != null;
+    }
+
+    public int GetCardLevel(SO_CardData cardData)
+    {
         if (cardData == null)
         {
-            return false;
+            return 0;
         }
 
-        if (!cardData.IsOneTimeCard)
+        if (SC_SaveDataManager.Instance != null)
         {
-            return true;
+            return SC_SaveDataManager.Instance.GetCardLevel(cardData.CardId);
         }
 
-        return !ownedCards.Contains(cardData);
+        if (selectedCardLevels.TryGetValue(cardData, out int runtimeLevel))
+        {
+            return runtimeLevel;
+        }
+
+        return 0;
     }
 
     private void AddAdditiveEffect(CardEffectType effectType, float value)
@@ -142,6 +169,68 @@ public class SC_CardManager : MonoBehaviour
 
         attackQueueSpeedBonus = GetEffectTotal(CardEffectType.AttackQueueSpeedBonus);
         ApplyShootSpeedBonusToActiveCharacters(attackQueueSpeedBonus);
+    }
+
+    private void RebuildRuntimeEffects()
+    {
+        additiveEffectTotals.Clear();
+        bonusDiamondReward = 0f;
+        bonusGoldReward = 0f;
+        excludeLowGradeSpawnMaxGrade = 0;
+        fieldClearMaxGrade = 0;
+        lowerGradeAdditionalAttackCount = 0;
+        collisionEraseCount = 0;
+        nextSpawnPreviewCount = 0;
+        shrinkShotCount = 0;
+        removeBottomCharacterCount = 0;
+
+        foreach (KeyValuePair<SO_CardData, int> pair in selectedCardLevels)
+        {
+            SO_CardData cardData = pair.Key;
+            if (cardData == null)
+            {
+                continue;
+            }
+
+            float effectValue = cardData.GetEffectValueForLevel(pair.Value);
+            switch (cardData.EffectType)
+            {
+                case CardEffectType.FieldClear:
+                    fieldClearMaxGrade = Mathf.Max(fieldClearMaxGrade, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.ExcludeLowGradeSpawn:
+                    excludeLowGradeSpawnMaxGrade = Mathf.Max(excludeLowGradeSpawnMaxGrade, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.BonusDiamondReward:
+                    bonusDiamondReward += effectValue;
+                    break;
+                case CardEffectType.BonusGoldReward:
+                    bonusGoldReward += effectValue;
+                    break;
+                case CardEffectType.LowerGradeAdditionalAttack:
+                    lowerGradeAdditionalAttackCount = Mathf.Max(lowerGradeAdditionalAttackCount, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.CollisionErase:
+                    collisionEraseCount = Mathf.Max(collisionEraseCount, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.NextSpawnPreviewCount:
+                    nextSpawnPreviewCount = Mathf.Max(nextSpawnPreviewCount, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.ShrinkShot:
+                    shrinkShotCount = Mathf.Max(shrinkShotCount, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.RemoveBottomCharacters:
+                    removeBottomCharacterCount = Mathf.Max(removeBottomCharacterCount, Mathf.RoundToInt(effectValue));
+                    break;
+                case CardEffectType.NextAttackDamageMultiplier:
+                    break;
+                default:
+                    AddAdditiveEffect(cardData.EffectType, effectValue);
+                    break;
+            }
+        }
+
+        ApplyAllEffects();
     }
 
     private float GetEffectTotal(CardEffectType effectType)
