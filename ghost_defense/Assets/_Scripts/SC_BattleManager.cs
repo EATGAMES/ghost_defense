@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -49,40 +49,43 @@ public class SC_BattleManager : MonoBehaviour
     public event Action<int> StageCleared;
     public event Action<int> StageFailed;
 
-    [Tooltip("최대 스테이지 수입니다.")]
+    [Tooltip("理쒕? ?ㅽ뀒?댁? ?섏엯?덈떎.")]
     [SerializeField] private int maxStage = 10;
 
-    [Tooltip("전투 시작 때 적용할 시작 스테이지 번호입니다.")]
+    [Tooltip("?꾪닾 ?쒖옉 ???곸슜???쒖옉 ?ㅽ뀒?댁? 踰덊샇?낅땲??")]
     [SerializeField] private int startStage = 1;
 
-    [Tooltip("상단 공격 캐릭터의 데미지 계산에 사용할 공격 캐릭터 데이터 목록입니다.")]
+    [Tooltip("?곷떒 怨듦꺽 罹먮┃?곗쓽 ?곕?吏 怨꾩궛???ъ슜??怨듦꺽 罹먮┃???곗씠??紐⑸줉?낅땲??")]
     [SerializeField] private SO_CharacterData[] equippedRoster = new SO_CharacterData[5];
 
-    [Tooltip("하단 필드 캐릭터 스프라이트에 사용할 필드 스킨 데이터 목록입니다.")]
+    [Tooltip("?섎떒 ?꾨뱶 罹먮┃???ㅽ봽?쇱씠?몄뿉 ?ъ슜???꾨뱶 ?ㅽ궓 ?곗씠??紐⑸줉?낅땲??")]
     [SerializeField] private SO_FieldCharacterSkinData[] equippedFieldSkins = new SO_FieldCharacterSkinData[5];
 
-    [Tooltip("카드 선택 팝업이 열리기까지 필요한 공격 횟수입니다.")]
+    [Tooltip("移대뱶 ?좏깮 ?앹뾽???대━湲곌퉴吏 ?꾩슂??怨듦꺽 ?잛닔?낅땲??")]
     [SerializeField] private int attackCountPerCard = 20;
 
-    [Tooltip("공격 요청 처리 사이 기본 간격(초)입니다.")]
+    [Tooltip("怨듦꺽 ?붿껌 泥섎━ ?ъ씠 湲곕낯 媛꾧꺽(珥??낅땲??")]
     [SerializeField] private float baseAttackInterval = 0.2f;
 
-    [Tooltip("카드 선택 중 전투를 일시 정지할지 여부입니다.")]
+    [Tooltip("移대뱶 ?좏깮 以??꾪닾瑜??쇱떆 ?뺤??좎? ?щ??낅땲??")]
     [SerializeField] private bool pauseWhenSelectingCard = true;
 
-    [Tooltip("일정 공격 횟수마다 열릴 카드 선택 팝업입니다.")]
+    [Tooltip("?쇱젙 怨듦꺽 ?잛닔留덈떎 ?대┫ 移대뱶 ?좏깮 ?앹뾽?낅땲??")]
     [SerializeField] private SC_BattleCardPopup battleCardPopup;
 
-    [Tooltip("상단 공격 캐릭터의 연출 시간을 참조할 뷰입니다.")]
+    [Tooltip("?곷떒 怨듦꺽 罹먮┃?곗쓽 ?곗텧 ?쒓컙??李몄“??酉곗엯?덈떎.")]
     [SerializeField] private SC_CurrentAttackCharacterView currentAttackCharacterView;
 
-    [Tooltip("최종 전투 데미지 공식을 계산할 계산기입니다.")]
+    [Tooltip("理쒖쥌 ?꾪닾 ?곕?吏 怨듭떇??怨꾩궛??怨꾩궛湲곗엯?덈떎.")]
     [SerializeField] private SC_DamageCalculator damageCalculator;
 
-    [Tooltip("전투 중 카드 효과를 관리할 카드 매니저입니다.")]
+    [Tooltip("?꾪닾 以?移대뱶 ?④낵瑜?愿由ы븷 移대뱶 留ㅻ땲??낅땲??")]
     [SerializeField] private SC_CardManager cardManager;
 
-    [Tooltip("스테이지 클리어 보상을 표시할 클리어 팝업입니다.")]
+    [Tooltip("10?④퀎 理쒖쥌 ?⑹꽦 ?곗텧 ?앹뾽?낅땲??")]
+    [SerializeField] private SC_FinalMergePopup finalMergePopup;
+
+    [Tooltip("?ㅽ뀒?댁? ?대━??蹂댁긽怨?踰꾪듉???쒖떆?섎뒗 ?대━???앹뾽?낅땲??")]
     [SerializeField] private SC_ClearPopup clearPopup;
 
     private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
@@ -145,6 +148,11 @@ public class SC_BattleManager : MonoBehaviour
         if (cardManager == null)
         {
             cardManager = FindAnyObjectByType<SC_CardManager>();
+        }
+
+        if (finalMergePopup == null)
+        {
+            finalMergePopup = FindFinalMergePopupIncludingInactive();
         }
 
         if (clearPopup == null)
@@ -234,7 +242,7 @@ public class SC_BattleManager : MonoBehaviour
 
     public void NotifyFinalMergeAttack(int mergedGrade)
     {
-        if (!HasAliveBoss)
+        if (isBattleClearedThisSession)
         {
             OpenClearPopup();
             return;
@@ -394,11 +402,21 @@ public class SC_BattleManager : MonoBehaviour
 
         if (clearPopup == null)
         {
-            Debug.LogWarning("SC_BattleManager: SC_ClearPopup을 찾지 못해서 클리어 팝업을 열 수 없습니다.", this);
+            Debug.LogWarning("SC_BattleManager: SC_ClearPopup??李얠? 紐삵빐???대━???앹뾽???????놁뒿?덈떎.", this);
             return;
         }
 
         clearPopup.OpenPopup();
+    }
+
+    public SC_FinalMergePopup GetFinalMergePopup()
+    {
+        if (finalMergePopup == null)
+        {
+            finalMergePopup = FindFinalMergePopupIncludingInactive();
+        }
+
+        return finalMergePopup;
     }
 
     public ClearRewardResult BuildAndGrantClearRewardResult()
@@ -743,6 +761,34 @@ public class SC_BattleManager : MonoBehaviour
         for (int i = 0; i < allPopups.Length; i++)
         {
             SC_ClearPopup popup = allPopups[i];
+            if (popup == null || popup.hideFlags != HideFlags.None)
+            {
+                continue;
+            }
+
+            if (!popup.gameObject.scene.IsValid())
+            {
+                continue;
+            }
+
+            return popup;
+        }
+
+        return null;
+    }
+
+    private static SC_FinalMergePopup FindFinalMergePopupIncludingInactive()
+    {
+        SC_FinalMergePopup activePopup = FindAnyObjectByType<SC_FinalMergePopup>();
+        if (activePopup != null)
+        {
+            return activePopup;
+        }
+
+        SC_FinalMergePopup[] allPopups = Resources.FindObjectsOfTypeAll<SC_FinalMergePopup>();
+        for (int i = 0; i < allPopups.Length; i++)
+        {
+            SC_FinalMergePopup popup = allPopups[i];
             if (popup == null || popup.hideFlags != HideFlags.None)
             {
                 continue;

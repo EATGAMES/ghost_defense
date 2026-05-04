@@ -81,7 +81,7 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         if (finalMergePopup == null)
         {
-            finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();
+            finalMergePopup = battleManager != null ? battleManager.GetFinalMergePopup() : FindAnyObjectByType<SC_FinalMergePopup>();
         }
 
         if (mergeObjectPrefab == null)
@@ -345,9 +345,14 @@ public class SC_CharacterMergeController : MonoBehaviour
     {
         yield return new WaitForSeconds(Mathf.Max(0f, finalMergePopupDelay));
 
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
         if (finalMergePopup == null)
         {
-            finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();
+            finalMergePopup = battleManager != null ? battleManager.GetFinalMergePopup() : FindAnyObjectByType<SC_FinalMergePopup>();
         }
 
         if (finalMergePopup != null)
@@ -364,13 +369,13 @@ public class SC_CharacterMergeController : MonoBehaviour
             battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
 
-        if (battleManager != null && battleManager.HasAliveBoss)
+        if (battleManager != null && battleManager.IsBattleClearedThisSession)
         {
-            battleManager.NotifyFinalMergeAttack(10);
+            battleManager.OpenClearPopup();
         }
         else if (battleManager != null)
         {
-            battleManager.OpenClearPopup();
+            battleManager.NotifyFinalMergeAttack(10);
         }
 
         Destroy(gameObject);
