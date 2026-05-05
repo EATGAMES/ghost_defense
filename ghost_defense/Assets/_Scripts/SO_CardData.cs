@@ -83,7 +83,7 @@ public class SO_CardData : ScriptableObject
                 ? Mathf.Max(0f, effectValue - 1f) * 100f
                 : effectValue * 100f;
 
-            return $"{percentValue:0.##}%";
+            return $"{percentValue:0.##}";
         }
 
         if (Mathf.Approximately(effectValue, Mathf.Round(effectValue)))

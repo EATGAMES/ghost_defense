@@ -42,7 +42,7 @@ public class SC_BattleCardItem : MonoBehaviour
     public void BindCard(SO_CardData cardData, int currentLevel)
     {
         currentCardData = cardData;
-        int nextLevel = Mathf.Max(1, currentLevel + 1);
+        int displayLevel = Mathf.Max(1, currentLevel);
 
         if (cardTitleText != null)
         {
@@ -51,12 +51,12 @@ public class SC_BattleCardItem : MonoBehaviour
 
         if (cardDescriptionText != null)
         {
-            cardDescriptionText.text = cardData != null ? BuildDescription(cardData, nextLevel) : string.Empty;
+            cardDescriptionText.text = cardData != null ? BuildDescription(cardData, displayLevel) : string.Empty;
         }
 
         if (cardLevelText != null)
         {
-            cardLevelText.text = cardData != null ? BuildLevelText(currentLevel, nextLevel) : string.Empty;
+            cardLevelText.text = cardData != null ? BuildLevelText(displayLevel) : string.Empty;
         }
 
         if (cardImage != null)
@@ -81,18 +81,13 @@ public class SC_BattleCardItem : MonoBehaviour
         onCardSelected?.Invoke(currentCardData);
     }
 
-    private static string BuildLevelText(int currentLevel, int nextLevel)
+    private static string BuildLevelText(int currentLevel)
     {
-        if (currentLevel <= 0)
-        {
-            return $"Lv.{nextLevel}";
-        }
-
-        return $"Lv.{currentLevel} > {nextLevel}";
+        return $"Lv.{Mathf.Max(1, currentLevel)}";
     }
 
-    private static string BuildDescription(SO_CardData cardData, int nextLevel)
+    private static string BuildDescription(SO_CardData cardData, int currentLevel)
     {
-        return cardData.GetResolvedDescriptionForLevel(nextLevel);
+        return cardData.GetResolvedDescriptionForLevel(currentLevel);
     }
 }

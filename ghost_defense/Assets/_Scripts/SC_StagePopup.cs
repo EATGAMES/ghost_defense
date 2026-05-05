@@ -66,15 +66,7 @@ public class SC_StagePopup : MonoBehaviour
 
     private void SetPopupVisible(bool isVisible)
     {
-        if (dimObject != null)
-        {
-            dimObject.SetActive(isVisible);
-        }
-
-        if (popupRoot != null)
-        {
-            popupRoot.SetActive(isVisible);
-        }
+        SetDirectChildObjectsVisible(isVisible);
     }
 
     private void ApplyDimRaycastSetting()
@@ -92,5 +84,36 @@ public class SC_StagePopup : MonoBehaviour
         }
 
         dimImage.raycastTarget = true;
+    }
+
+    private void SetDirectChildObjectsVisible(bool isVisible)
+    {
+        RectTransform rootTransform = transform as RectTransform;
+        if (rootTransform == null)
+        {
+            if (dimObject != null)
+            {
+                dimObject.SetActive(isVisible);
+            }
+
+            if (popupRoot != null)
+            {
+                popupRoot.SetActive(isVisible);
+            }
+
+            return;
+        }
+
+        // 팝업 루트 바로 아래의 자식들을 함께 켜고 꺼서 형제 오브젝트로 배치된 UI도 같이 숨긴다.
+        for (int i = 0; i < rootTransform.childCount; i++)
+        {
+            Transform childTransform = rootTransform.GetChild(i);
+            if (childTransform == null)
+            {
+                continue;
+            }
+
+            childTransform.gameObject.SetActive(isVisible);
+        }
     }
 }

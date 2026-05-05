@@ -59,20 +59,15 @@ public class SC_CardManager : MonoBehaviour
             return;
         }
 
-        int nextLevel = GetCardLevel(cardData) + 1;
-        if (SC_SaveDataManager.Instance != null)
-        {
-            SC_SaveDataManager.Instance.SetCardLevel(cardData.CardId, nextLevel);
-            SC_SaveDataManager.Instance.AddCardUseCount(cardData.CardId);
-        }
+        int currentLevel = Mathf.Max(1, GetCardLevel(cardData));
 
         if (!ownedCards.Contains(cardData))
         {
             ownedCards.Add(cardData);
         }
 
-        selectedCardLevels[cardData] = nextLevel;
-        float effectValue = cardData.GetEffectValueForLevel(nextLevel);
+        selectedCardLevels[cardData] = currentLevel;
+        float effectValue = cardData.GetEffectValueForLevel(currentLevel);
 
         switch (cardData.EffectType)
         {
