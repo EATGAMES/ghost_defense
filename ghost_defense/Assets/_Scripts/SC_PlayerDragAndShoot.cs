@@ -90,6 +90,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private SC_ClearPopup clearPopup;
     public bool IsShot => isShot;
     public bool HasCollidedAfterShot => hasCollidedAfterShot;
+    public bool IsStoppedAfterShot => isShot && !isDragging && (rb2D == null || rb2D.linearVelocity.sqrMagnitude <= stopSpeedThreshold * stopSpeedThreshold);
 
     private void Awake()
     {

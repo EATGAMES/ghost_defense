@@ -16,7 +16,7 @@ MonoBehaviour:
   cardName: "\uB7A9\uB2E4\uC774\uC544\uBAAC\uB4DC"
   description: "\uC2B9\uB9AC \uC2DC \uB2E4\uC774\uC544\uB97C n\uAC1C \uCD94\uAC00\uB85C
     \uD68D\uB4DD\uD569\uB2C8\uB2E4."
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 5f279afa08b25e44caaac88f4a3aa1fb, type: 3}
   effectType: 14
   baseEffectValue: 2
   effectValuePerLevel: 1

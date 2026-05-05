@@ -41,6 +41,8 @@ public class SC_GameSaveData
     public int TotalGold;
     public int Diamond;
     public int TotalDiamond;
+    public int TotalMergeCount;
+    public float TotalBattleDamage;
     public int SelectedStage = 1;
     public List<SaveIntEntry> StageClearEntries = new List<SaveIntEntry>();
     public List<SaveIntEntry> StageGrade10CreatedEntries = new List<SaveIntEntry>();
@@ -69,6 +71,8 @@ public class SC_SaveDataManager : MonoBehaviour
     public int TotalGold => saveData != null ? Mathf.Max(0, saveData.TotalGold) : 0;
     public int Diamond => saveData != null ? Mathf.Max(0, saveData.Diamond) : 0;
     public int TotalDiamond => saveData != null ? Mathf.Max(0, saveData.TotalDiamond) : 0;
+    public int TotalMergeCount => saveData != null ? Mathf.Max(0, saveData.TotalMergeCount) : 0;
+    public float TotalBattleDamage => saveData != null ? Mathf.Max(0f, saveData.TotalBattleDamage) : 0f;
     public int SelectedStage => saveData != null ? Mathf.Max(1, saveData.SelectedStage) : 1;
     public bool HasVipMembership => saveData != null && saveData.HasVipMembership;
     public int TotalAdViewCount => saveData != null ? Mathf.Max(0, saveData.TotalAdViewCount) : 0;
@@ -233,6 +237,28 @@ public class SC_SaveDataManager : MonoBehaviour
         SaveIfNeeded();
     }
 
+    public void AddTotalMergeCount(int amount = 1)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        saveData.TotalMergeCount += amount;
+        SaveIfNeeded();
+    }
+
+    public void AddTotalBattleDamage(float amount)
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+        saveData.TotalBattleDamage += amount;
+        SaveIfNeeded();
+    }
+
     public int[] GetRosterOrder(int slotCount)
     {
         int safeSlotCount = Mathf.Max(0, slotCount);
@@ -360,6 +386,8 @@ public class SC_SaveDataManager : MonoBehaviour
         builder.AppendLine($"Total Gold: {TotalGold}");
         builder.AppendLine($"Diamond: {Diamond}");
         builder.AppendLine($"Total Diamond: {TotalDiamond}");
+        builder.AppendLine($"Total Merge Count: {TotalMergeCount:N0}");
+        builder.AppendLine($"Total Battle Damage: {TotalBattleDamage:N0}");
         builder.AppendLine();
 
         builder.AppendLine("[Stage]");

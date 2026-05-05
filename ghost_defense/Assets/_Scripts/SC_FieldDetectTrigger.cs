@@ -35,10 +35,10 @@ public class SC_FieldDetectTrigger : MonoBehaviour
 
     private void FixedUpdate()
     {
-        bool hasShotCharacterInside = HasShotCharacterInside();
-        RefreshDashLineState(hasShotCharacterInside);
+        bool hasStoppedShotCharacterInside = HasStoppedShotCharacterInside();
+        RefreshDashLineState(hasStoppedShotCharacterInside);
 
-        if (!hasShotCharacterInside || !failOnShotEnter || isBattleFailTriggered)
+        if (!hasStoppedShotCharacterInside || !failOnShotEnter || isBattleFailTriggered)
         {
             return;
         }
@@ -53,7 +53,7 @@ public class SC_FieldDetectTrigger : MonoBehaviour
         battleManager.NotifyBattleFailed();
     }
 
-    private bool HasShotCharacterInside()
+    private bool HasStoppedShotCharacterInside()
     {
         if (detectorCollider == null)
         {
@@ -67,7 +67,7 @@ public class SC_FieldDetectTrigger : MonoBehaviour
         for (int i = 0; i < hitCount; i++)
         {
             SC_PlayerDragAndShoot shotCharacter = GetShotCharacter(overlapResults[i]);
-            if (shotCharacter != null && shotCharacter.HasCollidedAfterShot)
+            if (shotCharacter != null && shotCharacter.IsStoppedAfterShot)
             {
                 return true;
             }

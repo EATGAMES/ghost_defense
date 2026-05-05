@@ -393,12 +393,6 @@ public class SC_CharacterMergeController : MonoBehaviour
             return null;
         }
 
-        Sprite previewSprite = battleManager.GetPreviewSpriteForGrade(10);
-        if (previewSprite != null)
-        {
-            return previewSprite;
-        }
-
         return battleManager.GetFieldSpriteForGrade(10);
     }
 

@@ -111,11 +111,16 @@ public class SC_BattleManager : MonoBehaviour
     private bool hasGrantedGrade10RewardThisBattle;
     private float nextAttackDamageMultiplier = 1f;
     private float cardAttackQueueSpeedBonus;
+    private int battleMergeCount;
+    private float battleDamageDealt;
+    private bool hasPersistedBattleStatistics;
     private SC_MonsterHealth pendingDefeatedBoss;
 
     public int MaxStage => Mathf.Max(1, maxStage);
     public int CurrentMergeAttackCount => currentAttackCount;
     public int MergeAttackCountPerCard => Mathf.Max(1, attackCountPerCard);
+    public int BattleMergeCount => Mathf.Max(0, battleMergeCount);
+    public float BattleDamageDealt => Mathf.Max(0f, battleDamageDealt);
     public bool IsCardSelectionOpen => isCardSelectionOpen;
     public bool IsBattleFinished => isBattleFinished;
     public bool IsBattleClearedThisSession => isBattleClearedThisSession;
@@ -186,6 +191,11 @@ public class SC_BattleManager : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        PersistBattleStatisticsIfNeeded();
+    }
+
     public void RegisterBoss(SC_MonsterHealth boss)
     {
         if (currentBoss == boss)
@@ -231,6 +241,8 @@ public class SC_BattleManager : MonoBehaviour
         {
             return;
         }
+
+        battleMergeCount++;
 
         SO_CharacterData targetCharacterData = GetCharacterDataForGrade(mergedGrade);
         bool applyFirstMergedAttackBonus = isNextMergedAttackBonusArmed;
@@ -322,6 +334,7 @@ public class SC_BattleManager : MonoBehaviour
         isCardSelectionOpen = false;
         pendingAttackRequests.Clear();
         currentAttackCount = 0;
+        PersistBattleStatisticsIfNeeded();
 
         if (pauseWhenSelectingCard && Time.timeScale == 0f)
         {
@@ -584,6 +597,7 @@ public class SC_BattleManager : MonoBehaviour
         RaiseBossHealthChanged(0f, pendingDefeatedBoss != null ? pendingDefeatedBoss.MaxHp : 0f);
         StageCleared?.Invoke(CurrentStage);
         pendingDefeatedBoss = null;
+        PersistBattleStatisticsIfNeeded();
         OpenClearPopup();
     }
 
@@ -600,6 +614,9 @@ public class SC_BattleManager : MonoBehaviour
         {
             return;
         }
+
+        float appliedDamage = Mathf.Min(targetBoss.CurrentHp, finalDamage);
+        battleDamageDealt += appliedDamage;
 
         targetBoss.TakeDamage(finalDamage);
         if (targetBoss.CurrentHp <= 0f)
@@ -662,6 +679,26 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         return damageResult.FinalDamage;
+    }
+
+    private void PersistBattleStatisticsIfNeeded()
+    {
+        if (hasPersistedBattleStatistics || SC_SaveDataManager.Instance == null)
+        {
+            return;
+        }
+
+        if (battleMergeCount > 0)
+        {
+            SC_SaveDataManager.Instance.AddTotalMergeCount(battleMergeCount);
+        }
+
+        if (battleDamageDealt > 0f)
+        {
+            SC_SaveDataManager.Instance.AddTotalBattleDamage(battleDamageDealt);
+        }
+
+        hasPersistedBattleStatistics = true;
     }
 
     private void OnBossHealthChanged(float currentHp, float maxHp)

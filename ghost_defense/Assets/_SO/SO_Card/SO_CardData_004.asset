@@ -15,7 +15,7 @@ MonoBehaviour:
   cardId: 004
   cardName: "\uD589\uC6B4\uC758 \uBD80\uC801"
   description: "\uD06C\uB9AC\uD2F0\uCEEC \uD655\uB960\uC774 n% \uC99D\uAC00\uD569\uB2C8\uB2E4."
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 31801a6ad3382d24597026d88de7a819, type: 3}
   effectType: 8
   baseEffectValue: 0.03
   effectValuePerLevel: 0.02

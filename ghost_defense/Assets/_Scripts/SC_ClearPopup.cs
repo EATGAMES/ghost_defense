@@ -33,6 +33,12 @@ public class SC_ClearPopup : MonoBehaviour
     [Tooltip("10단계 보너스 안내 문구를 표시할 TMP_Text입니다.")]
     [SerializeField] private TMP_Text bonusText;
 
+    [Tooltip("이번 판 총 머지 횟수를 표시할 TMP_Text입니다.")]
+    [SerializeField] private TMP_Text countText;
+
+    [Tooltip("이번 판 총 누적 데미지를 표시할 TMP_Text입니다.")]
+    [SerializeField] private TMP_Text damageText;
+
     [Tooltip("계속 진행 버튼입니다.")]
     [SerializeField] private Button againButton;
 
@@ -175,6 +181,16 @@ public class SC_ClearPopup : MonoBehaviour
         {
             diamondBonusText.text = FormatBonusText(rewardResult.BonusDiamond);
             diamondBonusText.gameObject.SetActive(rewardResult.BonusDiamond > 0);
+        }
+
+        if (countText != null)
+        {
+            countText.text = battleManager != null ? battleManager.BattleMergeCount.ToString("N0") : "0";
+        }
+
+        if (damageText != null)
+        {
+            damageText.text = battleManager != null ? battleManager.BattleDamageDealt.ToString("N0") : "0";
         }
     }
 
