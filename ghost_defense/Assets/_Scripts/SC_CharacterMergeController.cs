@@ -369,11 +369,7 @@ public class SC_CharacterMergeController : MonoBehaviour
             battleManager = FindAnyObjectByType<SC_BattleManager>();
         }
 
-        if (battleManager != null && battleManager.IsBattleClearedThisSession)
-        {
-            battleManager.OpenClearPopup();
-        }
-        else if (battleManager != null)
+        if (battleManager != null)
         {
             battleManager.NotifyFinalMergeAttack(10);
         }

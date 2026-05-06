@@ -1,26 +1,25 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class SC_BattleUI : MonoBehaviour
 {
-    [Tooltip("상단 보스 스테이지를 표시할 TMP_Text입니다.")]
+    [Tooltip("상단 보스 스테이지를 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text stageText;
 
-    [Tooltip("카드 선택까지 남은 공격 횟수를 표시할 TMP_Text입니다.")]
+    [Tooltip("카드 선택까지 남은 공격 횟수를 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text attackGaugeText;
 
-    [Tooltip("현재 상단 공격 캐릭터 이름을 표시할 TMP_Text입니다.")]
+    [Tooltip("현재 상단 공격 캐릭터 이름을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text currentAttackCharacterText;
 
     [Tooltip("UI에 전투 정보를 전달할 배틀 매니저입니다.")]
     [FormerlySerializedAs("waveManager")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("패배 시 임시로 이동할 씬 이름입니다.")]
-    [SerializeField] private string failSceneName = "SCN_Lobby";
+    [Tooltip("게임오버 시 표시할 패배 팝업입니다.")]
+    [SerializeField] private SC_DefeatPopup defeatPopup;
 
     private void Awake()
     {
@@ -103,12 +102,12 @@ public class SC_BattleUI : MonoBehaviour
             attackGaugeText.text = "FAIL";
         }
 
-        if (string.IsNullOrWhiteSpace(failSceneName))
+        if (defeatPopup == null)
         {
-            Debug.LogWarning("SC_BattleUI: 패배 이동용 씬 이름이 비어 있습니다.", this);
+            Debug.LogWarning("SC_BattleUI: Defeat Popup 인스펙터 연결이 비어 있습니다.", this);
             return;
         }
 
-        SceneManager.LoadScene(failSceneName);
+        defeatPopup.OpenPopup();
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -49,44 +49,47 @@ public class SC_BattleManager : MonoBehaviour
     public event Action<int> StageCleared;
     public event Action<int> StageFailed;
 
-    [Tooltip("理쒕? ?ㅽ뀒?댁? ?섏엯?덈떎.")]
+    [Tooltip("최대 스테이지 수입니다.")]
     [SerializeField] private int maxStage = 10;
 
-    [Tooltip("?꾪닾 ?쒖옉 ???곸슜???쒖옉 ?ㅽ뀒?댁? 踰덊샇?낅땲??")]
+    [Tooltip("전투 시작 때 적용할 시작 스테이지 번호입니다.")]
     [SerializeField] private int startStage = 1;
 
-    [Tooltip("?곷떒 怨듦꺽 罹먮┃?곗쓽 ?곕?吏 怨꾩궛???ъ슜??怨듦꺽 罹먮┃???곗씠??紐⑸줉?낅땲??")]
+    [Tooltip("상단 공격 캐릭터의 데미지 계산에 사용할 공격 캐릭터 데이터 목록입니다.")]
     [SerializeField] private SO_CharacterData[] equippedRoster = new SO_CharacterData[5];
 
-    [Tooltip("?섎떒 ?꾨뱶 罹먮┃???ㅽ봽?쇱씠?몄뿉 ?ъ슜???꾨뱶 ?ㅽ궓 ?곗씠??紐⑸줉?낅땲??")]
+    [Tooltip("하단 필드 캐릭터 스프라이트에 사용할 필드 스킨 데이터 목록입니다.")]
     [SerializeField] private SO_FieldCharacterSkinData[] equippedFieldSkins = new SO_FieldCharacterSkinData[5];
 
-    [Tooltip("移대뱶 ?좏깮 ?앹뾽???대━湲곌퉴吏 ?꾩슂??怨듦꺽 ?잛닔?낅땲??")]
+    [Tooltip("카드 선택 팝업을 띄우기까지 필요한 공격 횟수입니다.")]
     [SerializeField] private int attackCountPerCard = 20;
 
-    [Tooltip("怨듦꺽 ?붿껌 泥섎━ ?ъ씠 湲곕낯 媛꾧꺽(珥??낅땲??")]
+    [Tooltip("공격 요청 처리 사이 기본 간격(초)입니다.")]
     [SerializeField] private float baseAttackInterval = 0.2f;
 
-    [Tooltip("移대뱶 ?좏깮 以??꾪닾瑜??쇱떆 ?뺤??좎? ?щ??낅땲??")]
+    [Tooltip("카드 선택 중 전투를 일시 정지할지 여부입니다.")]
     [SerializeField] private bool pauseWhenSelectingCard = true;
 
-    [Tooltip("?쇱젙 怨듦꺽 ?잛닔留덈떎 ?대┫ 移대뱶 ?좏깮 ?앹뾽?낅땲??")]
+    [Tooltip("일정 공격 횟수마다 열릴 카드 선택 팝업입니다.")]
     [SerializeField] private SC_BattleCardPopup battleCardPopup;
 
-    [Tooltip("?곷떒 怨듦꺽 罹먮┃?곗쓽 ?곗텧 ?쒓컙??李몄“??酉곗엯?덈떎.")]
+    [Tooltip("상단 공격 캐릭터의 연출 시간 참조용 뷰입니다.")]
     [SerializeField] private SC_CurrentAttackCharacterView currentAttackCharacterView;
 
-    [Tooltip("理쒖쥌 ?꾪닾 ?곕?吏 怨듭떇??怨꾩궛??怨꾩궛湲곗엯?덈떎.")]
+    [Tooltip("최종 전투 데미지 공식을 계산할 계산기입니다.")]
     [SerializeField] private SC_DamageCalculator damageCalculator;
 
-    [Tooltip("?꾪닾 以?移대뱶 ?④낵瑜?愿由ы븷 移대뱶 留ㅻ땲??낅땲??")]
+    [Tooltip("전투 중 카드 효과를 관리할 카드 매니저입니다.")]
     [SerializeField] private SC_CardManager cardManager;
 
-    [Tooltip("10?④퀎 理쒖쥌 ?⑹꽦 ?곗텧 ?앹뾽?낅땲??")]
+    [Tooltip("10단계 최종 합성 연출 팝업입니다.")]
     [SerializeField] private SC_FinalMergePopup finalMergePopup;
 
-    [Tooltip("?ㅽ뀒?댁? ?대━??蹂댁긽怨?踰꾪듉???쒖떆?섎뒗 ?대━???앹뾽?낅땲??")]
+    [Tooltip("스테이지 클리어 보상과 버튼을 표시하는 클리어 팝업입니다.")]
     [SerializeField] private SC_ClearPopup clearPopup;
+
+    [Tooltip("클리어 후 계속하기에서 샌드백 생성을 맡을 보스 스포너입니다.")]
+    [SerializeField] private SC_BossSpawner bossSpawner;
 
     private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
 
@@ -104,6 +107,7 @@ public class SC_BattleManager : MonoBehaviour
     private bool isBattleClosing;
     private bool isStageClearPending;
     private bool isBattleClearedThisSession;
+    private bool isPostClearContinueMode;
     private bool isNextMergedAttackBonusArmed;
     private bool wasStageClearedOnBattleStart;
     private bool hasGrantedBaseClearRewardThisBattle;
@@ -124,6 +128,7 @@ public class SC_BattleManager : MonoBehaviour
     public bool IsCardSelectionOpen => isCardSelectionOpen;
     public bool IsBattleFinished => isBattleFinished;
     public bool IsBattleClearedThisSession => isBattleClearedThisSession;
+    public bool IsPostClearContinueMode => isPostClearContinueMode;
     public int PendingAttackQueueCount => pendingAttackRequests.Count;
     public SO_CharacterData CurrentAttackCharacterData => currentAttackCharacterData;
     public int CurrentAttackGrade => Mathf.Clamp(currentAttackGrade, 0, 10);
@@ -164,11 +169,17 @@ public class SC_BattleManager : MonoBehaviour
         {
             clearPopup = FindClearPopupIncludingInactive();
         }
+
+        if (bossSpawner == null)
+        {
+            bossSpawner = FindAnyObjectByType<SC_BossSpawner>();
+        }
     }
 
     private void Start()
     {
         isBattleClearedThisSession = false;
+        isPostClearContinueMode = false;
         int savedSelectedStage = SC_SaveDataManager.Instance != null ? SC_SaveDataManager.Instance.SelectedStage : startStage;
         CurrentStage = Mathf.Clamp(savedSelectedStage, 1, MaxStage);
         wasStageClearedOnBattleStart =
@@ -213,7 +224,10 @@ public class SC_BattleManager : MonoBehaviour
         if (currentBoss != null)
         {
             currentBoss.HealthChanged += OnBossHealthChanged;
-            clearedMonsterData = currentBoss.MonsterData;
+            if (currentBoss.MonsterData != null)
+            {
+                clearedMonsterData = currentBoss.MonsterData;
+            }
         }
 
         RaiseBossHealthChanged();
@@ -248,13 +262,22 @@ public class SC_BattleManager : MonoBehaviour
         bool applyFirstMergedAttackBonus = isNextMergedAttackBonusArmed;
         isNextMergedAttackBonusArmed = false;
         pendingAttackRequests.Enqueue(new AttackRequest(Mathf.Clamp(mergedGrade, 1, 10), targetCharacterData, applyFirstMergedAttackBonus));
+
+        if (cardManager != null && cardManager.IsLowerGradeAdditionalAttackActive() && mergedGrade > 1)
+        {
+            int lowerGrade = Mathf.Clamp(mergedGrade - 1, 1, 10);
+            SO_CharacterData lowerGradeCharacterData = GetCharacterDataForGrade(lowerGrade);
+            pendingAttackRequests.Enqueue(new AttackRequest(lowerGrade, lowerGradeCharacterData, false));
+            cardManager.ConsumeLowerGradeAdditionalAttackShot();
+        }
+
         TryStartAttackQueueProcessing();
         RaiseMergeAttackGaugeChanged();
     }
 
     public void NotifyFinalMergeAttack(int mergedGrade)
     {
-        if (isBattleClearedThisSession)
+        if (isBattleClearedThisSession && !isPostClearContinueMode)
         {
             OpenClearPopup();
             return;
@@ -282,6 +305,35 @@ public class SC_BattleManager : MonoBehaviour
     public void SetCardAttackQueueSpeedBonus(float speedBonus)
     {
         cardAttackQueueSpeedBonus = Mathf.Max(0f, speedBonus);
+    }
+
+    public void StartPostClearContinueMode()
+    {
+        if (!isBattleClearedThisSession)
+        {
+            return;
+        }
+
+        if (bossSpawner == null)
+        {
+            bossSpawner = FindAnyObjectByType<SC_BossSpawner>();
+        }
+
+        if (bossSpawner == null || !bossSpawner.StartPostClearTrainingMode())
+        {
+            Debug.LogWarning("SC_BattleManager: 샌드백 전환에 필요한 SC_BossSpawner를 찾지 못했거나 샌드백 생성에 실패했습니다.", this);
+            return;
+        }
+
+        isBattleFinished = false;
+        isBattleClosing = false;
+        isStageClearPending = false;
+        isCardSelectionOpen = false;
+        isPostClearContinueMode = true;
+        currentAttackCount = 0;
+        pendingDefeatedBoss = null;
+        RaiseMergeAttackGaugeChanged();
+        RaiseBossHealthChanged();
     }
 
     public void NotifyBossDefeated(SC_MonsterHealth defeatedBoss)
@@ -329,8 +381,9 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
+        bool wasBattleCleared = isBattleClearedThisSession;
         isBattleFinished = true;
-        isBattleClearedThisSession = false;
+        isBattleClearedThisSession = wasBattleCleared;
         isCardSelectionOpen = false;
         pendingAttackRequests.Clear();
         currentAttackCount = 0;
@@ -415,7 +468,7 @@ public class SC_BattleManager : MonoBehaviour
 
         if (clearPopup == null)
         {
-            Debug.LogWarning("SC_BattleManager: SC_ClearPopup??李얠? 紐삵빐???대━???앹뾽???????놁뒿?덈떎.", this);
+            Debug.LogWarning("SC_BattleManager: SC_ClearPopup을 찾지 못해 클리어 팝업을 열 수 없습니다.", this);
             return;
         }
 
@@ -544,13 +597,21 @@ public class SC_BattleManager : MonoBehaviour
                 break;
             }
 
-            currentAttackCount++;
-            RaiseMergeAttackGaugeChanged();
+            if (!isPostClearContinueMode)
+            {
+                currentAttackCount++;
+                if (cardManager != null)
+                {
+                    cardManager.ConsumeExcludeLowGradeSpawnShot();
+                }
+
+                RaiseMergeAttackGaugeChanged();
+            }
 
             float presentationDuration = currentAttackCharacterView != null ? currentAttackCharacterView.AttackAnimationDuration : 0f;
             float remainingPresentationDuration = Mathf.Max(0f, presentationDuration - attackImpactDelay);
 
-            if (!isBattleClosing && currentAttackCount >= MergeAttackCountPerCard)
+            if (!isPostClearContinueMode && !isBattleClosing && currentAttackCount >= MergeAttackCountPerCard)
             {
                 if (remainingPresentationDuration > 0f)
                 {
@@ -590,6 +651,7 @@ public class SC_BattleManager : MonoBehaviour
 
         isBattleFinished = true;
         isBattleClearedThisSession = true;
+        isPostClearContinueMode = false;
         isBattleClosing = false;
         isStageClearPending = false;
         currentAttackCount = 0;
@@ -597,7 +659,6 @@ public class SC_BattleManager : MonoBehaviour
         RaiseBossHealthChanged(0f, pendingDefeatedBoss != null ? pendingDefeatedBoss.MaxHp : 0f);
         StageCleared?.Invoke(CurrentStage);
         pendingDefeatedBoss = null;
-        PersistBattleStatisticsIfNeeded();
         OpenClearPopup();
     }
 
@@ -615,7 +676,7 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
-        float appliedDamage = Mathf.Min(targetBoss.CurrentHp, finalDamage);
+        float appliedDamage = targetBoss.IsImmortalTarget ? finalDamage : Mathf.Min(targetBoss.CurrentHp, finalDamage);
         battleDamageDealt += appliedDamage;
 
         targetBoss.TakeDamage(finalDamage);
@@ -627,7 +688,7 @@ public class SC_BattleManager : MonoBehaviour
 
     private void OpenCardSelection()
     {
-        if (isCardSelectionOpen || isBattleFinished)
+        if (isCardSelectionOpen || isBattleFinished || isPostClearContinueMode)
         {
             return;
         }
@@ -714,6 +775,12 @@ public class SC_BattleManager : MonoBehaviour
     private void RaiseBossHealthChanged()
     {
         if (currentBoss == null)
+        {
+            RaiseBossHealthChanged(0f, 0f);
+            return;
+        }
+
+        if (currentBoss.IsImmortalTarget)
         {
             RaiseBossHealthChanged(0f, 0f);
             return;

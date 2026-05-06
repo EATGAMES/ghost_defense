@@ -11,8 +11,14 @@ public class SC_ExitPopup : MonoBehaviour
     [Tooltip("실제로 표시할 종료 팝업 루트 오브젝트입니다.")]
     [SerializeField] private GameObject popupRoot;
 
-    [Tooltip("팝업 루트에 사용하는 CanvasGroup입니다. 비워두면 popupRoot에서 자동으로 찾습니다.")]
+    [Tooltip("팝업 루트에서 사용하는 CanvasGroup입니다. 비워두면 popupRoot에서 자동으로 찾습니다.")]
     [SerializeField] private CanvasGroup popupCanvasGroup;
+
+    [Tooltip("클리어 후 상태를 확인할 배틀 매니저입니다.")]
+    [SerializeField] private SC_BattleManager battleManager;
+
+    [Tooltip("클리어 후 다시 보여줄 클리어 팝업입니다.")]
+    [SerializeField] private SC_ClearPopup clearPopup;
 
     [Tooltip("로비로 이동하는 확인 버튼입니다.")]
     [SerializeField] private Button yesButton;
@@ -27,6 +33,16 @@ public class SC_ExitPopup : MonoBehaviour
 
     private void Awake()
     {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (clearPopup == null)
+        {
+            clearPopup = FindAnyObjectByType<SC_ClearPopup>();
+        }
+
         if (popupCanvasGroup == null && popupRoot != null)
         {
             popupCanvasGroup = popupRoot.GetComponent<CanvasGroup>();
@@ -63,6 +79,12 @@ public class SC_ExitPopup : MonoBehaviour
 
     public void OpenPopup()
     {
+        if (ShouldRedirectToClearPopup())
+        {
+            clearPopup.OpenPopup();
+            return;
+        }
+
         if (!gameObject.activeSelf)
         {
             gameObject.SetActive(true);
@@ -86,6 +108,21 @@ public class SC_ExitPopup : MonoBehaviour
         {
             SceneManager.LoadScene(lobbySceneName);
         }
+    }
+
+    private bool ShouldRedirectToClearPopup()
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (clearPopup == null)
+        {
+            clearPopup = FindAnyObjectByType<SC_ClearPopup>();
+        }
+
+        return battleManager != null && battleManager.IsBattleClearedThisSession && clearPopup != null;
     }
 
     private void SetPopupVisible(bool isVisible)

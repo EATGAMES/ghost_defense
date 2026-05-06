@@ -18,6 +18,7 @@ public class SC_MonsterHealth : MonoBehaviour
     private float runtimeMaxHp;
     private float currentHp;
     private bool isDeathNotified;
+    private bool isImmortalTarget;
 
     public float MaxHp => runtimeMaxHp;
     public float CurrentHp => currentHp;
@@ -25,6 +26,7 @@ public class SC_MonsterHealth : MonoBehaviour
     public SO_MonsterData MonsterData => monsterData;
     public MonsterWeaknessDamageType WeaknessDamageType => monsterData != null ? monsterData.WeaknessDamageType : MonsterWeaknessDamageType.None;
     public MonsterWeaknessAttackStyle WeaknessAttackStyle => monsterData != null ? monsterData.WeaknessAttackStyle : MonsterWeaknessAttackStyle.None;
+    public bool IsImmortalTarget => isImmortalTarget;
 
     private void Awake()
     {
@@ -43,10 +45,17 @@ public class SC_MonsterHealth : MonoBehaviour
             return;
         }
 
-        float appliedDamage = Mathf.Min(currentHp, Mathf.Max(0f, damage));
-        currentHp = Mathf.Max(0f, currentHp - appliedDamage);
+        if (isImmortalTarget)
+        {
+            float appliedDamage = Mathf.Max(0f, damage);
+            DamageTaken?.Invoke(appliedDamage, transform.position);
+            return;
+        }
+
+        float appliedDamageToHealth = Mathf.Min(currentHp, Mathf.Max(0f, damage));
+        currentHp = Mathf.Max(0f, currentHp - appliedDamageToHealth);
         RaiseHealthChanged();
-        DamageTaken?.Invoke(appliedDamage, transform.position);
+        DamageTaken?.Invoke(appliedDamageToHealth, transform.position);
 
         if (currentHp <= 0f)
         {
@@ -65,12 +74,24 @@ public class SC_MonsterHealth : MonoBehaviour
         RaiseHealthChanged();
     }
 
+    public void ConfigureAsImmortalTarget()
+    {
+        monsterData = null;
+        destroyOnDeath = false;
+        runtimeMaxHp = 1f;
+        currentHp = 1f;
+        isDeathNotified = false;
+        isImmortalTarget = true;
+        RaiseHealthChanged();
+    }
+
     private void ApplyMonsterData(SO_MonsterData newMonsterData)
     {
         monsterData = newMonsterData;
         runtimeMaxHp = monsterData != null ? Mathf.Max(0f, monsterData.MaxHp) : 0f;
         currentHp = runtimeMaxHp;
         isDeathNotified = false;
+        isImmortalTarget = false;
         RaiseHealthChanged();
     }
 

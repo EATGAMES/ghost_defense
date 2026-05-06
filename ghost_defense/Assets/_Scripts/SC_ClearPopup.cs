@@ -6,37 +6,37 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class SC_ClearPopup : MonoBehaviour
 {
-    [Tooltip("팝업 뒤 배경을 어둡게 처리할 DIM 오브젝트입니다.")]
+    [Tooltip("팝업 뒤 배경을 어둡게 처리하는 DIM 오브젝트입니다.")]
     [SerializeField] private GameObject dimObject;
 
     [Tooltip("실제로 켜고 끌 클리어 팝업 루트 오브젝트입니다.")]
     [SerializeField] private GameObject popupRoot;
 
-    [Tooltip("팝업 루트에 사용할 CanvasGroup입니다. 비워두면 popupRoot에서 자동으로 찾습니다.")]
+    [Tooltip("팝업 루트에서 사용할 CanvasGroup입니다. 비워두면 popupRoot에서 자동으로 찾습니다.")]
     [SerializeField] private CanvasGroup popupCanvasGroup;
 
     [Tooltip("클리어 보상 정보를 가져올 배틀 매니저입니다.")]
     [SerializeField] private SC_BattleManager battleManager;
 
-    [Tooltip("기본 골드 획득량을 표시할 TMP_Text입니다.")]
+    [Tooltip("기본 골드 획득량을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text goldText;
 
-    [Tooltip("추가 골드 획득량을 표시할 TMP_Text입니다.")]
+    [Tooltip("추가 골드 획득량을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text goldBonusText;
 
-    [Tooltip("기본 다이아 획득량을 표시할 TMP_Text입니다.")]
+    [Tooltip("기본 다이아 획득량을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text diamondText;
 
-    [Tooltip("추가 다이아 획득량을 표시할 TMP_Text입니다.")]
+    [Tooltip("추가 다이아 획득량을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text diamondBonusText;
 
-    [Tooltip("10단계 보너스 안내 문구를 표시할 TMP_Text입니다.")]
+    [Tooltip("10단계 보너스 안내 문구를 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text bonusText;
 
-    [Tooltip("이번 판 총 머지 횟수를 표시할 TMP_Text입니다.")]
+    [Tooltip("이번 판 총 머지 횟수를 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text countText;
 
-    [Tooltip("이번 판 총 누적 데미지를 표시할 TMP_Text입니다.")]
+    [Tooltip("이번 판 총 누적 데미지를 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text damageText;
 
     [Tooltip("계속 진행 버튼입니다.")]
@@ -53,6 +53,8 @@ public class SC_ClearPopup : MonoBehaviour
 
     public bool IsPopupOpen => popupRoot != null && popupRoot.activeInHierarchy;
     private bool isExitConfirmMode;
+    private bool hasCachedRewardResult;
+    private SC_BattleManager.ClearRewardResult cachedRewardResult;
 
     private void Awake()
     {
@@ -80,7 +82,6 @@ public class SC_ClearPopup : MonoBehaviour
         {
             closeCenterButton.onClick.AddListener(OnClickClose);
         }
-
     }
 
     private void OnDestroy()
@@ -115,7 +116,19 @@ public class SC_ClearPopup : MonoBehaviour
         }
 
         isExitConfirmMode = false;
-        SC_BattleManager.ClearRewardResult rewardResult = battleManager.BuildAndGrantClearRewardResult();
+
+        SC_BattleManager.ClearRewardResult rewardResult;
+        if (battleManager.IsBattleClearedThisSession && hasCachedRewardResult)
+        {
+            rewardResult = cachedRewardResult;
+        }
+        else
+        {
+            rewardResult = battleManager.BuildAndGrantClearRewardResult();
+            cachedRewardResult = rewardResult;
+            hasCachedRewardResult = true;
+        }
+
         RefreshTexts(rewardResult);
         RefreshButtons(rewardResult.ShowCloseCenterOnly);
         CancelAllPendingCharacterDrags();
@@ -145,6 +158,13 @@ public class SC_ClearPopup : MonoBehaviour
 
     private void OnClickAgain()
     {
+        if (battleManager != null && battleManager.IsBattleClearedThisSession)
+        {
+            ClosePopup();
+            battleManager.StartPostClearContinueMode();
+            return;
+        }
+
         ClosePopup();
     }
 

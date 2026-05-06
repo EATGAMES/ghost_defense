@@ -11,12 +11,24 @@ public class SC_BossSpawner : MonoBehaviour
     [Tooltip("씬에 미리 배치된 보스 체력 컴포넌트입니다. 비워두면 자신 또는 자식에서 자동으로 찾습니다.")]
     [SerializeField] private SC_MonsterHealth placedBossHealth;
 
-    [Tooltip("스테이지 순서대로 넣을 몬스터 데이터 목록입니다. 1스테이지는 0번 인덱스를 사용합니다.")]
+    [Tooltip("클리어 후 계속하기에서 생성할 샌드백 프리팹입니다.")]
+    [SerializeField] private GameObject sandbagPrefab;
+
+    [Tooltip("스테이지 순서대로 쓸 몬스터 데이터 목록입니다. 1스테이지는 0번 인덱스를 사용합니다.")]
     [SerializeField] private SO_MonsterData[] stageMonsterDataList;
+
+    private SC_DamagePopupSpawner damagePopupTemplate;
+    private Transform cachedSpawnParent;
+    private Vector3 cachedSpawnPosition;
+    private Quaternion cachedSpawnRotation;
+    private GameObject spawnedSandbagObject;
+    private SC_MonsterHealth spawnedSandbagHealth;
 
     private void Awake()
     {
         ResolveReferences();
+        CacheSpawnTransform();
+        CacheDamagePopupTemplate();
     }
 
     private void OnEnable()
@@ -52,6 +64,11 @@ public class SC_BossSpawner : MonoBehaviour
         {
             battleManager.UnregisterBoss(placedBossHealth);
         }
+
+        if (battleManager != null && spawnedSandbagHealth != null)
+        {
+            battleManager.UnregisterBoss(spawnedSandbagHealth);
+        }
     }
 
     public void SpawnBoss()
@@ -65,6 +82,47 @@ public class SC_BossSpawner : MonoBehaviour
         }
 
         ApplyStageMonsterDataAndRegisterBoss();
+    }
+
+    public bool StartPostClearTrainingMode()
+    {
+        ResolveReferences();
+        CacheSpawnTransform();
+        CacheDamagePopupTemplate();
+
+        if (sandbagPrefab == null)
+        {
+            Debug.LogWarning("SC_BossSpawner: Sandbag Prefab 인스펙터 연결이 비어 있습니다.", this);
+            return false;
+        }
+
+        if (spawnedSandbagHealth == null)
+        {
+            spawnedSandbagObject = Instantiate(sandbagPrefab, cachedSpawnPosition, cachedSpawnRotation, cachedSpawnParent);
+            spawnedSandbagHealth = spawnedSandbagObject.GetComponent<SC_MonsterHealth>();
+            if (spawnedSandbagHealth == null)
+            {
+                spawnedSandbagHealth = spawnedSandbagObject.AddComponent<SC_MonsterHealth>();
+            }
+
+            spawnedSandbagHealth.ConfigureAsImmortalTarget();
+            EnsureDamagePopupSpawner(spawnedSandbagObject, spawnedSandbagHealth);
+        }
+        else
+        {
+            spawnedSandbagHealth.ConfigureAsImmortalTarget();
+            if (spawnedSandbagObject != null)
+            {
+                spawnedSandbagObject.SetActive(true);
+            }
+        }
+
+        if (battleManager != null && spawnedSandbagHealth != null)
+        {
+            battleManager.RegisterBoss(spawnedSandbagHealth);
+        }
+
+        return spawnedSandbagHealth != null;
     }
 
     private void OnMonsterDied(SC_MonsterHealth deadMonster)
@@ -128,6 +186,51 @@ public class SC_BossSpawner : MonoBehaviour
         if (placedBossHealth == null)
         {
             placedBossHealth = GetComponentInChildren<SC_MonsterHealth>();
+        }
+    }
+
+    private void CacheSpawnTransform()
+    {
+        if (placedBossHealth == null)
+        {
+            return;
+        }
+
+        cachedSpawnParent = placedBossHealth.transform.parent;
+        cachedSpawnPosition = placedBossHealth.transform.position;
+        cachedSpawnRotation = placedBossHealth.transform.rotation;
+    }
+
+    private void CacheDamagePopupTemplate()
+    {
+        if (damagePopupTemplate == null && placedBossHealth != null)
+        {
+            damagePopupTemplate = placedBossHealth.GetComponent<SC_DamagePopupSpawner>();
+        }
+    }
+
+    private void EnsureDamagePopupSpawner(GameObject sandbagObject, SC_MonsterHealth sandbagHealth)
+    {
+        if (sandbagObject == null || sandbagHealth == null)
+        {
+            return;
+        }
+
+        SC_DamagePopupSpawner popupSpawner = sandbagObject.GetComponent<SC_DamagePopupSpawner>();
+        if (popupSpawner == null)
+        {
+            popupSpawner = sandbagObject.AddComponent<SC_DamagePopupSpawner>();
+        }
+
+        popupSpawner.BindMonsterHealth(sandbagHealth);
+
+        if (damagePopupTemplate != null)
+        {
+            popupSpawner.ConfigurePopup(
+                damagePopupTemplate.DamagePopupPrefab,
+                damagePopupTemplate.WorldOffset,
+                damagePopupTemplate.RandomXOffset,
+                damagePopupTemplate.RandomYOffset);
         }
     }
 }

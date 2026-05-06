@@ -53,6 +53,8 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
     private void Update()
     {
+        EnforceExcludeLowGradeSpawnEffect();
+
         // 대기 캐릭터가 발사됐거나 합체/삭제로 사라졌다면 다음 스폰을 예약한다.
         if (currentWaitingCharacter == null)
         {
@@ -104,7 +106,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     {
         if (characterPrefab == null)
         {
-            Debug.LogWarning("SC_BattleCharacterSpawner: characterPrefab이 비어 있습니다.", this);
+            Debug.LogWarning("SC_BattleCharacterSpawner: characterPrefab가 비어 있습니다.", this);
             return;
         }
 
@@ -152,12 +154,12 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
     private int PickWeightedSpawnGrade()
     {
-        int excludedMaxGrade = cardManager != null ? Mathf.Clamp(cardManager.ExcludeLowGradeSpawnMaxGrade, 0, 5) : 0;
-        float grade1EffectiveWeight = excludedMaxGrade >= 1 ? 0f : Mathf.Max(0f, grade1Weight);
-        float grade2EffectiveWeight = excludedMaxGrade >= 2 ? 0f : Mathf.Max(0f, grade2Weight);
-        float grade3EffectiveWeight = excludedMaxGrade >= 3 ? 0f : Mathf.Max(0f, grade3Weight);
-        float grade4EffectiveWeight = excludedMaxGrade >= 4 ? 0f : Mathf.Max(0f, grade4Weight);
-        float grade5EffectiveWeight = excludedMaxGrade >= 5 ? 0f : Mathf.Max(0f, grade5Weight);
+        bool isExcludeLowGradeSpawnActive = cardManager != null && cardManager.IsExcludeLowGradeSpawnActive();
+        float grade1EffectiveWeight = isExcludeLowGradeSpawnActive ? 0f : Mathf.Max(0f, grade1Weight);
+        float grade2EffectiveWeight = Mathf.Max(0f, grade2Weight);
+        float grade3EffectiveWeight = Mathf.Max(0f, grade3Weight);
+        float grade4EffectiveWeight = Mathf.Max(0f, grade4Weight);
+        float grade5EffectiveWeight = Mathf.Max(0f, grade5Weight);
 
         float totalWeight =
             grade1EffectiveWeight +
@@ -168,7 +170,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
 
         if (totalWeight <= 0f)
         {
-            return Mathf.Clamp(excludedMaxGrade + 1, 1, 5);
+            return isExcludeLowGradeSpawnActive ? 2 : 1;
         }
 
         float roll = Random.Range(0f, totalWeight);
@@ -198,5 +200,24 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         }
 
         return 5;
+    }
+
+    private void EnforceExcludeLowGradeSpawnEffect()
+    {
+        if (currentWaitingCharacter == null || cardManager == null || !cardManager.IsExcludeLowGradeSpawnActive())
+        {
+            return;
+        }
+
+        SC_CharacterPresenter presenter = currentWaitingCharacter.GetComponent<SC_CharacterPresenter>();
+        if (presenter == null || presenter.MergeGrade != 1)
+        {
+            return;
+        }
+
+        Destroy(currentWaitingCharacter.gameObject);
+        currentWaitingCharacter = null;
+        isRespawnScheduled = false;
+        TrySpawnWaitingCharacter();
     }
 }

@@ -6,6 +6,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 {
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
+    private const float PoweredShotSpeedBonus = 8f;
+    private const float ShrinkShotScaleMultiplier = 0.6f;
     private static bool hasAnyDragGuideBeenViewed;
 
     [Tooltip("드래그 가능한 최소 X 좌표(월드 좌표)")]
@@ -81,13 +83,16 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private bool wasMousePressed;
     private bool wasTouchPressed;
     private bool hasViewedDragGuide;
-    private float cardShootSpeedBonus;
     private Vector3 dragStartPosition;
     private Vector3 guideOriginalLocalScale = Vector3.one;
+    private Vector3 defaultCharacterScale = Vector3.one;
     private bool suppressDragUntilPointerReleased;
+    private bool isShrinkShotVisualApplied;
+    private SC_CardManager cardManager;
     private SC_BattleManager battleManager;
     private SC_FinalMergePopup finalMergePopup;
     private SC_ClearPopup clearPopup;
+    private int remainingCollisionEraseCount;
     public bool IsShot => isShot;
     public bool HasCollidedAfterShot => hasCollidedAfterShot;
     public bool IsStoppedAfterShot => isShot && !isDragging && (rb2D == null || rb2D.linearVelocity.sqrMagnitude <= stopSpeedThreshold * stopSpeedThreshold);
@@ -133,6 +138,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         }
 
         hasViewedDragGuide = hasAnyDragGuideBeenViewed;
+        defaultCharacterScale = transform.localScale;
         ApplyCollisionState();
         SetGuideVisible(false);
         RefreshDragArrowVisibility();
@@ -140,11 +146,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void Start()
     {
-        SC_CardManager cardManager = FindAnyObjectByType<SC_CardManager>();
-        if (cardManager != null)
-        {
-            SetCardShootSpeedBonus(cardManager.AttackQueueSpeedBonus);
-        }
+        cardManager = FindAnyObjectByType<SC_CardManager>();
+        SetShrinkShotVisual(cardManager != null && cardManager.IsShrinkShotActive());
 
         ResolvePopupReferences();
     }
@@ -397,10 +400,21 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         SetShotState(true);
         SetPostLaunchCollisionState(false);
         ReportShotGradeToPreviewUI();
+        remainingCollisionEraseCount = cardManager != null ? cardManager.ConsumeCollisionEraseCount() : 0;
 
         if (rb2D != null)
         {
             rb2D.linearVelocity = Vector2.up * GetFinalShootSpeed();
+        }
+
+        if (cardManager != null && cardManager.IsShrinkShotActive())
+        {
+            cardManager.ConsumeShrinkShot();
+        }
+
+        if (cardManager != null && cardManager.IsAttackQueueSpeedBonusActive())
+        {
+            cardManager.ConsumeAttackQueueSpeedBonusShot();
         }
     }
 
@@ -443,6 +457,11 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         bool isCharacterCollision = collision.collider.GetComponent<SC_CharacterMergeController>() != null
             || collision.collider.GetComponentInParent<SC_CharacterMergeController>() != null;
 
+        if (TryEraseCollidedCharacter(collision.collider, isCharacterCollision))
+        {
+            return;
+        }
+
         if (!isCharacterCollision && collision.contactCount > 0)
         {
             Vector2 normal = collision.GetContact(0).normal;
@@ -473,6 +492,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         if (!shot)
         {
             hasCollidedAfterShot = false;
+            remainingCollisionEraseCount = 0;
         }
 
         ApplyCollisionState();
@@ -481,11 +501,6 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     public void SetPostLaunchCollisionState(bool collided)
     {
         hasCollidedAfterShot = collided;
-    }
-
-    public void SetCardShootSpeedBonus(float speedBonus)
-    {
-        cardShootSpeedBonus = Mathf.Max(0f, speedBonus);
     }
 
     public void CancelDragAndResetToStartPosition()
@@ -517,6 +532,29 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         wasMousePressed = false;
         wasTouchPressed = false;
         SetGuideVisible(false);
+    }
+
+    public void SetShrinkShotVisual(bool shouldShrink)
+    {
+        if (shouldShrink)
+        {
+            if (!isShrinkShotVisualApplied)
+            {
+                defaultCharacterScale = transform.localScale;
+            }
+
+            transform.localScale = defaultCharacterScale * ShrinkShotScaleMultiplier;
+            isShrinkShotVisualApplied = true;
+            return;
+        }
+
+        if (!isShrinkShotVisualApplied)
+        {
+            return;
+        }
+
+        transform.localScale = defaultCharacterScale;
+        isShrinkShotVisualApplied = false;
     }
 
     public void CancelDragAndSuppressUntilRelease()
@@ -669,7 +707,52 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private float GetFinalShootSpeed()
     {
-        return Mathf.Max(0f, shootSpeed + cardShootSpeedBonus);
+        float poweredShotBonus = cardManager != null && cardManager.IsAttackQueueSpeedBonusActive()
+            ? PoweredShotSpeedBonus
+            : 0f;
+        return Mathf.Max(0f, shootSpeed + poweredShotBonus);
+    }
+
+    private bool TryEraseCollidedCharacter(Collider2D otherCollider, bool isCharacterCollision)
+    {
+        if (!isShot || !isCharacterCollision || remainingCollisionEraseCount <= 0 || otherCollider == null)
+        {
+            return false;
+        }
+
+        SC_PlayerDragAndShoot targetShooter = otherCollider.GetComponentInParent<SC_PlayerDragAndShoot>();
+        if (targetShooter != null && targetShooter != this)
+        {
+            EraseCharacter(targetShooter.gameObject);
+            remainingCollisionEraseCount--;
+            return true;
+        }
+
+        SC_CharacterPresenter targetPresenter = otherCollider.GetComponentInParent<SC_CharacterPresenter>();
+        if (targetPresenter == null || targetPresenter.gameObject == gameObject)
+        {
+            return false;
+        }
+
+        EraseCharacter(targetPresenter.gameObject);
+        remainingCollisionEraseCount--;
+        return true;
+    }
+
+    private static void EraseCharacter(GameObject targetObject)
+    {
+        if (targetObject == null)
+        {
+            return;
+        }
+
+        SC_PlayerDragAndShoot targetShooter = targetObject.GetComponent<SC_PlayerDragAndShoot>();
+        if (targetShooter != null && !targetShooter.IsShot)
+        {
+            targetShooter.CancelDragAndResetToStartPosition();
+        }
+
+        Destroy(targetObject);
     }
 
     private bool IsInputBlockedByPopup()

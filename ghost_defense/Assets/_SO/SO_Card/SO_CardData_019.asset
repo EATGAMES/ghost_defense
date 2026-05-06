@@ -18,5 +18,5 @@ MonoBehaviour:
     \uBC1C\uC0AC\uD569\uB2C8\uB2E4."
   cardImage: {fileID: 21300000, guid: 2f01732310dee3f4faed71d07dba8878, type: 3}
   effectType: 19
-  baseEffectValue: 1
-  effectValuePerLevel: 1
+  baseEffectValue: 5
+  effectValuePerLevel: 2
