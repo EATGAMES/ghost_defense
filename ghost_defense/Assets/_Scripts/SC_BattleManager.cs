@@ -180,6 +180,7 @@ public class SC_BattleManager : MonoBehaviour
     {
         isBattleClearedThisSession = false;
         isPostClearContinueMode = false;
+        battleDamageDealt = 0f;
         int savedSelectedStage = SC_SaveDataManager.Instance != null ? SC_SaveDataManager.Instance.SelectedStage : startStage;
         CurrentStage = Mathf.Clamp(savedSelectedStage, 1, MaxStage);
         wasStageClearedOnBattleStart =

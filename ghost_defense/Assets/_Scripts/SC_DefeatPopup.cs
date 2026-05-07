@@ -43,7 +43,7 @@ public class SC_DefeatPopup : MonoBehaviour
 
         if (clearPopup == null)
         {
-            clearPopup = FindAnyObjectByType<SC_ClearPopup>();
+            clearPopup = FindClearPopupIncludingInactive();
         }
 
         if (popupCanvasGroup == null && popupRoot != null)
@@ -136,10 +136,38 @@ public class SC_DefeatPopup : MonoBehaviour
 
         if (clearPopup == null)
         {
-            clearPopup = FindAnyObjectByType<SC_ClearPopup>();
+            clearPopup = FindClearPopupIncludingInactive();
         }
 
         return battleManager != null && battleManager.IsBattleClearedThisSession && clearPopup != null;
+    }
+
+    private static SC_ClearPopup FindClearPopupIncludingInactive()
+    {
+        SC_ClearPopup activePopup = FindAnyObjectByType<SC_ClearPopup>();
+        if (activePopup != null)
+        {
+            return activePopup;
+        }
+
+        SC_ClearPopup[] allPopups = Resources.FindObjectsOfTypeAll<SC_ClearPopup>();
+        for (int i = 0; i < allPopups.Length; i++)
+        {
+            SC_ClearPopup popup = allPopups[i];
+            if (popup == null)
+            {
+                continue;
+            }
+
+            if (!popup.gameObject.scene.IsValid())
+            {
+                continue;
+            }
+
+            return popup;
+        }
+
+        return null;
     }
 
     private void SetPopupVisible(bool isVisible)

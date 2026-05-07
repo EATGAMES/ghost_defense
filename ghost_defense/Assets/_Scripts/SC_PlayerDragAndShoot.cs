@@ -7,7 +7,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
     private const float PoweredShotSpeedBonus = 8f;
-    private const float ShrinkShotScaleMultiplier = 0.6f;
+    private const float ShrinkShotScaleMultiplier = 0.65f;
     private static bool hasAnyDragGuideBeenViewed;
 
     [Tooltip("드래그 가능한 최소 X 좌표(월드 좌표)")]
@@ -447,17 +447,17 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             SetPostLaunchCollisionState(true);
         }
 
-        SC_CharacterMergeController myMerge = GetComponent<SC_CharacterMergeController>();
-        if (myMerge != null && myMerge.TryMergeFromCollision(collision.collider))
-        {
-            return;
-        }
-
         Vector2 velocity = rb2D.linearVelocity * collisionDamping;
         bool isCharacterCollision = collision.collider.GetComponent<SC_CharacterMergeController>() != null
             || collision.collider.GetComponentInParent<SC_CharacterMergeController>() != null;
 
         if (TryEraseCollidedCharacter(collision.collider, isCharacterCollision))
+        {
+            return;
+        }
+
+        SC_CharacterMergeController myMerge = GetComponent<SC_CharacterMergeController>();
+        if (myMerge != null && myMerge.TryMergeFromCollision(collision.collider))
         {
             return;
         }

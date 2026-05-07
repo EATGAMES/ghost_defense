@@ -67,6 +67,7 @@ public class SC_CardManager : MonoBehaviour
         }
 
         selectedCardLevels[cardData] = currentLevel;
+        RebuildRuntimeEffects();
         float effectValue = cardData.GetEffectValueForLevel(currentLevel);
 
         switch (cardData.EffectType)
@@ -97,8 +98,6 @@ public class SC_CardManager : MonoBehaviour
                 attackQueueSpeedRemainingShots += Mathf.Max(0, Mathf.RoundToInt(effectValue));
                 break;
         }
-
-        RebuildRuntimeEffects();
     }
 
     public void ResetRuntimeState()
@@ -218,12 +217,16 @@ public class SC_CardManager : MonoBehaviour
                     bonusGoldReward += effectValue;
                     break;
                 case CardEffectType.LowerGradeAdditionalAttack:
+                    lowerGradeAdditionalAttackRemainingShots = Mathf.Max(lowerGradeAdditionalAttackRemainingShots, Mathf.RoundToInt(effectValue));
+                    break;
                 case CardEffectType.NextSpawnPreviewCount:
                     nextSpawnPreviewCount = Mathf.Max(nextSpawnPreviewCount, Mathf.RoundToInt(effectValue));
                     break;
                 case CardEffectType.ShrinkShot:
                     break;
                 case CardEffectType.AttackQueueSpeedBonus:
+                    attackQueueSpeedRemainingShots = Mathf.Max(attackQueueSpeedRemainingShots, Mathf.RoundToInt(effectValue));
+                    break;
                 case CardEffectType.NextAttackDamageMultiplier:
                     break;
                 default:
@@ -295,6 +298,7 @@ public class SC_CardManager : MonoBehaviour
         }
 
         shrinkShotRemainingShots--;
+        ApplyShrinkShotToWaitingCharacters(shrinkShotRemainingShots > 0);
     }
 
     public bool IsAttackQueueSpeedBonusActive()
