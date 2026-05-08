@@ -43,6 +43,12 @@ public class SO_MonsterData : ScriptableObject
     [Tooltip("이 스테이지를 재클리어했을 때 지급할 다이아 보상입니다.")]
     [SerializeField] private int repeatClearDiamondReward;
 
+    [Tooltip("어려운 스테이지 기믹인 극한 충돌을 사용할지 여부입니다.")]
+    [SerializeField] private bool useExtremeCollision;
+
+    [Tooltip("어려운 스테이지 기믹인 중력장을 사용할지 여부입니다.")]
+    [SerializeField] private bool useGravityField;
+
     public string MonsterName => monsterName;
     public float MaxHp => Mathf.Max(0f, maxHp);
     public MonsterWeaknessDamageType WeaknessDamageType => weaknessDamageType;
@@ -51,4 +57,6 @@ public class SO_MonsterData : ScriptableObject
     public int RepeatClearGoldReward => Mathf.Max(0, repeatClearGoldReward);
     public int FirstClearDiamondReward => Mathf.Max(0, firstClearDiamondReward);
     public int RepeatClearDiamondReward => Mathf.Max(0, repeatClearDiamondReward);
+    public bool UseExtremeCollision => useExtremeCollision;
+    public bool UseGravityField => useGravityField;
 }

@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: SO_MonsterData_002
   m_EditorClassIdentifier: Assembly-CSharp::SO_MonsterData
   monsterName: stage2
-  maxHp: 5000
+  maxHp: 3000
   weaknessDamageType: 0
   weaknessAttackStyle: 0
-  firstClearGoldReward: 500
+  firstClearGoldReward: 300
   repeatClearGoldReward: 50
   firstClearDiamondReward: 50
   repeatClearDiamondReward: 1
+  useExtremeCollision: 1
+  useGravityField: 0

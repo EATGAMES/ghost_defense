@@ -16,7 +16,7 @@ MonoBehaviour:
   maxHp: 1000
   weaknessDamageType: 0
   weaknessAttackStyle: 0
-  firstClearGoldReward: 500
+  firstClearGoldReward: 300
   repeatClearGoldReward: 50
   firstClearDiamondReward: 50
   repeatClearDiamondReward: 1

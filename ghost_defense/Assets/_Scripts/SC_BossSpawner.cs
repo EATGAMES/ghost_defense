@@ -17,6 +17,9 @@ public class SC_BossSpawner : MonoBehaviour
     [Tooltip("스테이지 순서대로 쓸 몬스터 데이터 목록입니다. 1스테이지는 0번 인덱스를 사용합니다.")]
     [SerializeField] private SO_MonsterData[] stageMonsterDataList;
 
+    [Tooltip("현재 스테이지의 기믹을 적용할 컨트롤러입니다.")]
+    [SerializeField] private SC_StageGimmickController stageGimmickController;
+
     private SC_DamagePopupSpawner damagePopupTemplate;
     private Transform cachedSpawnParent;
     private Vector3 cachedSpawnPosition;
@@ -140,8 +143,18 @@ public class SC_BossSpawner : MonoBehaviour
 
     private void ApplyStageMonsterData()
     {
+        if (stageGimmickController == null)
+        {
+            stageGimmickController = FindAnyObjectByType<SC_StageGimmickController>();
+        }
+
         if (placedBossHealth == null || stageMonsterDataList == null || stageMonsterDataList.Length <= 0)
         {
+            if (stageGimmickController != null)
+            {
+                stageGimmickController.ResetGimmicks();
+            }
+
             return;
         }
 
@@ -149,10 +162,20 @@ public class SC_BossSpawner : MonoBehaviour
         SO_MonsterData targetMonsterData = stageMonsterDataList[stageIndex];
         if (targetMonsterData == null)
         {
+            if (stageGimmickController != null)
+            {
+                stageGimmickController.ResetGimmicks();
+            }
+
             return;
         }
 
         placedBossHealth.SetMonsterData(targetMonsterData);
+
+        if (stageGimmickController != null)
+        {
+            stageGimmickController.ApplyMonsterData(targetMonsterData);
+        }
     }
 
     private void ApplyStageMonsterDataAndRegisterBoss()

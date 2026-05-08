@@ -198,7 +198,10 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         if (velocity.y < 0f)
         {
             currentDeceleration *= downwardBrakeMultiplier;
+            currentDeceleration *= SC_StageGimmickController.CurrentDownwardBrakeMultiplier;
         }
+
+        currentDeceleration *= SC_StageGimmickController.CurrentDecelerationMultiplier;
 
         rb2D.linearVelocity = Vector2.MoveTowards(velocity, Vector2.zero, currentDeceleration * Time.fixedDeltaTime);
     }
@@ -447,7 +450,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             SetPostLaunchCollisionState(true);
         }
 
-        Vector2 velocity = rb2D.linearVelocity * collisionDamping;
+        float resolvedCollisionDamping = collisionDamping * SC_StageGimmickController.CurrentCollisionVelocityMultiplier;
+        Vector2 velocity = rb2D.linearVelocity * Mathf.Max(0f, resolvedCollisionDamping);
         bool isCharacterCollision = collision.collider.GetComponent<SC_CharacterMergeController>() != null
             || collision.collider.GetComponentInParent<SC_CharacterMergeController>() != null;
 
@@ -468,7 +472,8 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
             float normalSpeed = Vector2.Dot(velocity, normal);
             Vector2 normalVelocity = normal * normalSpeed;
             Vector2 tangentVelocity = velocity - normalVelocity;
-            velocity = normalVelocity + tangentVelocity * sideSlipDamping;
+            float resolvedSideSlipDamping = sideSlipDamping * SC_StageGimmickController.CurrentSideSlipMultiplier;
+            velocity = normalVelocity + tangentVelocity * resolvedSideSlipDamping;
         }
 
         if (useCollisionAngleJitter && velocity.sqrMagnitude > Mathf.Epsilon)

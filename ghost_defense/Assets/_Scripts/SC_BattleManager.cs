@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class SC_BattleManager : MonoBehaviour
@@ -81,6 +82,15 @@ public class SC_BattleManager : MonoBehaviour
 
     [Tooltip("전투 중 카드 효과를 관리할 카드 매니저입니다.")]
     [SerializeField] private SC_CardManager cardManager;
+
+    [Tooltip("예지몽 1칸 미리보기에 사용할 오브젝트입니다. 비워 두면 이름이 OBJ_Preview_point1인 오브젝트를 자동으로 찾습니다.")]
+    [SerializeField] private GameObject previewPoint1Object;
+
+    [Tooltip("예지몽 1칸 미리보기에 표시할 이미지입니다. 비워 두면 OBJ_Preview_point1에서 Image를 자동으로 찾습니다.")]
+    [SerializeField] private Image previewPoint1Image;
+
+    [Tooltip("필드 스킨 미리보기 스프라이트를 찾지 못했을 때 대신 표시할 기본 이미지입니다.")]
+    [SerializeField] private Sprite previewPoint1FallbackSprite;
 
     [Tooltip("10단계 최종 합성 연출 팝업입니다.")]
     [SerializeField] private SC_FinalMergePopup finalMergePopup;
@@ -189,6 +199,7 @@ public class SC_BattleManager : MonoBehaviour
         currentAttackGrade = currentAttackCharacterData != null ? 1 : 0;
 
         RefreshGradePreviewUI();
+        RefreshPrecognitionPreviewPoint();
         RaiseStageChanged();
         RaiseBossHealthChanged();
         RaiseMergeAttackGaugeChanged();
@@ -272,6 +283,7 @@ public class SC_BattleManager : MonoBehaviour
             cardManager.ConsumeLowerGradeAdditionalAttackShot();
         }
 
+        RefreshPrecognitionPreviewPoint();
         TryStartAttackQueueProcessing();
         RaiseMergeAttackGaugeChanged();
     }
@@ -389,6 +401,7 @@ public class SC_BattleManager : MonoBehaviour
         pendingAttackRequests.Clear();
         currentAttackCount = 0;
         PersistBattleStatisticsIfNeeded();
+        RefreshPrecognitionPreviewPoint();
 
         if (pauseWhenSelectingCard && Time.timeScale == 0f)
         {
@@ -426,6 +439,7 @@ public class SC_BattleManager : MonoBehaviour
             Time.timeScale = 1f;
         }
 
+        RefreshPrecognitionPreviewPoint();
         TryStartAttackQueueProcessing();
     }
 
@@ -446,6 +460,24 @@ public class SC_BattleManager : MonoBehaviour
         int safeGrade = Mathf.Clamp(grade, 1, 10);
         SO_FieldCharacterSkinData skinData = GetEquippedFieldSkinDataForGrade(safeGrade);
         return skinData != null ? skinData.GetPreviewSpriteForGrade(safeGrade) : null;
+    }
+
+    public Sprite GetNextQueuedPreviewSprite()
+    {
+        if (pendingAttackRequests.Count <= 0)
+        {
+            return null;
+        }
+
+        AttackRequest[] queuedRequests = pendingAttackRequests.ToArray();
+        if (queuedRequests == null || queuedRequests.Length <= 0)
+        {
+            return null;
+        }
+
+        int nextQueuedGrade = Mathf.Clamp(queuedRequests[0].Grade, 1, 10);
+        Sprite previewSprite = GetPreviewSpriteForGrade(nextQueuedGrade);
+        return previewSprite != null ? previewSprite : previewPoint1FallbackSprite;
     }
 
     public SO_CharacterData[] GetEquippedRosterSnapshot()
@@ -568,6 +600,7 @@ public class SC_BattleManager : MonoBehaviour
         while (!isCardSelectionOpen && pendingAttackRequests.Count > 0)
         {
             AttackRequest request = pendingAttackRequests.Dequeue();
+            RefreshPrecognitionPreviewPoint();
             SO_CharacterData attacker = request.CharacterData != null ? request.CharacterData : currentAttackCharacterData;
             if (attacker == null)
             {
@@ -641,6 +674,8 @@ public class SC_BattleManager : MonoBehaviour
         {
             TryStartAttackQueueProcessing();
         }
+
+        RefreshPrecognitionPreviewPoint();
     }
 
     private void FinalizeBossDefeat()
@@ -852,6 +887,79 @@ public class SC_BattleManager : MonoBehaviour
 
         gradePreviewUI.RefreshPreviewImages();
         gradePreviewUI.RefreshPointerPosition();
+    }
+
+    private void RefreshPrecognitionPreviewPoint()
+    {
+        EnsurePrecognitionPreviewReferences();
+
+        if (previewPoint1Object == null)
+        {
+            return;
+        }
+
+        int previewCount = cardManager != null ? Mathf.Max(0, cardManager.NextSpawnPreviewCount) : 0;
+        bool shouldShowPreviewPoint = previewCount >= 1;
+        previewPoint1Object.SetActive(shouldShowPreviewPoint);
+
+        if (!shouldShowPreviewPoint || previewPoint1Image == null)
+        {
+            return;
+        }
+
+        Sprite previewSprite = GetNextQueuedPreviewSprite();
+        previewPoint1Image.sprite = previewSprite;
+        previewPoint1Image.enabled = previewSprite != null;
+    }
+
+    private void EnsurePrecognitionPreviewReferences()
+    {
+        if (previewPoint1Object == null)
+        {
+            previewPoint1Object = FindSceneObjectIncludingInactive("OBJ_Preview_point1");
+        }
+
+        if (previewPoint1Image == null && previewPoint1Object != null)
+        {
+            previewPoint1Image = previewPoint1Object.GetComponent<Image>();
+            if (previewPoint1Image == null)
+            {
+                previewPoint1Image = previewPoint1Object.GetComponentInChildren<Image>(true);
+            }
+        }
+    }
+
+    private static GameObject FindSceneObjectIncludingInactive(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < allTransforms.Length; i++)
+        {
+            Transform targetTransform = allTransforms[i];
+            if (targetTransform == null || targetTransform.hideFlags != HideFlags.None)
+            {
+                continue;
+            }
+
+            GameObject targetObject = targetTransform.gameObject;
+            if (targetObject == null || !targetObject.scene.IsValid())
+            {
+                continue;
+            }
+
+            if (!string.Equals(targetObject.name, objectName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return targetObject;
+        }
+
+        return null;
     }
 
     private static SC_ClearPopup FindClearPopupIncludingInactive()
