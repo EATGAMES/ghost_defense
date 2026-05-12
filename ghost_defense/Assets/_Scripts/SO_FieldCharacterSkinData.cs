@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [CreateAssetMenu(fileName = "SO_FieldCharacterSkinData", menuName = "Ghost Defense/Field Character Skin Data")]
 public class SO_FieldCharacterSkinData : ScriptableObject
