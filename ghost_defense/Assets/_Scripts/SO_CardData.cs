@@ -25,6 +25,12 @@ public enum CardEffectType
     RemoveBottomCharacters
 }
 
+public enum CardUpgradeCurrency
+{
+    Gold,
+    Diamond
+}
+
 [CreateAssetMenu(fileName = "SO_CardData", menuName = "Ghost Defense/Card Data")]
 public class SO_CardData : ScriptableObject
 {
@@ -50,6 +56,16 @@ public class SO_CardData : ScriptableObject
     [Tooltip("카드 레벨이 1 오를 때마다 추가되는 효과 수치입니다.")]
     [SerializeField] private float effectValuePerLevel;
 
+    [Header("Upgrade")]
+    [Tooltip("카드 업그레이드 구매에 사용할 재화입니다.")]
+    [SerializeField] private CardUpgradeCurrency upgradeCurrency = CardUpgradeCurrency.Gold;
+
+    [Tooltip("카드 업그레이드 기본 비용입니다.")]
+    [SerializeField] private int baseUpgradeCost;
+
+    [Tooltip("카드 레벨업마다 추가로 필요한 비용입니다.")]
+    [SerializeField] private int upgradeCostPerLevel;
+
     public string CardId => string.IsNullOrWhiteSpace(cardId) ? name : cardId;
     public string CardName => string.IsNullOrWhiteSpace(cardName) ? name : cardName;
     public string Description => description;
@@ -57,6 +73,9 @@ public class SO_CardData : ScriptableObject
     public CardEffectType EffectType => effectType;
     public float BaseEffectValue => baseEffectValue;
     public float EffectValuePerLevel => effectValuePerLevel;
+    public CardUpgradeCurrency UpgradeCurrency => upgradeCurrency;
+    public int BaseUpgradeCost => baseUpgradeCost;
+    public int UpgradeCostPerLevel => upgradeCostPerLevel;
 
     public float GetEffectValueForLevel(int level)
     {

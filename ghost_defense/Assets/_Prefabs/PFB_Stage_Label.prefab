@@ -35,8 +35,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 340, y: -50}
-  m_SizeDelta: {x: 130, y: 200}
+  m_AnchoredPosition: {x: 320, y: -45}
+  m_SizeDelta: {x: 110, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6718741916201123969
 CanvasRenderer:
@@ -159,7 +159,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 600}
-  m_SizeDelta: {x: 550, y: 300}
+  m_SizeDelta: {x: 500, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3631018712079386830
 CanvasRenderer:
@@ -215,6 +215,7 @@ MonoBehaviour:
   rightButton: {fileID: 4037123007301551221}
   stageText: {fileID: 7977269210942626454}
   maxStage: 10
+  autoSelectHighestUnlockedStageOnStart: 1
   playableStageColor: {r: 1, g: 1, b: 1, a: 1}
   clearedStageColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   lockedStageColor: {r: 0.6509434, g: 0, b: 0, a: 1}
@@ -253,8 +254,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -340, y: -50}
-  m_SizeDelta: {x: 130, y: 200}
+  m_AnchoredPosition: {x: -320, y: -45}
+  m_SizeDelta: {x: 110, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4773203865667625719
 CanvasRenderer:

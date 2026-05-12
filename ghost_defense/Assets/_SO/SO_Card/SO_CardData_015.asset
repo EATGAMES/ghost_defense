@@ -19,3 +19,6 @@ MonoBehaviour:
   effectType: 15
   baseEffectValue: 0.15
   effectValuePerLevel: 0.05
+  upgradeCurrency: 1
+  baseUpgradeCost: 20
+  upgradeCostPerLevel: 5

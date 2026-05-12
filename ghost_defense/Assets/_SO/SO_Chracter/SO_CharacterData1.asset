@@ -12,14 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f944b97db8b00b2449980b1e29f5ec76, type: 3}
   m_Name: SO_CharacterData1
   m_EditorClassIdentifier: Assembly-CSharp::SO_CharacterData
-  characterName: 
+  characterName: "\uBC29\uAE68\uBE44"
+  characterId: 
   characterDescription: 
   firstCycleTopCharacterSprite: {fileID: 21300000, guid: 4f569f59cdd806d41b69bd572709ae97, type: 3}
   secondCycleTopCharacterSprite: {fileID: 21300000, guid: 2fb2fa4cc662150448267fb17d3652f5, type: 3}
+  previewCharacterSprite: {fileID: 21300000, guid: b45005daf8981034a8c2d32ba5070fdb, type: 3}
   damageType: 0
   attackStyle: 1
   attackRole: 0
   baseAttackPower: 10
+  damageUpgradeAmountPerLevel: 5
   gradeDamageMultipliers:
   - 1
   - 1.5

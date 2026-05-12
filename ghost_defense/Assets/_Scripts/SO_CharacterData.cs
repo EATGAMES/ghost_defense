@@ -29,6 +29,9 @@ public class SO_CharacterData : ScriptableObject
     [Tooltip("캐릭터 표시 이름입니다.")]
     [SerializeField] private string characterName;
 
+    [Tooltip("캐릭터 업그레이드 저장에 사용할 고유 ID입니다.")]
+    [SerializeField] private string characterId;
+
     [Tooltip("캐릭터 설명입니다.")]
     [TextArea(3, 8)]
     [SerializeField] private string characterDescription;
@@ -39,6 +42,9 @@ public class SO_CharacterData : ScriptableObject
 
     [Tooltip("상단 공격 캐릭터의 2회차(6~10단계) 스프라이트입니다.")]
     [SerializeField] private Sprite secondCycleTopCharacterSprite;
+
+    [Tooltip("캐릭터 프리뷰에 사용할 이미지입니다.")]
+    [SerializeField] private Sprite previewCharacterSprite;
 
     [Tooltip("캐릭터의 데미지 타입입니다.")]
     [SerializeField] private CharacterDamageType damageType = CharacterDamageType.Physical;
@@ -51,6 +57,9 @@ public class SO_CharacterData : ScriptableObject
 
     [Tooltip("캐릭터의 기본 공격력입니다. 1단계 배율이 1이면 이 값이 그대로 들어갑니다.")]
     [SerializeField] private float baseAttackPower = 10f;
+
+    [Tooltip("공격력 업그레이드 레벨이 1 오를 때마다 증가할 기본 공격력 수치입니다.")]
+    [SerializeField] private float damageUpgradeAmountPerLevel = 1f;
 
     [Tooltip("1단계부터 10단계까지 적용할 데미지 배율입니다. 1단계는 1 = 100%입니다.")]
     [SerializeField] private float[] gradeDamageMultipliers = new float[10] { 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f };
@@ -65,11 +74,14 @@ public class SO_CharacterData : ScriptableObject
     [SerializeField] private float attackQueueSpeedPercent = 1f;
 
     public string CharacterName => characterName;
+    public string CharacterId => characterId;
     public string CharacterDescription => characterDescription;
+    public Sprite PreviewCharacterSprite => previewCharacterSprite;
     public CharacterDamageType DamageType => damageType;
     public CharacterAttackStyle AttackStyle => attackStyle;
     public CharacterAttackRole AttackRole => attackRole;
     public float BaseAttackPower => baseAttackPower;
+    public float DamageUpgradeAmountPerLevel => Mathf.Max(0f, damageUpgradeAmountPerLevel);
     public float CriticalChance => criticalChance;
     public float CriticalDamageMultiplier => Mathf.Max(1f, criticalDamageMultiplier);
     public float AttackQueueSpeedPercent => Mathf.Max(0.01f, attackQueueSpeedPercent);
@@ -102,7 +114,40 @@ public class SO_CharacterData : ScriptableObject
     public float GetBaseDamage(int mergeGrade)
     {
         int safeGrade = Mathf.Clamp(mergeGrade, 1, 10);
-        return Mathf.Max(0f, baseAttackPower) * GetGradeDamageMultiplier(safeGrade);
+        return GetCurrentBaseAttackPower() * GetGradeDamageMultiplier(safeGrade);
+    }
+
+    public int GetDamageUpgradeLevel()
+    {
+        string characterSaveKey = GetSaveKey();
+        if (string.IsNullOrWhiteSpace(characterSaveKey) || SC_SaveDataManager.Instance == null)
+        {
+            return 1;
+        }
+
+        SaveCharacterUpgradeEntry upgradeEntry = SC_SaveDataManager.Instance.GetCharacterUpgradeEntry(characterSaveKey);
+        return Mathf.Max(1, upgradeEntry.DamageLevel + 1);
+    }
+
+    public float GetCurrentBaseAttackPower()
+    {
+        return GetBaseAttackPowerForLevel(GetDamageUpgradeLevel());
+    }
+
+    public string GetSaveKey()
+    {
+        if (!string.IsNullOrWhiteSpace(characterId))
+        {
+            return characterId;
+        }
+
+        return characterName ?? string.Empty;
+    }
+
+    public float GetBaseAttackPowerForLevel(int level)
+    {
+        int safeLevel = Mathf.Max(1, level);
+        return Mathf.Max(0f, baseAttackPower) + Mathf.Max(0, safeLevel - 1) * DamageUpgradeAmountPerLevel;
     }
 
     public float GetCriticalChance()

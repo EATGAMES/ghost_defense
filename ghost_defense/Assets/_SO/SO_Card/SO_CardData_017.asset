@@ -20,3 +20,6 @@ MonoBehaviour:
   effectType: 17
   baseEffectValue: 3
   effectValuePerLevel: 1
+  upgradeCurrency: 1
+  baseUpgradeCost: 20
+  upgradeCostPerLevel: 5

@@ -20,5 +20,4 @@ MonoBehaviour:
   repeatClearGoldReward: 50
   firstClearDiamondReward: 50
   repeatClearDiamondReward: 1
-  useExtremeCollision: 1
-  useGravityField: 0
+  stageMapSprite: {fileID: 21300000, guid: e8664459d10b49c44997e24df0022d47, type: 3}

@@ -17,9 +17,6 @@ public class SC_BossSpawner : MonoBehaviour
     [Tooltip("스테이지 순서대로 쓸 몬스터 데이터 목록입니다. 1스테이지는 0번 인덱스를 사용합니다.")]
     [SerializeField] private SO_MonsterData[] stageMonsterDataList;
 
-    [Tooltip("현재 스테이지의 기믹을 적용할 컨트롤러입니다.")]
-    [SerializeField] private SC_StageGimmickController stageGimmickController;
-
     private SC_DamagePopupSpawner damagePopupTemplate;
     private Transform cachedSpawnParent;
     private Vector3 cachedSpawnPosition;
@@ -128,6 +125,23 @@ public class SC_BossSpawner : MonoBehaviour
         return spawnedSandbagHealth != null;
     }
 
+    public SO_MonsterData GetMonsterDataForStage(int stage)
+    {
+        if (stageMonsterDataList == null || stageMonsterDataList.Length <= 0)
+        {
+            return null;
+        }
+
+        int stageIndex = Mathf.Clamp(stage - 1, 0, stageMonsterDataList.Length - 1);
+        return stageMonsterDataList[stageIndex];
+    }
+
+    public StageMapType GetStageMapTypeForStage(int stage)
+    {
+        SO_MonsterData monsterData = GetMonsterDataForStage(stage);
+        return monsterData != null ? monsterData.StageMapType : StageMapType.Type1;
+    }
+
     private void OnMonsterDied(SC_MonsterHealth deadMonster)
     {
         if (deadMonster == null || deadMonster != placedBossHealth)
@@ -143,39 +157,18 @@ public class SC_BossSpawner : MonoBehaviour
 
     private void ApplyStageMonsterData()
     {
-        if (stageGimmickController == null)
-        {
-            stageGimmickController = FindAnyObjectByType<SC_StageGimmickController>();
-        }
-
         if (placedBossHealth == null || stageMonsterDataList == null || stageMonsterDataList.Length <= 0)
         {
-            if (stageGimmickController != null)
-            {
-                stageGimmickController.ResetGimmicks();
-            }
-
             return;
         }
 
-        int stageIndex = Mathf.Clamp(SC_BattleManager.CurrentStage - 1, 0, stageMonsterDataList.Length - 1);
-        SO_MonsterData targetMonsterData = stageMonsterDataList[stageIndex];
+        SO_MonsterData targetMonsterData = GetMonsterDataForStage(SC_BattleManager.CurrentStage);
         if (targetMonsterData == null)
         {
-            if (stageGimmickController != null)
-            {
-                stageGimmickController.ResetGimmicks();
-            }
-
             return;
         }
 
         placedBossHealth.SetMonsterData(targetMonsterData);
-
-        if (stageGimmickController != null)
-        {
-            stageGimmickController.ApplyMonsterData(targetMonsterData);
-        }
     }
 
     private void ApplyStageMonsterDataAndRegisterBoss()

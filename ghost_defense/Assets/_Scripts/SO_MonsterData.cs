@@ -16,6 +16,13 @@ public enum MonsterWeaknessAttackStyle
     Summon
 }
 
+public enum StageMapType
+{
+    Type1 = 1,
+    Type2 = 2,
+    Type3 = 3
+}
+
 [CreateAssetMenu(fileName = "SO_MonsterData", menuName = "Ghost Defense/Monster Data")]
 public class SO_MonsterData : ScriptableObject
 {
@@ -25,29 +32,29 @@ public class SO_MonsterData : ScriptableObject
     [Tooltip("몬스터의 최대 체력입니다.")]
     [SerializeField] private float maxHp = 10f;
 
-    [Tooltip("몬스터의 데미지 타입 약점입니다.")]
+    [Tooltip("몬스터의 약점 데미지 타입입니다.")]
     [SerializeField] private MonsterWeaknessDamageType weaknessDamageType = MonsterWeaknessDamageType.None;
 
-    [Tooltip("몬스터의 공격 스타일 약점입니다.")]
+    [Tooltip("몬스터의 약점 공격 스타일입니다.")]
     [SerializeField] private MonsterWeaknessAttackStyle weaknessAttackStyle = MonsterWeaknessAttackStyle.None;
 
-    [Tooltip("이 스테이지를 최초 클리어했을 때 지급할 골드 보상입니다.")]
+    [Tooltip("스테이지를 최초 클리어했을 때 지급할 골드 보상입니다.")]
     [SerializeField] private int firstClearGoldReward;
 
-    [Tooltip("이 스테이지를 재클리어했을 때 지급할 골드 보상입니다.")]
+    [Tooltip("스테이지를 재클리어했을 때 지급할 골드 보상입니다.")]
     [SerializeField] private int repeatClearGoldReward;
 
-    [Tooltip("이 스테이지를 최초 클리어했을 때 지급할 다이아 보상입니다.")]
+    [Tooltip("스테이지를 최초 클리어했을 때 지급할 다이아 보상입니다.")]
     [SerializeField] private int firstClearDiamondReward;
 
-    [Tooltip("이 스테이지를 재클리어했을 때 지급할 다이아 보상입니다.")]
+    [Tooltip("스테이지를 재클리어했을 때 지급할 다이아 보상입니다.")]
     [SerializeField] private int repeatClearDiamondReward;
 
-    [Tooltip("어려운 스테이지 기믹인 극한 충돌을 사용할지 여부입니다.")]
-    [SerializeField] private bool useExtremeCollision;
+    [Tooltip("스테이지를 표시할 맵 이미지입니다.")]
+    [SerializeField] private Sprite stageMapSprite;
 
-    [Tooltip("어려운 스테이지 기믹인 중력장을 사용할지 여부입니다.")]
-    [SerializeField] private bool useGravityField;
+    [Tooltip("스테이지에서 사용할 맵 타입입니다.")]
+    [SerializeField] private StageMapType stageMapType = StageMapType.Type1;
 
     public string MonsterName => monsterName;
     public float MaxHp => Mathf.Max(0f, maxHp);
@@ -57,6 +64,6 @@ public class SO_MonsterData : ScriptableObject
     public int RepeatClearGoldReward => Mathf.Max(0, repeatClearGoldReward);
     public int FirstClearDiamondReward => Mathf.Max(0, firstClearDiamondReward);
     public int RepeatClearDiamondReward => Mathf.Max(0, repeatClearDiamondReward);
-    public bool UseExtremeCollision => useExtremeCollision;
-    public bool UseGravityField => useGravityField;
+    public Sprite StageMapSprite => stageMapSprite;
+    public StageMapType StageMapType => stageMapType;
 }

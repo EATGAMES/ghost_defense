@@ -20,3 +20,5 @@ MonoBehaviour:
   repeatClearGoldReward: 50
   firstClearDiamondReward: 50
   repeatClearDiamondReward: 1
+  stageMapSprite: {fileID: 0}
+  stageMapType: 1
