@@ -3,6 +3,8 @@
 [DisallowMultipleComponent]
 public class SC_BattleCharacterSpawner : MonoBehaviour
 {
+    public event System.Action NextSpawnPreviewChanged;
+
     [Tooltip("하단에서 발사할 캐릭터 오브젝트를 생성할 프리팹입니다.")]
     [SerializeField] private GameObject characterPrefab;
 
@@ -40,6 +42,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     private float respawnTimer;
     private bool isRespawnScheduled;
     private int? nextSpawnGradeOverride;
+    private int? preparedNextSpawnGrade;
 
     private void Start()
     {
@@ -48,6 +51,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
             cardManager = FindAnyObjectByType<SC_CardManager>();
         }
 
+        PrepareNextSpawnGradePreview();
         TrySpawnWaitingCharacter();
     }
 
@@ -89,6 +93,20 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     public void QueueNextSpawnGrade(int grade)
     {
         nextSpawnGradeOverride = Mathf.Clamp(grade, 1, 10);
+        preparedNextSpawnGrade = null;
+        PrepareNextSpawnGradePreview();
+    }
+
+    public int GetNextSpawnPreviewGrade()
+    {
+        PrepareNextSpawnGradePreview();
+        return Mathf.Clamp(preparedNextSpawnGrade ?? 1, 1, 10);
+    }
+
+    public void RefreshNextSpawnPreviewGrade()
+    {
+        preparedNextSpawnGrade = null;
+        PrepareNextSpawnGradePreview();
     }
 
     private void ScheduleRespawn()
@@ -110,7 +128,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
             return;
         }
 
-        int spawnGrade = nextSpawnGradeOverride ?? PickWeightedSpawnGrade();
+        int spawnGrade = ConsumePreparedSpawnGrade();
         nextSpawnGradeOverride = null;
 
         Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
@@ -133,6 +151,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         }
 
         currentWaitingCharacter = shootComponent;
+        PrepareNextSpawnGradePreview();
     }
 
     private void ApplyMergeObjectData(GameObject mergeObject, int mergeGrade)
@@ -202,6 +221,26 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         return 5;
     }
 
+    private int ConsumePreparedSpawnGrade()
+    {
+        PrepareNextSpawnGradePreview();
+        int spawnGrade = Mathf.Clamp(preparedNextSpawnGrade ?? 1, 1, 10);
+        preparedNextSpawnGrade = null;
+        return spawnGrade;
+    }
+
+    private void PrepareNextSpawnGradePreview()
+    {
+        int previousPreviewGrade = preparedNextSpawnGrade ?? 0;
+        int nextPreviewGrade = nextSpawnGradeOverride ?? PickWeightedSpawnGrade();
+        preparedNextSpawnGrade = Mathf.Clamp(nextPreviewGrade, 1, 10);
+
+        if (previousPreviewGrade != preparedNextSpawnGrade.Value)
+        {
+            NextSpawnPreviewChanged?.Invoke();
+        }
+    }
+
     private void EnforceExcludeLowGradeSpawnEffect()
     {
         if (currentWaitingCharacter == null || cardManager == null || !cardManager.IsExcludeLowGradeSpawnActive())
@@ -218,6 +257,8 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         Destroy(currentWaitingCharacter.gameObject);
         currentWaitingCharacter = null;
         isRespawnScheduled = false;
+        preparedNextSpawnGrade = null;
+        PrepareNextSpawnGradePreview();
         TrySpawnWaitingCharacter();
     }
 }

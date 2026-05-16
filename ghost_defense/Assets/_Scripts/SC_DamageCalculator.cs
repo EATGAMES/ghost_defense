@@ -24,14 +24,16 @@ public class SC_DamageCalculator : MonoBehaviour
         public readonly int MergeGrade;
         public readonly bool ApplyFirstMergedAttackBonus;
         public readonly float NextAttackDamageMultiplier;
+        public readonly float ComboDamageMultiplier;
 
-        public DamageContext(SO_CharacterData attacker, SC_MonsterHealth targetBoss, int mergeGrade, bool applyFirstMergedAttackBonus, float nextAttackDamageMultiplier)
+        public DamageContext(SO_CharacterData attacker, SC_MonsterHealth targetBoss, int mergeGrade, bool applyFirstMergedAttackBonus, float nextAttackDamageMultiplier, float comboDamageMultiplier)
         {
             Attacker = attacker;
             TargetBoss = targetBoss;
             MergeGrade = mergeGrade;
             ApplyFirstMergedAttackBonus = applyFirstMergedAttackBonus;
             NextAttackDamageMultiplier = Mathf.Max(1f, nextAttackDamageMultiplier);
+            ComboDamageMultiplier = Mathf.Max(1f, comboDamageMultiplier);
         }
     }
 
@@ -98,6 +100,8 @@ public class SC_DamageCalculator : MonoBehaviour
         {
             finalDamage *= WeaknessDamageBonusMultiplier;
         }
+
+        finalDamage *= context.ComboDamageMultiplier;
 
         float criticalChance = Mathf.Clamp01(context.Attacker.GetCriticalChance() + globalCriticalChanceBonus);
         float criticalDamageMultiplier = Mathf.Max(1f, context.Attacker.GetCriticalDamageMultiplier() + globalCriticalDamageMultiplierBonus);

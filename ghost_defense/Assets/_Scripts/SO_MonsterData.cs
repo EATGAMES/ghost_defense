@@ -23,6 +23,12 @@ public enum StageMapType
     Type3 = 3
 }
 
+public enum StageBattleDirection
+{
+    UP,
+    DOWN
+}
+
 [CreateAssetMenu(fileName = "SO_MonsterData", menuName = "Ghost Defense/Monster Data")]
 public class SO_MonsterData : ScriptableObject
 {
@@ -53,6 +59,9 @@ public class SO_MonsterData : ScriptableObject
     [Tooltip("스테이지를 표시할 맵 이미지입니다.")]
     [SerializeField] private Sprite stageMapSprite;
 
+    [Tooltip("스테이지에서 사용할 전투 진행 방향입니다. UP은 기존 발사 전투, DOWN은 드롭 전투입니다.")]
+    [SerializeField] private StageBattleDirection stageBattleDirection = StageBattleDirection.UP;
+
     [Tooltip("스테이지에서 사용할 맵 타입입니다.")]
     [SerializeField] private StageMapType stageMapType = StageMapType.Type1;
 
@@ -65,5 +74,7 @@ public class SO_MonsterData : ScriptableObject
     public int FirstClearDiamondReward => Mathf.Max(0, firstClearDiamondReward);
     public int RepeatClearDiamondReward => Mathf.Max(0, repeatClearDiamondReward);
     public Sprite StageMapSprite => stageMapSprite;
+    public StageBattleDirection StageBattleDirection => stageBattleDirection;
     public StageMapType StageMapType => stageMapType;
+    public string BattleSceneName => stageBattleDirection == StageBattleDirection.DOWN ? "SCN_Battle_Drop" : "SCN_Battle";
 }

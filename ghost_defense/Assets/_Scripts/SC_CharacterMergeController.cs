@@ -60,6 +60,7 @@ public class SC_CharacterMergeController : MonoBehaviour
 
     private bool isMerged;
     private bool isFinalMergeSequenceRunning;
+    private float pendingComboDamageMultiplier = 1f;
     private readonly Collider2D[] pushEffectResults = new Collider2D[16];
 
     private void Reset()
@@ -135,6 +136,11 @@ public class SC_CharacterMergeController : MonoBehaviour
             return false;
         }
 
+        if (myShoot.HasCollisionEraseRemaining || otherShoot.HasCollisionEraseRemaining)
+        {
+            return false;
+        }
+
         int myGrade = presenter.MergeGrade;
         int otherGrade = otherMerge.presenter.MergeGrade;
         if (myGrade != otherGrade)
@@ -186,6 +192,7 @@ public class SC_CharacterMergeController : MonoBehaviour
             mergedShoot.SetPostLaunchCollisionState(true);
         }
 
+        SC_ComboManager.ComboMergeResult comboMergeResult = SC_ComboManager.NotifyMergeCreatedGlobal();
         ReportMergedGradeToPreviewUI(nextGrade);
         EnablePhysicsForMergedCharacter(mergedObject);
         ApplyMergePushEffect(mergedObject, nextGrade);
@@ -197,6 +204,7 @@ public class SC_CharacterMergeController : MonoBehaviour
             SC_CharacterMergeController mergedMergeController = mergedObject.GetComponent<SC_CharacterMergeController>();
             if (mergedMergeController != null)
             {
+                mergedMergeController.SetPendingComboDamageMultiplier(comboMergeResult.DamageMultiplier);
                 mergedMergeController.BeginFinalMergeSequence();
             }
             else
@@ -206,7 +214,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
         else
         {
-            NotifyMergeCreated(nextGrade);
+            NotifyMergeCreated(nextGrade, comboMergeResult.DamageMultiplier);
         }
 
         Destroy(otherMerge.gameObject);
@@ -233,6 +241,11 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         isFinalMergeSequenceRunning = true;
         StartCoroutine(CoHandleFinalMergeSequence());
+    }
+
+    public void SetPendingComboDamageMultiplier(float damageMultiplier)
+    {
+        pendingComboDamageMultiplier = Mathf.Max(1f, damageMultiplier);
     }
 
     private static void ReportMergedGradeToPreviewUI(int mergedGrade)
@@ -326,7 +339,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
     }
 
-    private void NotifyMergeCreated(int mergedGrade)
+    private void NotifyMergeCreated(int mergedGrade, float comboDamageMultiplier)
     {
         if (battleManager == null)
         {
@@ -338,7 +351,7 @@ public class SC_CharacterMergeController : MonoBehaviour
             return;
         }
 
-        battleManager.NotifyMergeAttack(mergedGrade);
+        battleManager.NotifyMergeAttack(mergedGrade, comboDamageMultiplier);
     }
 
     private IEnumerator CoHandleFinalMergeSequence()
@@ -371,7 +384,7 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         if (battleManager != null)
         {
-            battleManager.NotifyFinalMergeAttack(10);
+            battleManager.NotifyFinalMergeAttack(10, pendingComboDamageMultiplier);
         }
 
         Destroy(gameObject);

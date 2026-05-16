@@ -7,7 +7,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
     private const float PoweredShotSpeedBonus = 8f;
-    private const float ShrinkShotScaleMultiplier = 0.65f;
+    private const float ShrinkShotScaleMultiplier = 0.75f;
     private static bool hasAnyDragGuideBeenViewed;
 
     [Tooltip("드래그 가능한 최소 X 좌표(월드 좌표)")]
@@ -94,6 +94,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     private SC_ClearPopup clearPopup;
     private int remainingCollisionEraseCount;
     public bool IsShot => isShot;
+    public bool HasCollisionEraseRemaining => remainingCollisionEraseCount > 0;
     public bool HasCollidedAfterShot => hasCollidedAfterShot;
     public bool IsStoppedAfterShot => isShot && !isDragging && (rb2D == null || rb2D.linearVelocity.sqrMagnitude <= stopSpeedThreshold * stopSpeedThreshold);
 
@@ -399,6 +400,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         SetShotState(true);
         SetPostLaunchCollisionState(false);
+        SC_ComboManager.NotifyShotStartedGlobal();
         ReportShotGradeToPreviewUI();
         remainingCollisionEraseCount = cardManager != null ? cardManager.ConsumeCollisionEraseCount() : 0;
 

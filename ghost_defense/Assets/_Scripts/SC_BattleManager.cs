@@ -30,12 +30,14 @@ public class SC_BattleManager : MonoBehaviour
         public readonly int Grade;
         public readonly SO_CharacterData CharacterData;
         public readonly bool ApplyFirstMergedAttackBonus;
+        public readonly float ComboDamageMultiplier;
 
-        public AttackRequest(int grade, SO_CharacterData characterData, bool applyFirstMergedAttackBonus)
+        public AttackRequest(int grade, SO_CharacterData characterData, bool applyFirstMergedAttackBonus, float comboDamageMultiplier)
         {
             Grade = grade;
             CharacterData = characterData;
             ApplyFirstMergedAttackBonus = applyFirstMergedAttackBonus;
+            ComboDamageMultiplier = Mathf.Max(1f, comboDamageMultiplier);
         }
     }
 
@@ -82,6 +84,9 @@ public class SC_BattleManager : MonoBehaviour
 
     [Tooltip("전투 중 카드 효과를 관리할 카드 매니저입니다.")]
     [SerializeField] private SC_CardManager cardManager;
+
+    [Tooltip("예지몽 카드가 보여줄 다음 대기 캐릭터 등급을 제공하는 스포너입니다.")]
+    [SerializeField] private SC_BattleCharacterSpawner battleCharacterSpawner;
 
     [Tooltip("예지몽 1칸 미리보기에 사용할 오브젝트입니다. 비워 두면 이름이 OBJ_Preview_point1인 오브젝트를 자동으로 찾습니다.")]
     [SerializeField] private GameObject previewPoint1Object;
@@ -170,6 +175,8 @@ public class SC_BattleManager : MonoBehaviour
             cardManager = FindAnyObjectByType<SC_CardManager>();
         }
 
+        EnsureBattleCharacterSpawnerReference();
+
         if (finalMergePopup == null)
         {
             finalMergePopup = FindFinalMergePopupIncludingInactive();
@@ -216,6 +223,11 @@ public class SC_BattleManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (battleCharacterSpawner != null)
+        {
+            battleCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+        }
+
         PersistBattleStatisticsIfNeeded();
     }
 
@@ -261,7 +273,7 @@ public class SC_BattleManager : MonoBehaviour
         RaiseBossHealthChanged();
     }
 
-    public void NotifyMergeAttack(int mergedGrade)
+    public void NotifyMergeAttack(int mergedGrade, float comboDamageMultiplier = 1f)
     {
         if (isBattleFinished || isBattleClosing || isCardSelectionOpen)
         {
@@ -273,13 +285,13 @@ public class SC_BattleManager : MonoBehaviour
         SO_CharacterData targetCharacterData = GetCharacterDataForGrade(mergedGrade);
         bool applyFirstMergedAttackBonus = isNextMergedAttackBonusArmed;
         isNextMergedAttackBonusArmed = false;
-        pendingAttackRequests.Enqueue(new AttackRequest(Mathf.Clamp(mergedGrade, 1, 10), targetCharacterData, applyFirstMergedAttackBonus));
+        pendingAttackRequests.Enqueue(new AttackRequest(Mathf.Clamp(mergedGrade, 1, 10), targetCharacterData, applyFirstMergedAttackBonus, comboDamageMultiplier));
 
         if (cardManager != null && cardManager.IsLowerGradeAdditionalAttackActive() && mergedGrade > 1)
         {
             int lowerGrade = Mathf.Clamp(mergedGrade - 1, 1, 10);
             SO_CharacterData lowerGradeCharacterData = GetCharacterDataForGrade(lowerGrade);
-            pendingAttackRequests.Enqueue(new AttackRequest(lowerGrade, lowerGradeCharacterData, false));
+            pendingAttackRequests.Enqueue(new AttackRequest(lowerGrade, lowerGradeCharacterData, false, 1f));
             cardManager.ConsumeLowerGradeAdditionalAttackShot();
         }
 
@@ -288,7 +300,7 @@ public class SC_BattleManager : MonoBehaviour
         RaiseMergeAttackGaugeChanged();
     }
 
-    public void NotifyFinalMergeAttack(int mergedGrade)
+    public void NotifyFinalMergeAttack(int mergedGrade, float comboDamageMultiplier = 1f)
     {
         if (isBattleClearedThisSession && !isPostClearContinueMode)
         {
@@ -296,7 +308,7 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
-        NotifyMergeAttack(mergedGrade);
+        NotifyMergeAttack(mergedGrade, comboDamageMultiplier);
     }
 
     public void NotifyCreatedGrade10ThisBattle()
@@ -430,6 +442,7 @@ public class SC_BattleManager : MonoBehaviour
             cardManager.ApplySelectedCard(selectedCardData);
         }
 
+        RefreshNextSpawnPreviewGrade();
         isCardSelectionOpen = false;
         currentAttackCount = 0;
         RaiseMergeAttackGaugeChanged();
@@ -462,21 +475,17 @@ public class SC_BattleManager : MonoBehaviour
         return skinData != null ? skinData.GetPreviewSpriteForGrade(safeGrade) : null;
     }
 
-    public Sprite GetNextQueuedPreviewSprite()
+    public Sprite GetNextSpawnPreviewSprite()
     {
-        if (pendingAttackRequests.Count <= 0)
+        EnsureBattleCharacterSpawnerReference();
+
+        if (battleCharacterSpawner == null)
         {
             return null;
         }
 
-        AttackRequest[] queuedRequests = pendingAttackRequests.ToArray();
-        if (queuedRequests == null || queuedRequests.Length <= 0)
-        {
-            return null;
-        }
-
-        int nextQueuedGrade = Mathf.Clamp(queuedRequests[0].Grade, 1, 10);
-        Sprite previewSprite = GetPreviewSpriteForGrade(nextQueuedGrade);
+        int nextSpawnGrade = Mathf.Clamp(battleCharacterSpawner.GetNextSpawnPreviewGrade(), 1, 10);
+        Sprite previewSprite = GetPreviewSpriteForGrade(nextSpawnGrade);
         return previewSprite != null ? previewSprite : previewPoint1FallbackSprite;
     }
 
@@ -623,7 +632,7 @@ public class SC_BattleManager : MonoBehaviour
                 yield return new WaitForSeconds(attackImpactDelay);
             }
 
-            float finalDamage = CalculateFinalDamage(attacker, request.Grade, request.ApplyFirstMergedAttackBonus);
+            float finalDamage = CalculateFinalDamage(attacker, request.Grade, request.ApplyFirstMergedAttackBonus, request.ComboDamageMultiplier);
             ApplyDamageToBoss(finalDamage);
 
             if (isBattleFinished)
@@ -637,6 +646,7 @@ public class SC_BattleManager : MonoBehaviour
                 if (cardManager != null)
                 {
                     cardManager.ConsumeExcludeLowGradeSpawnShot();
+                    RefreshNextSpawnPreviewGrade();
                 }
 
                 RaiseMergeAttackGaugeChanged();
@@ -749,7 +759,7 @@ public class SC_BattleManager : MonoBehaviour
         }
     }
 
-    private float CalculateFinalDamage(SO_CharacterData attacker, int mergeGrade, bool applyFirstMergedAttackBonus)
+    private float CalculateFinalDamage(SO_CharacterData attacker, int mergeGrade, bool applyFirstMergedAttackBonus, float comboDamageMultiplier)
     {
         if (attacker == null)
         {
@@ -763,11 +773,11 @@ public class SC_BattleManager : MonoBehaviour
 
         if (damageCalculator == null)
         {
-            return attacker.GetBaseDamage(mergeGrade);
+            return attacker.GetBaseDamage(mergeGrade) * Mathf.Max(1f, comboDamageMultiplier);
         }
 
         SC_DamageCalculator.DamageContext damageContext =
-            new SC_DamageCalculator.DamageContext(attacker, currentBoss, mergeGrade, applyFirstMergedAttackBonus, nextAttackDamageMultiplier);
+            new SC_DamageCalculator.DamageContext(attacker, currentBoss, mergeGrade, applyFirstMergedAttackBonus, nextAttackDamageMultiplier, comboDamageMultiplier);
 
         SC_DamageCalculator.DamageResult damageResult = damageCalculator.CalculateDamage(damageContext);
         if (applyFirstMergedAttackBonus)
@@ -907,9 +917,35 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
-        Sprite previewSprite = GetNextQueuedPreviewSprite();
+        Sprite previewSprite = GetNextSpawnPreviewSprite();
         previewPoint1Image.sprite = previewSprite;
         previewPoint1Image.enabled = previewSprite != null;
+    }
+
+    private void EnsureBattleCharacterSpawnerReference()
+    {
+        if (battleCharacterSpawner == null)
+        {
+            battleCharacterSpawner = FindAnyObjectByType<SC_BattleCharacterSpawner>();
+        }
+
+        if (battleCharacterSpawner == null)
+        {
+            return;
+        }
+
+        battleCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+        battleCharacterSpawner.NextSpawnPreviewChanged += RefreshPrecognitionPreviewPoint;
+    }
+
+    private void RefreshNextSpawnPreviewGrade()
+    {
+        EnsureBattleCharacterSpawnerReference();
+
+        if (battleCharacterSpawner != null)
+        {
+            battleCharacterSpawner.RefreshNextSpawnPreviewGrade();
+        }
     }
 
     private void EnsurePrecognitionPreviewReferences()
