@@ -192,19 +192,18 @@ public class SC_DropCharacterMergeController : MonoBehaviour
         }
 
         SC_DropCharacterController mergedDrop = mergedObject.GetComponent<SC_DropCharacterController>();
-        if (mergedDrop != null)
+        Rigidbody2D mergedRb2D = mergedObject.GetComponent<Rigidbody2D>();
+        if (mergedRb2D != null)
         {
-            mergedDrop.SetDropVelocity(Vector2.zero);
-            mergedDrop.SetDropActive(true);
+            mergedRb2D.angularVelocity = 0f;
         }
 
         EnablePhysicsForMergedObject(mergedObject);
 
-        Rigidbody2D mergedRb2D = mergedObject.GetComponent<Rigidbody2D>();
-        if (mergedRb2D != null)
+        if (mergedDrop != null)
         {
-            mergedRb2D.linearVelocity = Vector2.zero;
-            mergedRb2D.angularVelocity = 0f;
+            mergedDrop.SetDropVelocity(Vector2.zero);
+            mergedDrop.SetDropActive(true);
         }
     }
 

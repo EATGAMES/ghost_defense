@@ -21,19 +21,19 @@ public class SC_ComboManager : MonoBehaviour
 
     public static SC_ComboManager Instance { get; private set; }
 
-    [Tooltip("콤보가 표시되기 시작하는 최소 조합 횟수입니다.")]
+    [Tooltip("콤보가 표시되기 시작하는 최소 합성 횟수입니다.")]
     [SerializeField] private int displayStartCombo = 3;
 
     [Tooltip("콤보 숫자 하나를 최소로 보여줄 시간(초)입니다.")]
     [SerializeField] private float minimumComboDisplayDuration = 0.15f;
 
-    [Tooltip("콤보 데미지 증가가 시작되는 최소 조합 횟수입니다.")]
+    [Tooltip("콤보 데미지 증가가 시작되는 최소 합성 횟수입니다.")]
     [SerializeField] private int damageStartCombo = 3;
 
-    [Tooltip("콤보 1당 데미지 증가 비율입니다. 0.1이면 3콤보에서 +30%, 4콤보에서 +40%입니다.")]
+    [Tooltip("콤보 1회당 데미지 증가 비율입니다. 0.1이면 3콤보에서 +30%, 4콤보에서 +40%입니다.")]
     [SerializeField] private float damageBonusPerCombo = 0.1f;
 
-    [Tooltip("콤보가 발생할 때 생성할 텍스트 팝업 프리팹입니다.")]
+    [Tooltip("콤보가 발생했을 때 생성할 텍스트 팝업 프리팹입니다.")]
     [SerializeField] private SC_ComboTextPopup comboTextPrefab;
 
     [Tooltip("콤보 텍스트를 생성할 부모 RectTransform입니다. 비워두면 현재 오브젝트 아래에 생성합니다.")]
@@ -43,7 +43,6 @@ public class SC_ComboManager : MonoBehaviour
     private SC_ComboTextPopup currentPopup;
     private Coroutine displayCoroutine;
     private int comboCount;
-    private bool hasMergedSinceLastShot;
 
     private void Awake()
     {
@@ -79,17 +78,11 @@ public class SC_ComboManager : MonoBehaviour
 
     public void NotifyShotStarted()
     {
-        if (!hasMergedSinceLastShot)
-        {
-            ResetCombo();
-        }
-
-        hasMergedSinceLastShot = false;
+        ResetCombo();
     }
 
     public ComboMergeResult NotifyMergeCreated()
     {
-        hasMergedSinceLastShot = true;
         comboCount++;
 
         if (comboCount >= Mathf.Max(1, displayStartCombo))
@@ -135,7 +128,6 @@ public class SC_ComboManager : MonoBehaviour
     private void ResetCombo()
     {
         comboCount = 0;
-        hasMergedSinceLastShot = false;
         pendingDisplayCombos.Clear();
 
         if (displayCoroutine != null)

@@ -359,6 +359,7 @@ public class SC_DropCharacterController : MonoBehaviour
 
         isDropped = true;
         ApplyCollisionState();
+        SC_ComboManager.NotifyShotStartedGlobal();
 
         if (cachedRigidbody2D != null)
         {

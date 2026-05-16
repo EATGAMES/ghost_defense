@@ -14,7 +14,7 @@ public class SC_ComboTextPopup : MonoBehaviour
     [Tooltip("처음 등장할 때의 시작 스케일입니다.")]
     [SerializeField] private float startScale = 0f;
 
-    [Tooltip("바운스 중 가장 크게 커질 스케일입니다. 1.1이면 110%입니다.")]
+    [Tooltip("바운스 중간에 크게 커질 스케일입니다. 1.1이면 110%입니다.")]
     [SerializeField] private float overshootScale = 1.1f;
 
     [Tooltip("바운스가 끝난 뒤 유지할 기본 스케일입니다.")]
@@ -29,7 +29,7 @@ public class SC_ComboTextPopup : MonoBehaviour
     [Tooltip("콤보 텍스트가 유지되는 시간(초)입니다.")]
     [SerializeField] private float visibleDuration = 0.45f;
 
-    [Tooltip("사라질 때 페이드아웃되는 시간(초)입니다.")]
+    [Tooltip("사라지는 페이드아웃 시간(초)입니다.")]
     [SerializeField] private float fadeOutDuration = 0.12f;
 
     private Coroutine showCoroutine;
