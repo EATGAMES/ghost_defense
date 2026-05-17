@@ -329,6 +329,18 @@ public class SC_CardManager : MonoBehaviour
 
             shooter.SetShrinkShotVisual(isShrinkShotActive);
         }
+
+        SC_DropCharacterController[] dropControllers = FindObjectsByType<SC_DropCharacterController>();
+        for (int i = 0; i < dropControllers.Length; i++)
+        {
+            SC_DropCharacterController dropController = dropControllers[i];
+            if (dropController == null || dropController.IsDropped)
+            {
+                continue;
+            }
+
+            dropController.SetShrinkShotVisual(isShrinkShotActive);
+        }
     }
 
     private static void ClearFieldCharactersUpToGrade(int maxGrade)

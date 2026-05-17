@@ -88,6 +88,9 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("예지몽 카드가 보여줄 다음 대기 캐릭터 등급을 제공하는 스포너입니다.")]
     [SerializeField] private SC_BattleCharacterSpawner battleCharacterSpawner;
 
+    [Tooltip("드롭씬에서 예지몽 카드가 보여줄 다음 대기 캐릭터 등급을 제공하는 스포너입니다.")]
+    [SerializeField] private SC_DropCharacterSpawner dropCharacterSpawner;
+
     [Tooltip("예지몽 1칸 미리보기에 사용할 오브젝트입니다. 비워 두면 이름이 OBJ_Preview_point1인 오브젝트를 자동으로 찾습니다.")]
     [SerializeField] private GameObject previewPoint1Object;
 
@@ -175,7 +178,7 @@ public class SC_BattleManager : MonoBehaviour
             cardManager = FindAnyObjectByType<SC_CardManager>();
         }
 
-        EnsureBattleCharacterSpawnerReference();
+        EnsureNextSpawnPreviewSpawnerReference();
 
         if (finalMergePopup == null)
         {
@@ -226,6 +229,11 @@ public class SC_BattleManager : MonoBehaviour
         if (battleCharacterSpawner != null)
         {
             battleCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+        }
+
+        if (dropCharacterSpawner != null)
+        {
+            dropCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
         }
 
         PersistBattleStatisticsIfNeeded();
@@ -477,15 +485,15 @@ public class SC_BattleManager : MonoBehaviour
 
     public Sprite GetNextSpawnPreviewSprite()
     {
-        EnsureBattleCharacterSpawnerReference();
+        EnsureNextSpawnPreviewSpawnerReference();
 
-        if (battleCharacterSpawner == null)
+        int? nextSpawnGrade = GetNextSpawnPreviewGrade();
+        if (!nextSpawnGrade.HasValue)
         {
             return null;
         }
 
-        int nextSpawnGrade = Mathf.Clamp(battleCharacterSpawner.GetNextSpawnPreviewGrade(), 1, 10);
-        Sprite previewSprite = GetPreviewSpriteForGrade(nextSpawnGrade);
+        Sprite previewSprite = GetPreviewSpriteForGrade(nextSpawnGrade.Value);
         return previewSprite != null ? previewSprite : previewPoint1FallbackSprite;
     }
 
@@ -938,9 +946,52 @@ public class SC_BattleManager : MonoBehaviour
         battleCharacterSpawner.NextSpawnPreviewChanged += RefreshPrecognitionPreviewPoint;
     }
 
-    private void RefreshNextSpawnPreviewGrade()
+    private void EnsureDropCharacterSpawnerReference()
+    {
+        if (dropCharacterSpawner == null)
+        {
+            dropCharacterSpawner = FindAnyObjectByType<SC_DropCharacterSpawner>();
+        }
+
+        if (dropCharacterSpawner == null)
+        {
+            return;
+        }
+
+        dropCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+        dropCharacterSpawner.NextSpawnPreviewChanged += RefreshPrecognitionPreviewPoint;
+    }
+
+    private void EnsureNextSpawnPreviewSpawnerReference()
     {
         EnsureBattleCharacterSpawnerReference();
+        EnsureDropCharacterSpawnerReference();
+    }
+
+    private int? GetNextSpawnPreviewGrade()
+    {
+        if (dropCharacterSpawner != null)
+        {
+            return Mathf.Clamp(dropCharacterSpawner.GetNextSpawnPreviewGrade(), 1, 10);
+        }
+
+        if (battleCharacterSpawner != null)
+        {
+            return Mathf.Clamp(battleCharacterSpawner.GetNextSpawnPreviewGrade(), 1, 10);
+        }
+
+        return null;
+    }
+
+    private void RefreshNextSpawnPreviewGrade()
+    {
+        EnsureNextSpawnPreviewSpawnerReference();
+
+        if (dropCharacterSpawner != null)
+        {
+            dropCharacterSpawner.RefreshNextSpawnPreviewGrade();
+            return;
+        }
 
         if (battleCharacterSpawner != null)
         {

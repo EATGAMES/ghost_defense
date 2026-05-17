@@ -176,6 +176,17 @@ MonoBehaviour:
   - 1.71
   - 1.85
   - 2
+  dropScaleByGrade:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
   baseMass: 5
   massStep: 0
 --- !u!114 &560854494607647108

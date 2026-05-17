@@ -43,6 +43,8 @@ public class SC_ComboManager : MonoBehaviour
     private SC_ComboTextPopup currentPopup;
     private Coroutine displayCoroutine;
     private int comboCount;
+    private int currentActionMergeCount;
+    private bool isComboSessionActive;
 
     private void Awake()
     {
@@ -78,11 +80,24 @@ public class SC_ComboManager : MonoBehaviour
 
     public void NotifyShotStarted()
     {
-        ResetCombo();
+        if (isComboSessionActive && currentActionMergeCount <= 0)
+        {
+            ResetCombo();
+        }
+
+        isComboSessionActive = true;
+        currentActionMergeCount = 0;
     }
 
     public ComboMergeResult NotifyMergeCreated()
     {
+        if (!isComboSessionActive)
+        {
+            isComboSessionActive = true;
+            currentActionMergeCount = 0;
+        }
+
+        currentActionMergeCount++;
         comboCount++;
 
         if (comboCount >= Mathf.Max(1, displayStartCombo))
@@ -128,6 +143,8 @@ public class SC_ComboManager : MonoBehaviour
     private void ResetCombo()
     {
         comboCount = 0;
+        currentActionMergeCount = 0;
+        isComboSessionActive = false;
         pendingDisplayCombos.Clear();
 
         if (displayCoroutine != null)

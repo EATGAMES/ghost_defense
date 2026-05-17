@@ -33,11 +33,16 @@ public class SC_CharacterPresenter : MonoBehaviour
     [Tooltip("1~10단계별로 직접 사용할 스케일 값 목록입니다. 비워두면 기본 크기와 증가값을 사용합니다.")]
     [SerializeField] private float[] scaleByGrade = new float[10];
 
+    [Tooltip("드롭씬에서 1~10단계별로 직접 사용할 스케일 값 목록입니다. 비워두면 일반 스케일 값을 사용합니다.")]
+    [SerializeField] private float[] dropScaleByGrade = new float[10];
+
     [Tooltip("1단계 기본 질량입니다.")]
     [SerializeField] private float baseMass = 1f;
 
     [Tooltip("단계가 1 증가할 때마다 더할 질량 값입니다.")]
     [SerializeField] private float massStep = 0.2f;
+
+    private bool useDropScale;
 
     public int MergeGrade => Mathf.Clamp(mergeGrade, 1, 10);
 
@@ -78,9 +83,10 @@ public class SC_CharacterPresenter : MonoBehaviour
         ApplyData();
     }
 
-    public void Configure(int grade, bool applyImmediately = true)
+    public void Configure(int grade, bool applyImmediately = true, bool useDropScaleForCharacter = false)
     {
         mergeGrade = Mathf.Clamp(grade, 1, 10);
+        useDropScale = useDropScaleForCharacter;
 
         if (applyImmediately)
         {
@@ -117,6 +123,11 @@ public class SC_CharacterPresenter : MonoBehaviour
     private float ResolveScaleForCurrentGrade()
     {
         int gradeIndex = MergeGrade - 1;
+        if (useDropScale && dropScaleByGrade != null && gradeIndex >= 0 && gradeIndex < dropScaleByGrade.Length && dropScaleByGrade[gradeIndex] > 0f)
+        {
+            return Mathf.Max(0.01f, dropScaleByGrade[gradeIndex]);
+        }
+
         if (scaleByGrade != null && gradeIndex >= 0 && gradeIndex < scaleByGrade.Length && scaleByGrade[gradeIndex] > 0f)
         {
             return Mathf.Max(0.01f, scaleByGrade[gradeIndex]);

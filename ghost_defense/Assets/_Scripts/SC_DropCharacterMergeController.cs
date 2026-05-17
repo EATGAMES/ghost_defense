@@ -188,7 +188,7 @@ public class SC_DropCharacterMergeController : MonoBehaviour
         SC_CharacterPresenter mergedPresenter = mergedObject.GetComponent<SC_CharacterPresenter>();
         if (mergedPresenter != null)
         {
-            mergedPresenter.Configure(grade, true);
+            mergedPresenter.Configure(grade, true, true);
         }
 
         SC_DropCharacterController mergedDrop = mergedObject.GetComponent<SC_DropCharacterController>();

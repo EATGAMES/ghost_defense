@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public class SC_DropCharacterController : MonoBehaviour
 {
+    private const float ShrinkShotScaleMultiplier = 0.75f;
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
     private static bool hasAnyDragGuideBeenViewed;
@@ -66,11 +67,18 @@ public class SC_DropCharacterController : MonoBehaviour
     private bool wasMousePressed;
     private bool wasTouchPressed;
     private bool hasViewedDragGuide;
+    private bool suppressDragUntilPointerReleased;
     private float zDepthFromCamera;
     private Vector3 waitingPosition;
     private Vector3 guideOriginalLocalScale = Vector3.one;
+    private Vector3 defaultCharacterScale = Vector3.one;
     private Vector2 dropVelocity;
     private float defaultGravityScale;
+    private bool isShrinkShotVisualApplied;
+    private SC_CardManager cardManager;
+    private SC_BattleManager battleManager;
+    private SC_FinalMergePopup finalMergePopup;
+    private SC_ClearPopup clearPopup;
 
     public bool IsDropped => isDropped;
     public bool IsActiveDrop => isDropped && gameObject.activeInHierarchy;
@@ -82,6 +90,9 @@ public class SC_DropCharacterController : MonoBehaviour
         EnsureReferences();
         EnsureGuideReferences();
         EnsureDragArrowReferences();
+        EnsureCardManagerReference();
+        ResolvePopupReferences();
+        defaultCharacterScale = transform.localScale;
         if (cachedRigidbody2D != null)
         {
             defaultGravityScale = Mathf.Max(0f, cachedRigidbody2D.gravityScale);
@@ -131,6 +142,12 @@ public class SC_DropCharacterController : MonoBehaviour
             }
         }
 
+        if (IsInputBlockedByPopup())
+        {
+            CancelDragAndSuppressUntilRelease();
+            return;
+        }
+
         HandleTouchInput();
         HandleMouseInput();
     }
@@ -140,11 +157,13 @@ public class SC_DropCharacterController : MonoBehaviour
         EnsureReferences();
         EnsureGuideReferences();
         EnsureDragArrowReferences();
+        EnsureCardManagerReference();
 
         isDragging = false;
         isDropped = false;
         wasMousePressed = false;
         wasTouchPressed = false;
+        suppressDragUntilPointerReleased = false;
         waitingPosition = startPosition;
         SetGuideVisible(false);
         RefreshDragArrowVisibility();
@@ -155,6 +174,7 @@ public class SC_DropCharacterController : MonoBehaviour
         }
 
         transform.position = waitingPosition;
+        SetShrinkShotVisual(cardManager != null && cardManager.IsShrinkShotActive());
         if (cachedRigidbody2D != null)
         {
             if (cachedRigidbody2D.gravityScale > 0f)
@@ -208,11 +228,23 @@ public class SC_DropCharacterController : MonoBehaviour
         if (Touchscreen.current == null)
         {
             wasTouchPressed = false;
+            suppressDragUntilPointerReleased = false;
             return;
         }
 
         Vector2 screenPoint = Touchscreen.current.primaryTouch.position.ReadValue();
         bool isPressed = Touchscreen.current.primaryTouch.press.isPressed;
+        if (suppressDragUntilPointerReleased)
+        {
+            wasTouchPressed = isPressed;
+            if (!isPressed)
+            {
+                suppressDragUntilPointerReleased = false;
+            }
+
+            return;
+        }
+
         HandlePointerInput(screenPoint, isPressed, ref wasTouchPressed);
     }
 
@@ -232,6 +264,17 @@ public class SC_DropCharacterController : MonoBehaviour
 
         Vector2 screenPoint = Mouse.current.position.ReadValue();
         bool isPressed = Mouse.current.leftButton.isPressed;
+        if (suppressDragUntilPointerReleased)
+        {
+            wasMousePressed = isPressed;
+            if (!isPressed)
+            {
+                suppressDragUntilPointerReleased = false;
+            }
+
+            return;
+        }
+
         HandlePointerInput(screenPoint, isPressed, ref wasMousePressed);
     }
 
@@ -366,6 +409,56 @@ public class SC_DropCharacterController : MonoBehaviour
             cachedRigidbody2D.gravityScale = ResolveActiveGravityScale();
             cachedRigidbody2D.linearVelocity = dropVelocity;
         }
+
+        if (cardManager != null && cardManager.IsShrinkShotActive())
+        {
+            cardManager.ConsumeShrinkShot();
+        }
+    }
+
+    public void SetShrinkShotVisual(bool shouldShrink)
+    {
+        if (shouldShrink)
+        {
+            if (!isShrinkShotVisualApplied)
+            {
+                defaultCharacterScale = transform.localScale;
+            }
+
+            transform.localScale = defaultCharacterScale * ShrinkShotScaleMultiplier;
+            isShrinkShotVisualApplied = true;
+            return;
+        }
+
+        if (!isShrinkShotVisualApplied)
+        {
+            return;
+        }
+
+        transform.localScale = defaultCharacterScale;
+        isShrinkShotVisualApplied = false;
+    }
+
+    public void CancelDragAndSuppressUntilRelease()
+    {
+        if (isDragging)
+        {
+            isDragging = false;
+            SetGuideVisible(false);
+
+            if (cachedRigidbody2D != null)
+            {
+                cachedRigidbody2D.linearVelocity = Vector2.zero;
+                cachedRigidbody2D.angularVelocity = 0f;
+                cachedRigidbody2D.position = waitingPosition;
+            }
+            else
+            {
+                transform.position = waitingPosition;
+            }
+        }
+
+        suppressDragUntilPointerReleased = true;
     }
 
     private float ResolveActiveGravityScale()
@@ -508,6 +601,49 @@ public class SC_DropCharacterController : MonoBehaviour
         if (dragArrowLeftObject == null)
         {
             dragArrowLeftObject = FindSceneObjectByExactName(DragArrowLeftRootName);
+        }
+    }
+
+    private void EnsureCardManagerReference()
+    {
+        if (cardManager == null)
+        {
+            cardManager = FindAnyObjectByType<SC_CardManager>();
+        }
+    }
+
+    private bool IsInputBlockedByPopup()
+    {
+        ResolvePopupReferences();
+
+        if (battleManager != null && battleManager.IsCardSelectionOpen)
+        {
+            return true;
+        }
+
+        if (finalMergePopup != null && finalMergePopup.IsPopupOpen)
+        {
+            return true;
+        }
+
+        return clearPopup != null && clearPopup.IsPopupOpen;
+    }
+
+    private void ResolvePopupReferences()
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        if (finalMergePopup == null)
+        {
+            finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();
+        }
+
+        if (clearPopup == null)
+        {
+            clearPopup = FindAnyObjectByType<SC_ClearPopup>();
         }
     }
 

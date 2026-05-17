@@ -117,9 +117,11 @@ public class SC_DefeatPopup : MonoBehaviour
     {
         RestoreGameState();
 
-        string targetSceneName = string.IsNullOrWhiteSpace(battleSceneName)
-            ? SceneManager.GetActiveScene().name
-            : battleSceneName;
+        string targetSceneName = SceneManager.GetActiveScene().name;
+        if (string.IsNullOrWhiteSpace(targetSceneName))
+        {
+            targetSceneName = battleSceneName;
+        }
 
         if (!string.IsNullOrWhiteSpace(targetSceneName))
         {

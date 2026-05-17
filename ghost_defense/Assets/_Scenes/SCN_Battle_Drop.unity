@@ -2304,6 +2304,7 @@ MonoBehaviour:
   dashLineObject: {fileID: 0}
   battleManager: {fileID: 1688277399}
   failOnShotEnter: 1
+  dropStopSpeedThreshold: 0.2
   overlapBufferSize: 32
 --- !u!61 &498272194
 BoxCollider2D:
@@ -5115,6 +5116,7 @@ MonoBehaviour:
   dashLineObject: {fileID: 593779849}
   battleManager: {fileID: 0}
   failOnShotEnter: 0
+  dropStopSpeedThreshold: 0.2
   overlapBufferSize: 32
 --- !u!1 &1050513703
 GameObject:
@@ -8382,6 +8384,7 @@ MonoBehaviour:
   damageCalculator: {fileID: 1688277403}
   cardManager: {fileID: 1688277404}
   battleCharacterSpawner: {fileID: 0}
+  dropCharacterSpawner: {fileID: 0}
   previewPoint1Object: {fileID: 992585301}
   previewPoint1Image: {fileID: 992585302}
   previewPoint1FallbackSprite: {fileID: 0}
@@ -8450,7 +8453,7 @@ MonoBehaviour:
   attackShakeFrequency: 55
   attackMoveDistance: 3.1
   attackMoveDuration: 0.15
-  attackReturnDuration: 0.7
+  attackReturnDuration: 0.5
 --- !u!114 &1688277403
 MonoBehaviour:
   m_ObjectHideFlags: 0

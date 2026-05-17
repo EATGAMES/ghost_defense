@@ -12,6 +12,9 @@ public class SC_FieldDetectTrigger : MonoBehaviour
     [Tooltip("발사된 캐릭터가 닿으면 게임오버를 발생시킬지 여부입니다.")]
     [SerializeField] private bool failOnShotEnter;
 
+    [Tooltip("드롭 캐릭터가 이 속도 이하이면 멈춘 것으로 판단합니다.")]
+    [SerializeField] private float dropStopSpeedThreshold = 0.2f;
+
     [Tooltip("겹침 검사에 사용할 최대 콜라이더 수입니다.")]
     [SerializeField] private int overlapBufferSize = 32;
 
@@ -71,6 +74,12 @@ public class SC_FieldDetectTrigger : MonoBehaviour
             {
                 return true;
             }
+
+            SC_DropCharacterController dropCharacter = GetDropCharacter(overlapResults[i]);
+            if (dropCharacter != null && IsStoppedDropCharacter(dropCharacter))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -95,6 +104,38 @@ public class SC_FieldDetectTrigger : MonoBehaviour
         }
 
         return shotCharacter;
+    }
+
+    private static SC_DropCharacterController GetDropCharacter(Collider2D other)
+    {
+        if (other == null)
+        {
+            return null;
+        }
+
+        SC_DropCharacterController dropCharacter = other.GetComponent<SC_DropCharacterController>();
+        if (dropCharacter == null)
+        {
+            dropCharacter = other.GetComponentInParent<SC_DropCharacterController>();
+        }
+
+        if (dropCharacter == null || !dropCharacter.IsActiveDrop)
+        {
+            return null;
+        }
+
+        return dropCharacter;
+    }
+
+    private bool IsStoppedDropCharacter(SC_DropCharacterController dropCharacter)
+    {
+        if (dropCharacter == null)
+        {
+            return false;
+        }
+
+        float safeStopSpeed = Mathf.Max(0f, dropStopSpeedThreshold);
+        return dropCharacter.CurrentVelocity.sqrMagnitude <= safeStopSpeed * safeStopSpeed;
     }
 
     private void RefreshDashLineState(bool isActive)
