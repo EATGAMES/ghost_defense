@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 [DisallowMultipleComponent]
-public class SC_BattleCharacterSpawner : MonoBehaviour
+public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 {
     public event System.Action NextSpawnPreviewChanged;
 
@@ -43,6 +43,9 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
     private bool isRespawnScheduled;
     private int? nextSpawnGradeOverride;
     private int? preparedNextSpawnGrade;
+
+    public StageBattleDirection BattleDirection => StageBattleDirection.UP;
+    public bool IsSpawnerActive => isActiveAndEnabled;
 
     private void Start()
     {
@@ -95,6 +98,11 @@ public class SC_BattleCharacterSpawner : MonoBehaviour
         nextSpawnGradeOverride = Mathf.Clamp(grade, 1, 10);
         preparedNextSpawnGrade = null;
         PrepareNextSpawnGradePreview();
+    }
+
+    public void QueueNextCharacterGrade(int grade)
+    {
+        QueueNextSpawnGrade(grade);
     }
 
     public int GetNextSpawnPreviewGrade()

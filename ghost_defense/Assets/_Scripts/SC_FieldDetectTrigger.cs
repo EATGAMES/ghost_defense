@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 
+using UnityEngine.Serialization;
+
 [DisallowMultipleComponent]
 public class SC_FieldDetectTrigger : MonoBehaviour
 {
@@ -12,8 +14,9 @@ public class SC_FieldDetectTrigger : MonoBehaviour
     [Tooltip("발사된 캐릭터가 닿으면 게임오버를 발생시킬지 여부입니다.")]
     [SerializeField] private bool failOnShotEnter;
 
-    [Tooltip("드롭 캐릭터가 이 속도 이하이면 멈춘 것으로 판단합니다.")]
-    [SerializeField] private float dropStopSpeedThreshold = 0.2f;
+    [Tooltip("필드 캐릭터가 이 속도 이하이면 멈춘 것으로 판단합니다.")]
+    [FormerlySerializedAs("dropStopSpeedThreshold")]
+    [SerializeField] private float stoppedCharacterSpeedThreshold = 0.2f;
 
     [Tooltip("겹침 검사에 사용할 최대 콜라이더 수입니다.")]
     [SerializeField] private int overlapBufferSize = 32;
@@ -38,10 +41,10 @@ public class SC_FieldDetectTrigger : MonoBehaviour
 
     private void FixedUpdate()
     {
-        bool hasStoppedShotCharacterInside = HasStoppedShotCharacterInside();
-        RefreshDashLineState(hasStoppedShotCharacterInside);
+        bool hasStoppedFieldCharacterInside = HasStoppedFieldCharacterInside();
+        RefreshDashLineState(hasStoppedFieldCharacterInside);
 
-        if (!hasStoppedShotCharacterInside || !failOnShotEnter || isBattleFailTriggered)
+        if (!hasStoppedFieldCharacterInside || !failOnShotEnter || isBattleFailTriggered)
         {
             return;
         }
@@ -56,7 +59,7 @@ public class SC_FieldDetectTrigger : MonoBehaviour
         battleManager.NotifyBattleFailed();
     }
 
-    private bool HasStoppedShotCharacterInside()
+    private bool HasStoppedFieldCharacterInside()
     {
         if (detectorCollider == null)
         {
@@ -69,14 +72,8 @@ public class SC_FieldDetectTrigger : MonoBehaviour
         int hitCount = detectorCollider.Overlap(contactFilter, overlapResults);
         for (int i = 0; i < hitCount; i++)
         {
-            SC_PlayerDragAndShoot shotCharacter = GetShotCharacter(overlapResults[i]);
-            if (shotCharacter != null && shotCharacter.IsStoppedAfterShot)
-            {
-                return true;
-            }
-
-            SC_DropCharacterController dropCharacter = GetDropCharacter(overlapResults[i]);
-            if (dropCharacter != null && IsStoppedDropCharacter(dropCharacter))
+            IFieldCharacterRuntime fieldRuntime = SC_BattleRuntimeUtility.GetFieldRuntime(overlapResults[i]);
+            if (IsStoppedFieldCharacter(fieldRuntime))
             {
                 return true;
             }
@@ -85,57 +82,15 @@ public class SC_FieldDetectTrigger : MonoBehaviour
         return false;
     }
 
-    private static SC_PlayerDragAndShoot GetShotCharacter(Collider2D other)
+    private bool IsStoppedFieldCharacter(IFieldCharacterRuntime fieldRuntime)
     {
-        if (other == null)
-        {
-            return null;
-        }
-
-        SC_PlayerDragAndShoot shotCharacter = other.GetComponent<SC_PlayerDragAndShoot>();
-        if (shotCharacter == null)
-        {
-            shotCharacter = other.GetComponentInParent<SC_PlayerDragAndShoot>();
-        }
-
-        if (shotCharacter == null || !shotCharacter.IsShot)
-        {
-            return null;
-        }
-
-        return shotCharacter;
-    }
-
-    private static SC_DropCharacterController GetDropCharacter(Collider2D other)
-    {
-        if (other == null)
-        {
-            return null;
-        }
-
-        SC_DropCharacterController dropCharacter = other.GetComponent<SC_DropCharacterController>();
-        if (dropCharacter == null)
-        {
-            dropCharacter = other.GetComponentInParent<SC_DropCharacterController>();
-        }
-
-        if (dropCharacter == null || !dropCharacter.IsActiveDrop)
-        {
-            return null;
-        }
-
-        return dropCharacter;
-    }
-
-    private bool IsStoppedDropCharacter(SC_DropCharacterController dropCharacter)
-    {
-        if (dropCharacter == null)
+        if (fieldRuntime == null || !fieldRuntime.IsActiveFieldCharacter || !fieldRuntime.IsLaunched || fieldRuntime.IsDragging)
         {
             return false;
         }
 
-        float safeStopSpeed = Mathf.Max(0f, dropStopSpeedThreshold);
-        return dropCharacter.CurrentVelocity.sqrMagnitude <= safeStopSpeed * safeStopSpeed;
+        float safeStopSpeed = Mathf.Max(0f, stoppedCharacterSpeedThreshold);
+        return fieldRuntime.CurrentVelocity.sqrMagnitude <= safeStopSpeed * safeStopSpeed;
     }
 
     private void RefreshDashLineState(bool isActive)

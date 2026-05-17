@@ -318,6 +318,23 @@ public class SC_CardManager : MonoBehaviour
 
     private static void ApplyShrinkShotToWaitingCharacters(bool isShrinkShotActive)
     {
+        List<IFieldCharacterRuntime> fieldCharacters = SC_FieldCharacterRegistry.GetSnapshot();
+        if (fieldCharacters.Count > 0)
+        {
+            for (int i = 0; i < fieldCharacters.Count; i++)
+            {
+                IFieldCharacterRuntime runtime = fieldCharacters[i];
+                if (runtime == null || !runtime.IsWaiting)
+                {
+                    continue;
+                }
+
+                runtime.SetShrinkVisual(isShrinkShotActive);
+            }
+
+            return;
+        }
+
         SC_PlayerDragAndShoot[] shooters = FindObjectsByType<SC_PlayerDragAndShoot>();
         for (int i = 0; i < shooters.Length; i++)
         {
@@ -346,6 +363,23 @@ public class SC_CardManager : MonoBehaviour
     private static void ClearFieldCharactersUpToGrade(int maxGrade)
     {
         int safeMaxGrade = Mathf.Clamp(maxGrade, 1, 10);
+        List<IFieldCharacterRuntime> fieldCharacters = SC_FieldCharacterRegistry.GetSnapshot();
+        if (fieldCharacters.Count > 0)
+        {
+            for (int i = 0; i < fieldCharacters.Count; i++)
+            {
+                IFieldCharacterRuntime runtime = fieldCharacters[i];
+                if (runtime == null || runtime.MergeGrade > safeMaxGrade)
+                {
+                    continue;
+                }
+
+                DestroyFieldCharacter(runtime);
+            }
+
+            return;
+        }
+
         SC_CharacterPresenter[] presenters = FindObjectsByType<SC_CharacterPresenter>();
         for (int i = 0; i < presenters.Length; i++)
         {
@@ -370,6 +404,32 @@ public class SC_CardManager : MonoBehaviour
         int safeRemoveCount = Mathf.Max(0, removeCount);
         if (safeRemoveCount <= 0)
         {
+            return;
+        }
+
+        List<IFieldCharacterRuntime> fieldCharacters = SC_FieldCharacterRegistry.GetSnapshot();
+        if (fieldCharacters.Count > 0)
+        {
+            List<IFieldCharacterRuntime> removableCharacters = new List<IFieldCharacterRuntime>();
+            for (int i = 0; i < fieldCharacters.Count; i++)
+            {
+                IFieldCharacterRuntime runtime = fieldCharacters[i];
+                if (runtime == null || runtime.IsWaiting)
+                {
+                    continue;
+                }
+
+                removableCharacters.Add(runtime);
+            }
+
+            removableCharacters.Sort((left, right) => left.RuntimeTransform.position.y.CompareTo(right.RuntimeTransform.position.y));
+
+            int runtimeTargetCount = Mathf.Min(safeRemoveCount, removableCharacters.Count);
+            for (int i = 0; i < runtimeTargetCount; i++)
+            {
+                DestroyFieldCharacter(removableCharacters[i]);
+            }
+
             return;
         }
 
@@ -406,5 +466,20 @@ public class SC_CardManager : MonoBehaviour
 
             Object.Destroy(presenter.gameObject);
         }
+    }
+
+    private static void DestroyFieldCharacter(IFieldCharacterRuntime runtime)
+    {
+        if (runtime == null || runtime.RuntimeObject == null)
+        {
+            return;
+        }
+
+        if (runtime.IsWaiting)
+        {
+            runtime.CancelInputAndReset();
+        }
+
+        Object.Destroy(runtime.RuntimeObject);
     }
 }

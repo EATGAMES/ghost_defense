@@ -2,7 +2,7 @@
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
-public class SC_PlayerDragAndShoot : MonoBehaviour
+public class SC_PlayerDragAndShoot : MonoBehaviour, IFieldCharacterRuntime
 {
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
@@ -97,6 +97,22 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     public bool HasCollisionEraseRemaining => remainingCollisionEraseCount > 0;
     public bool HasCollidedAfterShot => hasCollidedAfterShot;
     public bool IsStoppedAfterShot => isShot && !isDragging && (rb2D == null || rb2D.linearVelocity.sqrMagnitude <= stopSpeedThreshold * stopSpeedThreshold);
+    public StageBattleDirection BattleDirection => StageBattleDirection.UP;
+    public GameObject RuntimeObject => gameObject;
+    public Transform RuntimeTransform => transform;
+    public int MergeGrade
+    {
+        get
+        {
+            SC_CharacterPresenter presenter = GetComponent<SC_CharacterPresenter>();
+            return presenter != null ? presenter.MergeGrade : 1;
+        }
+    }
+    public bool IsWaiting => !isShot;
+    public bool IsLaunched => isShot;
+    public bool IsDragging => isDragging;
+    public bool IsActiveFieldCharacter => isShot && gameObject.activeInHierarchy;
+    public Vector2 CurrentVelocity => rb2D != null ? rb2D.linearVelocity : Vector2.zero;
 
     private void Awake()
     {
@@ -155,11 +171,13 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
     private void OnEnable()
     {
+        SC_FieldCharacterRegistry.Register(this);
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
+        SC_FieldCharacterRegistry.Unregister(this);
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
@@ -536,6 +554,11 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
         SetGuideVisible(false);
     }
 
+    public void CancelInputAndReset()
+    {
+        CancelDragAndResetToStartPosition();
+    }
+
     public void SetShrinkShotVisual(bool shouldShrink)
     {
         if (shouldShrink)
@@ -568,6 +591,16 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
 
         CancelDragAndResetToStartPosition();
         suppressDragUntilPointerReleased = true;
+    }
+
+    public void CancelInputAndSuppressUntilRelease()
+    {
+        CancelDragAndSuppressUntilRelease();
+    }
+
+    public void SetShrinkVisual(bool shouldShrink)
+    {
+        SetShrinkShotVisual(shouldShrink);
     }
 
     private void HandleDragStarted()
@@ -761,17 +794,7 @@ public class SC_PlayerDragAndShoot : MonoBehaviour
     {
         ResolvePopupReferences();
 
-        if (battleManager != null && battleManager.IsCardSelectionOpen)
-        {
-            return true;
-        }
-
-        if (finalMergePopup != null && finalMergePopup.IsPopupOpen)
-        {
-            return true;
-        }
-
-        return clearPopup != null && clearPopup.IsPopupOpen;
+        return SC_BattleRuntimeUtility.IsBattleInputBlocked(battleManager, finalMergePopup, clearPopup);
     }
 
     private void ResolvePopupReferences()

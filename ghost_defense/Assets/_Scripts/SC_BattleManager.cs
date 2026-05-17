@@ -97,7 +97,7 @@ public class SC_BattleManager : MonoBehaviour
     [Tooltip("예지몽 1칸 미리보기에 표시할 이미지입니다. 비워 두면 OBJ_Preview_point1에서 Image를 자동으로 찾습니다.")]
     [SerializeField] private Image previewPoint1Image;
 
-    [Tooltip("필드 스킨 미리보기 스프라이트를 찾지 못했을 때 대신 표시할 기본 이미지입니다.")]
+    [Tooltip("예지몽 필드 캐릭터 스프라이트를 찾지 못했을 때 대신 표시할 기본 이미지입니다.")]
     [SerializeField] private Sprite previewPoint1FallbackSprite;
 
     [Tooltip("10단계 최종 합성 연출 팝업입니다.")]
@@ -137,6 +137,7 @@ public class SC_BattleManager : MonoBehaviour
     private float battleDamageDealt;
     private bool hasPersistedBattleStatistics;
     private SC_MonsterHealth pendingDefeatedBoss;
+    private IBattleCharacterSpawner nextSpawnPreviewSpawner;
 
     public int MaxStage => Mathf.Max(1, maxStage);
     public int CurrentMergeAttackCount => currentAttackCount;
@@ -226,6 +227,12 @@ public class SC_BattleManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (nextSpawnPreviewSpawner != null)
+        {
+            nextSpawnPreviewSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+            nextSpawnPreviewSpawner = null;
+        }
+
         if (battleCharacterSpawner != null)
         {
             battleCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
@@ -493,7 +500,7 @@ public class SC_BattleManager : MonoBehaviour
             return null;
         }
 
-        Sprite previewSprite = GetPreviewSpriteForGrade(nextSpawnGrade.Value);
+        Sprite previewSprite = GetFieldSpriteForGrade(nextSpawnGrade.Value);
         return previewSprite != null ? previewSprite : previewPoint1FallbackSprite;
     }
 
@@ -860,17 +867,7 @@ public class SC_BattleManager : MonoBehaviour
 
     private static void CancelAllPendingCharacterDrags()
     {
-        SC_PlayerDragAndShoot[] allShooters = FindObjectsByType<SC_PlayerDragAndShoot>();
-        for (int i = 0; i < allShooters.Length; i++)
-        {
-            SC_PlayerDragAndShoot shooter = allShooters[i];
-            if (shooter == null || shooter.IsShot)
-            {
-                continue;
-            }
-
-            shooter.CancelDragAndResetToStartPosition();
-        }
+        SC_BattleRuntimeUtility.CancelAllWaitingFieldCharacters();
     }
 
     private SO_FieldCharacterSkinData GetEquippedFieldSkinDataForGrade(int grade)
@@ -941,9 +938,6 @@ public class SC_BattleManager : MonoBehaviour
         {
             return;
         }
-
-        battleCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
-        battleCharacterSpawner.NextSpawnPreviewChanged += RefreshPrecognitionPreviewPoint;
     }
 
     private void EnsureDropCharacterSpawnerReference()
@@ -957,27 +951,54 @@ public class SC_BattleManager : MonoBehaviour
         {
             return;
         }
-
-        dropCharacterSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
-        dropCharacterSpawner.NextSpawnPreviewChanged += RefreshPrecognitionPreviewPoint;
     }
 
     private void EnsureNextSpawnPreviewSpawnerReference()
     {
         EnsureBattleCharacterSpawnerReference();
         EnsureDropCharacterSpawnerReference();
+
+        IBattleCharacterSpawner resolvedSpawner = ResolveNextSpawnPreviewSpawner();
+        if (ReferenceEquals(nextSpawnPreviewSpawner, resolvedSpawner))
+        {
+            return;
+        }
+
+        if (nextSpawnPreviewSpawner != null)
+        {
+            nextSpawnPreviewSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+        }
+
+        nextSpawnPreviewSpawner = resolvedSpawner;
+        if (nextSpawnPreviewSpawner != null)
+        {
+            nextSpawnPreviewSpawner.NextSpawnPreviewChanged -= RefreshPrecognitionPreviewPoint;
+            nextSpawnPreviewSpawner.NextSpawnPreviewChanged += RefreshPrecognitionPreviewPoint;
+        }
     }
 
     private int? GetNextSpawnPreviewGrade()
     {
-        if (dropCharacterSpawner != null)
+        EnsureNextSpawnPreviewSpawnerReference();
+
+        if (nextSpawnPreviewSpawner != null)
         {
-            return Mathf.Clamp(dropCharacterSpawner.GetNextSpawnPreviewGrade(), 1, 10);
+            return Mathf.Clamp(nextSpawnPreviewSpawner.GetNextSpawnPreviewGrade(), 1, 10);
         }
 
-        if (battleCharacterSpawner != null)
+        return null;
+    }
+
+    private IBattleCharacterSpawner ResolveNextSpawnPreviewSpawner()
+    {
+        if (dropCharacterSpawner != null && dropCharacterSpawner.IsSpawnerActive)
         {
-            return Mathf.Clamp(battleCharacterSpawner.GetNextSpawnPreviewGrade(), 1, 10);
+            return dropCharacterSpawner;
+        }
+
+        if (battleCharacterSpawner != null && battleCharacterSpawner.IsSpawnerActive)
+        {
+            return battleCharacterSpawner;
         }
 
         return null;
@@ -987,15 +1008,9 @@ public class SC_BattleManager : MonoBehaviour
     {
         EnsureNextSpawnPreviewSpawnerReference();
 
-        if (dropCharacterSpawner != null)
+        if (nextSpawnPreviewSpawner != null)
         {
-            dropCharacterSpawner.RefreshNextSpawnPreviewGrade();
-            return;
-        }
-
-        if (battleCharacterSpawner != null)
-        {
-            battleCharacterSpawner.RefreshNextSpawnPreviewGrade();
+            nextSpawnPreviewSpawner.RefreshNextSpawnPreviewGrade();
         }
     }
 

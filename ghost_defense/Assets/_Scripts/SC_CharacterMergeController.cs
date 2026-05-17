@@ -113,13 +113,7 @@ public class SC_CharacterMergeController : MonoBehaviour
             return false;
         }
 
-        SC_CharacterMergeController otherMerge = otherCollider.GetComponent<SC_CharacterMergeController>();
-        if (otherMerge == null)
-        {
-            otherMerge = otherCollider.GetComponentInParent<SC_CharacterMergeController>();
-        }
-
-        if (otherMerge == null || otherMerge.isMerged || otherMerge == this)
+        if (!SC_BattleMergeService.TryResolveMergeTarget(otherCollider, this, targetMerge => targetMerge.isMerged, out SC_CharacterMergeController otherMerge))
         {
             return false;
         }
@@ -141,19 +135,16 @@ public class SC_CharacterMergeController : MonoBehaviour
             return false;
         }
 
-        int myGrade = presenter.MergeGrade;
-        int otherGrade = otherMerge.presenter.MergeGrade;
-        if (myGrade != otherGrade)
+        if (!SC_BattleMergeService.TryCalculateNextGrade(presenter, otherMerge.presenter, out int nextGrade))
         {
             return false;
         }
 
-        if (!skipTouchCheck && !IsActuallyTouching(otherMerge))
+        if (!skipTouchCheck && !SC_BattleMergeService.AreCollidersTouching(this, otherMerge, mergeContactTolerance))
         {
             return false;
         }
 
-        int nextGrade = Mathf.Clamp(myGrade + 1, 1, 10);
         Vector2 inheritedVelocity = CalculateInheritedVelocity(GetComponent<Rigidbody2D>(), otherMerge.GetComponent<Rigidbody2D>());
 
         DisablePhysicsForMerge(this);
@@ -162,15 +153,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         isMerged = true;
         otherMerge.isMerged = true;
 
-        Vector3 spawnPosition = (transform.position + otherMerge.transform.position) * 0.5f;
-        Transform parent = spawnParent != null ? spawnParent : transform.parent;
-        GameObject mergedObject = Instantiate(mergeObjectPrefab, spawnPosition, Quaternion.identity, parent);
-
-        SC_CharacterPresenter mergedPresenter = mergedObject.GetComponent<SC_CharacterPresenter>();
-        if (mergedPresenter != null)
-        {
-            mergedPresenter.Configure(nextGrade, true);
-        }
+        GameObject mergedObject = SC_BattleMergeService.CreateMergedObject(mergeObjectPrefab, transform, otherMerge.transform, spawnParent, nextGrade, false);
 
         Rigidbody2D mergedRb2D = mergedObject.GetComponent<Rigidbody2D>();
         if (mergedRb2D != null)
@@ -192,14 +175,13 @@ public class SC_CharacterMergeController : MonoBehaviour
             mergedShoot.SetPostLaunchCollisionState(true);
         }
 
-        SC_ComboManager.ComboMergeResult comboMergeResult = SC_ComboManager.NotifyMergeCreatedGlobal();
-        ReportMergedGradeToPreviewUI(nextGrade);
-        EnablePhysicsForMergedCharacter(mergedObject);
+        SC_ComboManager.ComboMergeResult comboMergeResult = SC_BattleMergeService.NotifyMergeCreated(nextGrade);
+        SC_BattleMergeService.SetPhysicsEnabled(mergedObject, true, false);
         ApplyMergePushEffect(mergedObject, nextGrade);
 
         if (nextGrade >= 10)
         {
-            DisablePhysicsForFinalMerge(mergedObject);
+            SC_BattleMergeService.SetPhysicsEnabled(mergedObject, false, true);
 
             SC_CharacterMergeController mergedMergeController = mergedObject.GetComponent<SC_CharacterMergeController>();
             if (mergedMergeController != null)
@@ -214,7 +196,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
         else
         {
-            NotifyMergeCreated(nextGrade, comboMergeResult.DamageMultiplier);
+            SC_BattleMergeService.NotifyBattleMergeAttack(battleManager, nextGrade, comboMergeResult.DamageMultiplier);
         }
 
         Destroy(otherMerge.gameObject);
@@ -246,17 +228,6 @@ public class SC_CharacterMergeController : MonoBehaviour
     public void SetPendingComboDamageMultiplier(float damageMultiplier)
     {
         pendingComboDamageMultiplier = Mathf.Max(1f, damageMultiplier);
-    }
-
-    private static void ReportMergedGradeToPreviewUI(int mergedGrade)
-    {
-        SC_CharacterGradePreviewUI previewUI = FindAnyObjectByType<SC_CharacterGradePreviewUI>();
-        if (previewUI == null)
-        {
-            return;
-        }
-
-        previewUI.ReportReachedGrade(mergedGrade);
     }
 
     private void ApplyMergePushEffect(GameObject mergedObject, int mergedGrade)
@@ -339,21 +310,6 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
     }
 
-    private void NotifyMergeCreated(int mergedGrade, float comboDamageMultiplier)
-    {
-        if (battleManager == null)
-        {
-            battleManager = FindAnyObjectByType<SC_BattleManager>();
-        }
-
-        if (battleManager == null)
-        {
-            return;
-        }
-
-        battleManager.NotifyMergeAttack(mergedGrade, comboDamageMultiplier);
-    }
-
     private IEnumerator CoHandleFinalMergeSequence()
     {
         yield return new WaitForSeconds(Mathf.Max(0f, finalMergePopupDelay));
@@ -405,24 +361,6 @@ public class SC_CharacterMergeController : MonoBehaviour
         return battleManager.GetFieldSpriteForGrade(10);
     }
 
-    private bool IsActuallyTouching(SC_CharacterMergeController otherMerge)
-    {
-        if (otherMerge == null)
-        {
-            return false;
-        }
-
-        Collider2D myCollider = GetComponent<Collider2D>();
-        Collider2D otherCollider = otherMerge.GetComponent<Collider2D>();
-        if (myCollider == null || otherCollider == null)
-        {
-            return false;
-        }
-
-        ColliderDistance2D colliderDistance = myCollider.Distance(otherCollider);
-        return colliderDistance.distance <= Mathf.Max(0f, mergeContactTolerance);
-    }
-
     private static Vector2 CalculateInheritedVelocity(Rigidbody2D myRb2D, Rigidbody2D otherRb2D)
     {
         if (myRb2D != null && otherRb2D != null)
@@ -451,60 +389,6 @@ public class SC_CharacterMergeController : MonoBehaviour
             return;
         }
 
-        Rigidbody2D rb2D = mergeController.GetComponent<Rigidbody2D>();
-        if (rb2D != null)
-        {
-            rb2D.linearVelocity = Vector2.zero;
-            rb2D.angularVelocity = 0f;
-            rb2D.simulated = false;
-        }
-
-        Collider2D[] colliders = mergeController.GetComponentsInChildren<Collider2D>();
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            colliders[i].enabled = false;
-        }
-    }
-
-    private static void EnablePhysicsForMergedCharacter(GameObject mergedCharacter)
-    {
-        if (mergedCharacter == null)
-        {
-            return;
-        }
-
-        Rigidbody2D rb2D = mergedCharacter.GetComponent<Rigidbody2D>();
-        if (rb2D != null)
-        {
-            rb2D.simulated = true;
-        }
-
-        Collider2D[] colliders = mergedCharacter.GetComponentsInChildren<Collider2D>();
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            colliders[i].enabled = true;
-        }
-    }
-
-    private static void DisablePhysicsForFinalMerge(GameObject mergedCharacter)
-    {
-        if (mergedCharacter == null)
-        {
-            return;
-        }
-
-        Rigidbody2D rb2D = mergedCharacter.GetComponent<Rigidbody2D>();
-        if (rb2D != null)
-        {
-            rb2D.linearVelocity = Vector2.zero;
-            rb2D.angularVelocity = 0f;
-            rb2D.simulated = false;
-        }
-
-        Collider2D[] colliders = mergedCharacter.GetComponentsInChildren<Collider2D>();
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            colliders[i].enabled = false;
-        }
+        SC_BattleMergeService.SetPhysicsEnabled(mergeController.gameObject, false, true);
     }
 }

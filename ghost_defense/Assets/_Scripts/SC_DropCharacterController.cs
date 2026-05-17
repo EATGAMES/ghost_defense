@@ -3,9 +3,10 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
-public class SC_DropCharacterController : MonoBehaviour
+public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
 {
     private const float ShrinkShotScaleMultiplier = 0.75f;
+    private const float PoweredDropSpeedBonus = 8f;
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
     private static bool hasAnyDragGuideBeenViewed;
@@ -79,10 +80,27 @@ public class SC_DropCharacterController : MonoBehaviour
     private SC_BattleManager battleManager;
     private SC_FinalMergePopup finalMergePopup;
     private SC_ClearPopup clearPopup;
+    private int remainingCollisionEraseCount;
 
     public bool IsDropped => isDropped;
     public bool IsActiveDrop => isDropped && gameObject.activeInHierarchy;
+    public bool HasCollisionEraseRemaining => remainingCollisionEraseCount > 0;
     public Vector2 CurrentVelocity => cachedRigidbody2D != null ? cachedRigidbody2D.linearVelocity : dropVelocity;
+    public StageBattleDirection BattleDirection => StageBattleDirection.DOWN;
+    public GameObject RuntimeObject => gameObject;
+    public Transform RuntimeTransform => transform;
+    public int MergeGrade
+    {
+        get
+        {
+            SC_CharacterPresenter presenter = GetComponent<SC_CharacterPresenter>();
+            return presenter != null ? presenter.MergeGrade : 1;
+        }
+    }
+    public bool IsWaiting => !isDropped;
+    public bool IsLaunched => isDropped;
+    public bool IsDragging => isDragging;
+    public bool IsActiveFieldCharacter => IsActiveDrop;
 
     private void Awake()
     {
@@ -118,11 +136,13 @@ public class SC_DropCharacterController : MonoBehaviour
 
     private void OnEnable()
     {
+        SC_FieldCharacterRegistry.Register(this);
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
+        SC_FieldCharacterRegistry.Unregister(this);
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
@@ -164,6 +184,7 @@ public class SC_DropCharacterController : MonoBehaviour
         wasMousePressed = false;
         wasTouchPressed = false;
         suppressDragUntilPointerReleased = false;
+        remainingCollisionEraseCount = 0;
         waitingPosition = startPosition;
         SetGuideVisible(false);
         RefreshDragArrowVisibility();
@@ -193,6 +214,10 @@ public class SC_DropCharacterController : MonoBehaviour
     public void SetDropActive(bool isActive)
     {
         isDropped = isActive;
+        if (!isActive)
+        {
+            remainingCollisionEraseCount = 0;
+        }
 
         if (cachedRigidbody2D != null)
         {
@@ -401,18 +426,24 @@ public class SC_DropCharacterController : MonoBehaviour
         }
 
         isDropped = true;
+        remainingCollisionEraseCount = cardManager != null ? cardManager.ConsumeCollisionEraseCount() : 0;
         ApplyCollisionState();
         SC_ComboManager.NotifyShotStartedGlobal();
 
         if (cachedRigidbody2D != null)
         {
             cachedRigidbody2D.gravityScale = ResolveActiveGravityScale();
-            cachedRigidbody2D.linearVelocity = dropVelocity;
+            cachedRigidbody2D.linearVelocity = GetFinalDropVelocity();
         }
 
         if (cardManager != null && cardManager.IsShrinkShotActive())
         {
             cardManager.ConsumeShrinkShot();
+        }
+
+        if (cardManager != null && cardManager.IsAttackQueueSpeedBonusActive())
+        {
+            cardManager.ConsumeAttackQueueSpeedBonusShot();
         }
     }
 
@@ -439,26 +470,64 @@ public class SC_DropCharacterController : MonoBehaviour
         isShrinkShotVisualApplied = false;
     }
 
-    public void CancelDragAndSuppressUntilRelease()
+    public void CancelInputAndReset()
     {
-        if (isDragging)
+        if (isDropped)
         {
-            isDragging = false;
-            SetGuideVisible(false);
-
-            if (cachedRigidbody2D != null)
-            {
-                cachedRigidbody2D.linearVelocity = Vector2.zero;
-                cachedRigidbody2D.angularVelocity = 0f;
-                cachedRigidbody2D.position = waitingPosition;
-            }
-            else
-            {
-                transform.position = waitingPosition;
-            }
+            return;
         }
 
+        CancelDragAndResetToWaitingPosition(true);
+        wasMousePressed = false;
+        wasTouchPressed = false;
+        suppressDragUntilPointerReleased = false;
+    }
+
+    public void CancelDragAndSuppressUntilRelease()
+    {
+        CancelDragAndResetToWaitingPosition(false);
         suppressDragUntilPointerReleased = true;
+    }
+
+    public void CancelInputAndSuppressUntilRelease()
+    {
+        CancelDragAndSuppressUntilRelease();
+    }
+
+    public void SetShrinkVisual(bool shouldShrink)
+    {
+        SetShrinkShotVisual(shouldShrink);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!isDropped || collision == null)
+        {
+            return;
+        }
+
+        TryEraseCollidedCharacter(collision.collider);
+    }
+
+    private void CancelDragAndResetToWaitingPosition(bool resetEvenWhenNotDragging)
+    {
+        if (!resetEvenWhenNotDragging && !isDragging)
+        {
+            return;
+        }
+
+        isDragging = false;
+        SetGuideVisible(false);
+
+        if (cachedRigidbody2D != null)
+        {
+            cachedRigidbody2D.linearVelocity = Vector2.zero;
+            cachedRigidbody2D.angularVelocity = 0f;
+            cachedRigidbody2D.position = waitingPosition;
+            return;
+        }
+
+        transform.position = waitingPosition;
     }
 
     private float ResolveActiveGravityScale()
@@ -474,6 +543,63 @@ public class SC_DropCharacterController : MonoBehaviour
         }
 
         return 1f;
+    }
+
+    private Vector2 GetFinalDropVelocity()
+    {
+        Vector2 baseVelocity = dropVelocity.sqrMagnitude > 0f ? dropVelocity : Vector2.down * Mathf.Max(0f, dropSpeed);
+        float poweredDropBonus = cardManager != null && cardManager.IsAttackQueueSpeedBonusActive()
+            ? PoweredDropSpeedBonus
+            : 0f;
+
+        if (baseVelocity.sqrMagnitude <= Mathf.Epsilon)
+        {
+            return Vector2.down * poweredDropBonus;
+        }
+
+        return baseVelocity.normalized * Mathf.Max(0f, baseVelocity.magnitude + poweredDropBonus);
+    }
+
+    private bool TryEraseCollidedCharacter(Collider2D otherCollider)
+    {
+        if (remainingCollisionEraseCount <= 0 || otherCollider == null)
+        {
+            return false;
+        }
+
+        SC_DropCharacterController targetDropController = otherCollider.GetComponentInParent<SC_DropCharacterController>();
+        if (targetDropController != null && targetDropController != this)
+        {
+            EraseCharacter(targetDropController.gameObject);
+            remainingCollisionEraseCount--;
+            return true;
+        }
+
+        SC_CharacterPresenter targetPresenter = otherCollider.GetComponentInParent<SC_CharacterPresenter>();
+        if (targetPresenter == null || targetPresenter.gameObject == gameObject)
+        {
+            return false;
+        }
+
+        EraseCharacter(targetPresenter.gameObject);
+        remainingCollisionEraseCount--;
+        return true;
+    }
+
+    private static void EraseCharacter(GameObject targetObject)
+    {
+        if (targetObject == null)
+        {
+            return;
+        }
+
+        IFieldCharacterRuntime runtime = targetObject.GetComponent<IFieldCharacterRuntime>();
+        if (runtime != null && runtime.IsWaiting)
+        {
+            runtime.CancelInputAndReset();
+        }
+
+        Destroy(targetObject);
     }
 
     private void HandleDragStarted()
@@ -616,17 +742,7 @@ public class SC_DropCharacterController : MonoBehaviour
     {
         ResolvePopupReferences();
 
-        if (battleManager != null && battleManager.IsCardSelectionOpen)
-        {
-            return true;
-        }
-
-        if (finalMergePopup != null && finalMergePopup.IsPopupOpen)
-        {
-            return true;
-        }
-
-        return clearPopup != null && clearPopup.IsPopupOpen;
+        return SC_BattleRuntimeUtility.IsBattleInputBlocked(battleManager, finalMergePopup, clearPopup);
     }
 
     private void ResolvePopupReferences()

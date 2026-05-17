@@ -270,16 +270,6 @@ public class SC_ClearPopup : MonoBehaviour
 
     private static void CancelAllPendingCharacterDrags()
     {
-        SC_PlayerDragAndShoot[] allShooters = FindObjectsByType<SC_PlayerDragAndShoot>(FindObjectsSortMode.None);
-        for (int i = 0; i < allShooters.Length; i++)
-        {
-            SC_PlayerDragAndShoot shooter = allShooters[i];
-            if (shooter == null || shooter.IsShot)
-            {
-                continue;
-            }
-
-            shooter.CancelDragAndResetToStartPosition();
-        }
+        SC_BattleRuntimeUtility.CancelAllWaitingFieldCharacters();
     }
 }
