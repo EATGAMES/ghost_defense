@@ -1,10 +1,13 @@
 ﻿using TMPro;
 using UnityEngine;
+using System;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class SC_LobbyStageSelector : MonoBehaviour
 {
+    public event Action<int> SelectedStageChanged;
+
     [Tooltip("스테이지를 낮추는 왼쪽 버튼입니다.")]
     [SerializeField] private Button leftButton;
 
@@ -58,6 +61,7 @@ public class SC_LobbyStageSelector : MonoBehaviour
         selectedStage = Mathf.Clamp(selectedStage, 1, Mathf.Max(1, maxStage));
         SaveSelectedStage();
         RefreshUI();
+        SelectedStageChanged?.Invoke(selectedStage);
     }
 
     private void OnDestroy()
@@ -85,9 +89,16 @@ public class SC_LobbyStageSelector : MonoBehaviour
 
     private void SetSelectedStage(int stage)
     {
-        selectedStage = Mathf.Clamp(stage, 1, Mathf.Max(1, maxStage));
+        int nextStage = Mathf.Clamp(stage, 1, Mathf.Max(1, maxStage));
+        if (selectedStage == nextStage)
+        {
+            return;
+        }
+
+        selectedStage = nextStage;
         SaveSelectedStage();
         RefreshUI();
+        SelectedStageChanged?.Invoke(selectedStage);
     }
 
     private void SaveSelectedStage()

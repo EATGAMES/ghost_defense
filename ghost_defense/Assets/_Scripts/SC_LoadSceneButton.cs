@@ -57,7 +57,7 @@ public class SC_LoadSceneButton : MonoBehaviour
         return monsterData.StageBattleDirection == StageBattleDirection.DOWN ? downBattleSceneName : upBattleSceneName;
     }
 
-    private SO_MonsterData GetSelectedStageMonsterData()
+    public SO_MonsterData GetSelectedStageMonsterData()
     {
         if (stageMonsterDataList == null || stageMonsterDataList.Length <= 0)
         {

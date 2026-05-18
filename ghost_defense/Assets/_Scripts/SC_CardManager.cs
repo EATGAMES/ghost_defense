@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 public class SC_CardManager : MonoBehaviour
@@ -82,7 +83,7 @@ public class SC_CardManager : MonoBehaviour
                 ClearFieldCharactersUpToGrade(Mathf.RoundToInt(effectValue));
                 break;
             case CardEffectType.RemoveBottomCharacters:
-                RemoveBottomFieldCharacters(Mathf.RoundToInt(effectValue));
+                RemoveBottomFieldCharacters(Mathf.RoundToInt(effectValue), IsDropBattleScene());
                 break;
             case CardEffectType.LowerGradeAdditionalAttack:
                 lowerGradeAdditionalAttackRemainingShots += Mathf.Max(0, Mathf.RoundToInt(effectValue));
@@ -399,7 +400,13 @@ public class SC_CardManager : MonoBehaviour
         }
     }
 
-    private static void RemoveBottomFieldCharacters(int removeCount)
+    private static bool IsDropBattleScene()
+    {
+        StageBattleDirection battleDirection = SC_BattleModeContext.GetBattleDirectionBySceneName(SceneManager.GetActiveScene().name);
+        return SC_BattleModeContext.IsDropDirection(battleDirection);
+    }
+
+    private static void RemoveBottomFieldCharacters(int removeCount, bool removeFromTop)
     {
         int safeRemoveCount = Mathf.Max(0, removeCount);
         if (safeRemoveCount <= 0)
@@ -422,7 +429,7 @@ public class SC_CardManager : MonoBehaviour
                 removableCharacters.Add(runtime);
             }
 
-            removableCharacters.Sort((left, right) => left.RuntimeTransform.position.y.CompareTo(right.RuntimeTransform.position.y));
+            removableCharacters.Sort((left, right) => CompareRuntimeY(left, right, removeFromTop));
 
             int runtimeTargetCount = Mathf.Min(safeRemoveCount, removableCharacters.Count);
             for (int i = 0; i < runtimeTargetCount; i++)
@@ -453,7 +460,7 @@ public class SC_CardManager : MonoBehaviour
             removablePresenters.Add(presenter);
         }
 
-        removablePresenters.Sort((left, right) => left.transform.position.y.CompareTo(right.transform.position.y));
+        removablePresenters.Sort((left, right) => ComparePresenterY(left, right, removeFromTop));
 
         int targetCount = Mathf.Min(safeRemoveCount, removablePresenters.Count);
         for (int i = 0; i < targetCount; i++)
@@ -466,6 +473,20 @@ public class SC_CardManager : MonoBehaviour
 
             Object.Destroy(presenter.gameObject);
         }
+    }
+
+    private static int CompareRuntimeY(IFieldCharacterRuntime left, IFieldCharacterRuntime right, bool descending)
+    {
+        float leftY = left != null && left.RuntimeTransform != null ? left.RuntimeTransform.position.y : float.NegativeInfinity;
+        float rightY = right != null && right.RuntimeTransform != null ? right.RuntimeTransform.position.y : float.NegativeInfinity;
+        return descending ? rightY.CompareTo(leftY) : leftY.CompareTo(rightY);
+    }
+
+    private static int ComparePresenterY(SC_CharacterPresenter left, SC_CharacterPresenter right, bool descending)
+    {
+        float leftY = left != null ? left.transform.position.y : float.NegativeInfinity;
+        float rightY = right != null ? right.transform.position.y : float.NegativeInfinity;
+        return descending ? rightY.CompareTo(leftY) : leftY.CompareTo(rightY);
     }
 
     private static void DestroyFieldCharacter(IFieldCharacterRuntime runtime)

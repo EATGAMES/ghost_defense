@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e23860c1056a0847bfdbed47c3bad15, type: 3}
   m_Name: SO_MonsterData_010
   m_EditorClassIdentifier: Assembly-CSharp::SO_MonsterData
-  monsterName: stage10
+  monsterName: "\uD574\uACE8 \uC120\uC778\uC7A5"
   maxHp: 100000
   weaknessDamageType: 3
   weaknessAttackStyle: 1
@@ -20,3 +20,6 @@ MonoBehaviour:
   repeatClearGoldReward: 50
   firstClearDiamondReward: 50
   repeatClearDiamondReward: 1
+  stageMapSprite: {fileID: 0}
+  stageBattleDirection: 0
+  stageMapType: 1

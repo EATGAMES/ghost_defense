@@ -834,7 +834,7 @@ Transform:
   m_GameObject: {fileID: 245955235}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.68966, y: -8, z: 0}
+  m_LocalPosition: {x: 1.68966, y: -7.9, z: 0}
   m_LocalScale: {x: 9, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1356,7 +1356,7 @@ Transform:
   m_GameObject: {fileID: 334786968}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.68966, y: -8, z: 0}
+  m_LocalPosition: {x: 1.68966, y: -7.9, z: 0}
   m_LocalScale: {x: 9, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2304,6 +2304,8 @@ MonoBehaviour:
   dashLineObject: {fileID: 0}
   battleManager: {fileID: 1688277399}
   failOnShotEnter: 1
+  stoppedCharacterSpeedThreshold: 0.2
+  requiredInsideDuration: 0.35
   overlapBufferSize: 32
 --- !u!61 &498272194
 BoxCollider2D:
@@ -5091,6 +5093,8 @@ MonoBehaviour:
   dashLineObject: {fileID: 593779849}
   battleManager: {fileID: 0}
   failOnShotEnter: 0
+  stoppedCharacterSpeedThreshold: 0.2
+  requiredInsideDuration: 0.35
   overlapBufferSize: 32
 --- !u!1 &1050513703
 GameObject:
@@ -7531,7 +7535,7 @@ Transform:
   m_GameObject: {fileID: 1511802776}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.68966, y: -8, z: 0}
+  m_LocalPosition: {x: 1.68966, y: -7.9, z: 0}
   m_LocalScale: {x: 9, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8358,6 +8362,7 @@ MonoBehaviour:
   damageCalculator: {fileID: 1688277403}
   cardManager: {fileID: 1688277404}
   battleCharacterSpawner: {fileID: 0}
+  dropCharacterSpawner: {fileID: 0}
   previewPoint1Object: {fileID: 992585301}
   previewPoint1Image: {fileID: 992585302}
   previewPoint1FallbackSprite: {fileID: 0}
