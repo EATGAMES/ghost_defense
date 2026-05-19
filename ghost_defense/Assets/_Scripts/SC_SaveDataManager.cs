@@ -49,6 +49,7 @@ public class SC_GameSaveData
     public List<SaveIntEntry> GradeSpawnCountEntries = new List<SaveIntEntry>();
     public int[] RosterOrder = Array.Empty<int>();
     public List<SaveCharacterUpgradeEntry> CharacterUpgradeEntries = new List<SaveCharacterUpgradeEntry>();
+    public List<SaveStringBoolEntry> CharacterUseEntries = new List<SaveStringBoolEntry>();
     public List<SaveStringIntEntry> CardUseCountEntries = new List<SaveStringIntEntry>();
     public List<SaveStringIntEntry> CardLevelEntries = new List<SaveStringIntEntry>();
     public bool HasVipMembership;
@@ -320,6 +321,32 @@ public class SC_SaveDataManager : MonoBehaviour
         SaveIfNeeded();
     }
 
+    public bool GetCharacterUseState(string characterId, bool defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return defaultValue;
+        }
+
+        if (TryGetStringBoolEntryValue(saveData.CharacterUseEntries, characterId, out bool savedValue))
+        {
+            return savedValue;
+        }
+
+        return defaultValue;
+    }
+
+    public void SetCharacterUseState(string characterId, bool isUseEnabled)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return;
+        }
+
+        SetStringBoolEntryValue(saveData.CharacterUseEntries, characterId, isUseEnabled);
+        SaveIfNeeded();
+    }
+
     public int GetCardUseCount(string cardId)
     {
         return Mathf.Max(0, GetStringIntEntryValue(saveData.CardUseCountEntries, cardId));
@@ -407,6 +434,10 @@ public class SC_SaveDataManager : MonoBehaviour
         AppendCharacterUpgradeEntries(builder, saveData.CharacterUpgradeEntries);
         builder.AppendLine();
 
+        builder.AppendLine("[Character Use]");
+        AppendStringBoolEntryList(builder, "Use States", saveData.CharacterUseEntries);
+        builder.AppendLine();
+
         builder.AppendLine("[Card]");
         AppendStringIntEntryList(builder, "Use Counts", saveData.CardUseCountEntries);
         AppendStringIntEntryList(builder, "Levels", saveData.CardLevelEntries);
@@ -450,6 +481,7 @@ public class SC_SaveDataManager : MonoBehaviour
         saveData.GradeSpawnCountEntries ??= new List<SaveIntEntry>();
         saveData.RosterOrder ??= Array.Empty<int>();
         saveData.CharacterUpgradeEntries ??= new List<SaveCharacterUpgradeEntry>();
+        saveData.CharacterUseEntries ??= new List<SaveStringBoolEntry>();
         saveData.CardUseCountEntries ??= new List<SaveStringIntEntry>();
         saveData.CardLevelEntries ??= new List<SaveStringIntEntry>();
     }
@@ -523,6 +555,46 @@ public class SC_SaveDataManager : MonoBehaviour
         }
 
         entries.Add(new SaveStringIntEntry
+        {
+            Key = key,
+            Value = value
+        });
+    }
+
+    private static bool TryGetStringBoolEntryValue(List<SaveStringBoolEntry> entries, string key, out bool value)
+    {
+        value = false;
+
+        if (entries == null || string.IsNullOrWhiteSpace(key))
+        {
+            return false;
+        }
+
+        SaveStringBoolEntry targetEntry = entries.Find(entry => entry.Key == key);
+        if (targetEntry == null)
+        {
+            return false;
+        }
+
+        value = targetEntry.Value;
+        return true;
+    }
+
+    private static void SetStringBoolEntryValue(List<SaveStringBoolEntry> entries, string key, bool value)
+    {
+        if (entries == null || string.IsNullOrWhiteSpace(key))
+        {
+            return;
+        }
+
+        SaveStringBoolEntry targetEntry = entries.Find(entry => entry.Key == key);
+        if (targetEntry != null)
+        {
+            targetEntry.Value = value;
+            return;
+        }
+
+        entries.Add(new SaveStringBoolEntry
         {
             Key = key,
             Value = value
@@ -608,6 +680,45 @@ public class SC_SaveDataManager : MonoBehaviour
             builder.Append(entry.Key);
             builder.Append('=');
             builder.Append(entry.Value);
+            hasValue = true;
+        }
+
+        if (!hasValue)
+        {
+            builder.Append('-');
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendStringBoolEntryList(StringBuilder builder, string label, List<SaveStringBoolEntry> entries)
+    {
+        builder.Append(label);
+        builder.Append(": ");
+
+        if (entries == null || entries.Count <= 0)
+        {
+            builder.AppendLine("-");
+            return;
+        }
+
+        bool hasValue = false;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            SaveStringBoolEntry entry = entries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.Key))
+            {
+                continue;
+            }
+
+            if (hasValue)
+            {
+                builder.Append(", ");
+            }
+
+            builder.Append(entry.Key);
+            builder.Append('=');
+            builder.Append(entry.Value ? 1 : 0);
             hasValue = true;
         }
 

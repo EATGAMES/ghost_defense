@@ -888,8 +888,9 @@ public class SC_BattleManager : MonoBehaviour
             defaultEquippedFieldSkins != null ? defaultEquippedFieldSkins.Length : 0);
 
         int[] savedOrder = SC_RosterSave.LoadOrder(slotCount);
-        equippedRoster = ReorderRoster(defaultEquippedRoster, savedOrder);
-        equippedFieldSkins = ReorderFieldSkins(defaultEquippedFieldSkins, savedOrder);
+        SO_CharacterData[] orderedRoster = ReorderRoster(defaultEquippedRoster, savedOrder);
+        SO_FieldCharacterSkinData[] orderedFieldSkins = ReorderFieldSkins(defaultEquippedFieldSkins, savedOrder);
+        ApplyCharacterUseSettings(orderedRoster, orderedFieldSkins);
     }
 
     private void RefreshGradePreviewUI()
@@ -1250,5 +1251,49 @@ public class SC_BattleManager : MonoBehaviour
         }
 
         return reordered;
+    }
+
+    private void ApplyCharacterUseSettings(SO_CharacterData[] orderedRoster, SO_FieldCharacterSkinData[] orderedFieldSkins)
+    {
+        if (orderedRoster == null || orderedRoster.Length <= 0)
+        {
+            equippedRoster = Array.Empty<SO_CharacterData>();
+            equippedFieldSkins = Array.Empty<SO_FieldCharacterSkinData>();
+            return;
+        }
+
+        List<SO_CharacterData> enabledRoster = new List<SO_CharacterData>(orderedRoster.Length);
+        List<SO_FieldCharacterSkinData> enabledFieldSkins = new List<SO_FieldCharacterSkinData>(orderedRoster.Length);
+
+        for (int i = 0; i < orderedRoster.Length; i++)
+        {
+            SO_CharacterData characterData = orderedRoster[i];
+            if (characterData == null || !IsCharacterUseEnabled(characterData))
+            {
+                continue;
+            }
+
+            enabledRoster.Add(characterData);
+            enabledFieldSkins.Add(orderedFieldSkins != null && i < orderedFieldSkins.Length ? orderedFieldSkins[i] : null);
+        }
+
+        equippedRoster = enabledRoster.ToArray();
+        equippedFieldSkins = enabledFieldSkins.ToArray();
+    }
+
+    private static bool IsCharacterUseEnabled(SO_CharacterData characterData)
+    {
+        if (characterData == null)
+        {
+            return false;
+        }
+
+        string characterSaveKey = characterData.GetSaveKey();
+        if (string.IsNullOrWhiteSpace(characterSaveKey) || SC_SaveDataManager.Instance == null)
+        {
+            return characterData.DefaultUseEnabled;
+        }
+
+        return SC_SaveDataManager.Instance.GetCharacterUseState(characterSaveKey, characterData.DefaultUseEnabled);
     }
 }

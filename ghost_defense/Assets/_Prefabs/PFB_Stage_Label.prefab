@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6718741916201123969}
   - component: {fileID: 7834885655152362513}
   - component: {fileID: 4037123007301551221}
+  - component: {fileID: 6674309161546781335}
   m_Layer: 5
   m_Name: BTN_Stage_Right
   m_TagString: Untagged
@@ -120,6 +121,22 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6674309161546781335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190156791531270499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a316c5deb13b634e81fcbfcc99b1652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_ButtonPressScale
+  targetTransform: {fileID: 0}
+  pressedScale: 0.95
+  returnDuration: 0.2
+  useUnscaledTime: 1
 --- !u!1 &2680421447777877041
 GameObject:
   m_ObjectHideFlags: 0
@@ -231,6 +248,7 @@ GameObject:
   - component: {fileID: 4773203865667625719}
   - component: {fileID: 2252347851079457257}
   - component: {fileID: 5348295432512868790}
+  - component: {fileID: 3995852344822027545}
   m_Layer: 5
   m_Name: BTN_Stage_Left
   m_TagString: Untagged
@@ -339,6 +357,22 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3995852344822027545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7392407019259211936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a316c5deb13b634e81fcbfcc99b1652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SC_ButtonPressScale
+  targetTransform: {fileID: 0}
+  pressedScale: 0.95
+  returnDuration: 0.2
+  useUnscaledTime: 1
 --- !u!1 &8654946488605348199
 GameObject:
   m_ObjectHideFlags: 0

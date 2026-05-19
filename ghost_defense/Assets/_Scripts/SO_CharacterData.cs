@@ -32,6 +32,9 @@ public class SO_CharacterData : ScriptableObject
     [Tooltip("캐릭터 업그레이드 저장에 사용할 고유 ID입니다.")]
     [SerializeField] private string characterId;
 
+    [Tooltip("저장된 사용 여부가 없을 때 이 캐릭터를 기본으로 사용할지 여부입니다.")]
+    [SerializeField] private bool defaultUseEnabled = true;
+
     [Tooltip("캐릭터 설명입니다.")]
     [TextArea(3, 8)]
     [SerializeField] private string characterDescription;
@@ -75,6 +78,7 @@ public class SO_CharacterData : ScriptableObject
 
     public string CharacterName => characterName;
     public string CharacterId => characterId;
+    public bool DefaultUseEnabled => defaultUseEnabled;
     public string CharacterDescription => characterDescription;
     public Sprite PreviewCharacterSprite => previewCharacterSprite;
     public CharacterDamageType DamageType => damageType;
