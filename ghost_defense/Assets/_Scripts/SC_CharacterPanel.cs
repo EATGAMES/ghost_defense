@@ -52,6 +52,8 @@ public class SC_CharacterPanel : MonoBehaviour
         Refresh();
     }
 
+    public SO_CharacterData CharacterData => characterData;
+
     private void OnDestroy()
     {
         if (characterUpgradeButton != null)

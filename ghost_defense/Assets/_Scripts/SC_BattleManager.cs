@@ -490,6 +490,19 @@ public class SC_BattleManager : MonoBehaviour
         return skinData != null ? skinData.GetPreviewSpriteForGrade(safeGrade) : null;
     }
 
+    public Sprite GetAttackCharacterPreviewSpriteForGrade(int grade)
+    {
+        int safeGrade = Mathf.Clamp(grade, 1, 10);
+        SO_CharacterData characterData = GetCharacterDataForGrade(safeGrade);
+        if (characterData == null)
+        {
+            return null;
+        }
+
+        Sprite previewSprite = characterData.PreviewCharacterSprite;
+        return previewSprite != null ? previewSprite : characterData.GetTopCharacterSpriteForGrade(safeGrade);
+    }
+
     public Sprite GetNextSpawnPreviewSprite()
     {
         EnsureNextSpawnPreviewSpawnerReference();
@@ -500,7 +513,7 @@ public class SC_BattleManager : MonoBehaviour
             return null;
         }
 
-        Sprite previewSprite = GetFieldSpriteForGrade(nextSpawnGrade.Value);
+        Sprite previewSprite = GetAttackCharacterPreviewSpriteForGrade(nextSpawnGrade.Value);
         return previewSprite != null ? previewSprite : previewPoint1FallbackSprite;
     }
 

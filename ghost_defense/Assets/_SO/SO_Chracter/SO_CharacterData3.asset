@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SO_CharacterData
   characterName: "\uAC15\uC2DC\uD76C"
   characterId: 
+  defaultUseEnabled: 1
   characterDescription: 
   firstCycleTopCharacterSprite: {fileID: 21300000, guid: 611ef3ab0202f9841b8c907fd94000ff, type: 3}
   secondCycleTopCharacterSprite: {fileID: 21300000, guid: 27e6908d20545284fb9d492a26ac5c53, type: 3}
@@ -21,8 +22,8 @@ MonoBehaviour:
   damageType: 2
   attackStyle: 0
   attackRole: 0
-  baseAttackPower: 10
-  damageUpgradeAmountPerLevel: 5
+  baseAttackPower: 5
+  damageUpgradeAmountPerLevel: 2.5
   gradeDamageMultipliers:
   - 1
   - 1.5
@@ -34,6 +35,6 @@ MonoBehaviour:
   - 30
   - 60
   - 100
-  criticalChance: 0
-  criticalDamageMultiplier: 1.5
+  criticalChance: 0.1
+  criticalDamageMultiplier: 3
   attackQueueSpeedPercent: 1

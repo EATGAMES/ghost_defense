@@ -17,7 +17,13 @@ public class SC_LobbyPointPreview : MonoBehaviour
 
     private void OnEnable()
     {
+        SC_RosterSave.RosterOrderChanged += OnRosterOrderChanged;
         RefreshPreview();
+    }
+
+    private void OnDisable()
+    {
+        SC_RosterSave.RosterOrderChanged -= OnRosterOrderChanged;
     }
 
     public void RefreshPreview()
@@ -59,5 +65,10 @@ public class SC_LobbyPointPreview : MonoBehaviour
         }
 
         return skinData.GetSecondCycleFieldSprite();
+    }
+
+    private void OnRosterOrderChanged(int[] changedOrder)
+    {
+        RefreshPreview();
     }
 }

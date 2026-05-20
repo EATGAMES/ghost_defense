@@ -1,7 +1,10 @@
-﻿using UnityEngine;
+using System;
+using UnityEngine;
 
 public static class SC_RosterSave
 {
+    public static event Action<int[]> RosterOrderChanged;
+
     public static int[] LoadOrder(int slotCount)
     {
         int safeSlotCount = Mathf.Max(0, slotCount);
@@ -35,12 +38,14 @@ public static class SC_RosterSave
 
     public static void SaveOrder(int[] rosterOrder)
     {
-        if (SC_SaveDataManager.Instance == null)
+        int[] copiedOrder = CopyOrder(rosterOrder);
+
+        if (SC_SaveDataManager.Instance != null)
         {
-            return;
+            SC_SaveDataManager.Instance.SetRosterOrder(copiedOrder);
         }
 
-        SC_SaveDataManager.Instance.SetRosterOrder(rosterOrder);
+        RosterOrderChanged?.Invoke(CopyOrder(copiedOrder));
     }
 
     private static int[] CreateDefaultOrder(int slotCount)
@@ -52,5 +57,17 @@ public static class SC_RosterSave
         }
 
         return defaultOrder;
+    }
+
+    private static int[] CopyOrder(int[] rosterOrder)
+    {
+        if (rosterOrder == null || rosterOrder.Length <= 0)
+        {
+            return Array.Empty<int>();
+        }
+
+        int[] copiedOrder = new int[rosterOrder.Length];
+        Array.Copy(rosterOrder, copiedOrder, rosterOrder.Length);
+        return copiedOrder;
     }
 }
