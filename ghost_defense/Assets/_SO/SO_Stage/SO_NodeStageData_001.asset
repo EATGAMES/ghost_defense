@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99e936e998bf96c4c927e1266734c5a9, type: 3}
+  m_Name: SO_NodeStageData_001
+  m_EditorClassIdentifier: Assembly-CSharp::SO_NodeStageData
+  stageId: 1
+  layers:
+  - nodes:
+    - nodeId: 1
+      nodeType: 0
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 11400000, guid: f1c467dda42f095458c60a51203b69a0, type: 2}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 2
+      - 3
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+  - nodes:
+    - nodeId: 2
+      nodeType: 0
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 11400000, guid: ae47d9f2194168941a0ad20e61a596b4, type: 2}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 4
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+    - nodeId: 3
+      nodeType: 2
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 0}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 5
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+  - nodes:
+    - nodeId: 4
+      nodeType: 3
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 0}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 6
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+    - nodeId: 5
+      nodeType: 1
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 11400000, guid: ccef855ae2548b14582f4a7ad7060230, type: 2}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 6
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+  - nodes:
+    - nodeId: 6
+      nodeType: 0
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 11400000, guid: 37b07dc6ab094b44b8533314cf723444, type: 2}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 7
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+  - nodes:
+    - nodeId: 7
+      nodeType: 2
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 0}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds:
+      - 8
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+  - nodes:
+    - nodeId: 8
+      nodeType: 7
+      displayName: 
+      icon: {fileID: 0}
+      monsterData: {fileID: 11400000, guid: de187fbe01a574e47ab8ad6d4b9e5df6, type: 2}
+      targetSceneName: 
+      clearImmediatelyWhenNoScene: 0
+      nextNodeIds: []
+      useCustomAnchoredPosition: 0
+      anchoredPosition: {x: 0, y: 0}
+  - nodes: []
+  - nodes: []
+  - nodes: []
+  - nodes: []

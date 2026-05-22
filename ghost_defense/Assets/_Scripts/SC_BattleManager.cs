@@ -205,7 +205,9 @@ public class SC_BattleManager : MonoBehaviour
         int savedSelectedStage = SC_SaveDataManager.Instance != null ? SC_SaveDataManager.Instance.SelectedStage : startStage;
         CurrentStage = Mathf.Clamp(savedSelectedStage, 1, MaxStage);
         wasStageClearedOnBattleStart =
-            SC_SaveDataManager.Instance != null && SC_SaveDataManager.Instance.IsStageCleared(CurrentStage);
+            SC_NodeRunContext.HasActiveNode
+                ? SC_NodeRunContext.IsCurrentNodeCleared()
+                : SC_SaveDataManager.Instance != null && SC_SaveDataManager.Instance.IsStageCleared(CurrentStage);
         currentAttackCharacterData = GetStartingAttackCharacterData();
         currentAttackGrade = currentAttackCharacterData != null ? 1 : 0;
 
@@ -513,7 +515,12 @@ public class SC_BattleManager : MonoBehaviour
             return null;
         }
 
-        Sprite previewSprite = GetAttackCharacterPreviewSpriteForGrade(nextSpawnGrade.Value);
+        Sprite previewSprite = GetPreviewSpriteForGrade(nextSpawnGrade.Value);
+        if (previewSprite == null)
+        {
+            previewSprite = GetFieldSpriteForGrade(nextSpawnGrade.Value);
+        }
+
         return previewSprite != null ? previewSprite : previewPoint1FallbackSprite;
     }
 
@@ -575,7 +582,14 @@ public class SC_BattleManager : MonoBehaviour
 
             if (SC_SaveDataManager.Instance != null)
             {
-                SC_SaveDataManager.Instance.SetStageCleared(CurrentStage, true);
+                if (SC_NodeRunContext.HasActiveNode)
+                {
+                    SC_NodeRunContext.MarkCurrentNodeCleared();
+                }
+                else
+                {
+                    SC_SaveDataManager.Instance.SetStageCleared(CurrentStage, true);
+                }
             }
         }
 

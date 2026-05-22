@@ -46,6 +46,8 @@ public class SC_GameSaveData
     public int SelectedStage = 1;
     public List<SaveIntEntry> StageClearEntries = new List<SaveIntEntry>();
     public List<SaveIntEntry> StageGrade10CreatedEntries = new List<SaveIntEntry>();
+    public List<SaveStringBoolEntry> NodeClearEntries = new List<SaveStringBoolEntry>();
+    public List<SaveStringBoolEntry> NodeUnlockEntries = new List<SaveStringBoolEntry>();
     public List<SaveIntEntry> GradeSpawnCountEntries = new List<SaveIntEntry>();
     public int[] RosterOrder = Array.Empty<int>();
     public List<SaveCharacterUpgradeEntry> CharacterUpgradeEntries = new List<SaveCharacterUpgradeEntry>();
@@ -218,6 +220,45 @@ public class SC_SaveDataManager : MonoBehaviour
     public void SetCreatedGrade10InStage(int stageId, bool hasCreated)
     {
         SetIntEntryValue(saveData.StageGrade10CreatedEntries, stageId, hasCreated ? 1 : 0);
+        SaveIfNeeded();
+    }
+
+    public void EnsureNodeGraphStarted(int stageId, string[] startNodeIds)
+    {
+        int safeStageId = Mathf.Max(1, stageId);
+        if (HasAnyNodeGraphState(safeStageId))
+        {
+            return;
+        }
+
+        SetUnlockedNodeIds(safeStageId, startNodeIds);
+        SaveIfNeeded();
+    }
+
+    public bool IsNodeCleared(int stageId, string nodeId)
+    {
+        string key = BuildNodeStateKey(stageId, nodeId);
+        return !string.IsNullOrWhiteSpace(key) && TryGetStringBoolEntryValue(saveData.NodeClearEntries, key, out bool value) && value;
+    }
+
+    public bool IsNodeUnlocked(int stageId, string nodeId)
+    {
+        string key = BuildNodeStateKey(stageId, nodeId);
+        return !string.IsNullOrWhiteSpace(key) && TryGetStringBoolEntryValue(saveData.NodeUnlockEntries, key, out bool value) && value;
+    }
+
+    public void CompleteNode(int stageId, string nodeId, string[] nextNodeIds)
+    {
+        string clearedKey = BuildNodeStateKey(stageId, nodeId);
+        if (string.IsNullOrWhiteSpace(clearedKey))
+        {
+            return;
+        }
+
+        int safeStageId = Mathf.Max(1, stageId);
+        SetStringBoolEntryValue(saveData.NodeClearEntries, clearedKey, true);
+        ClearUnlockedNodeIds(safeStageId);
+        SetUnlockedNodeIds(safeStageId, nextNodeIds);
         SaveIfNeeded();
     }
 
@@ -420,6 +461,8 @@ public class SC_SaveDataManager : MonoBehaviour
         builder.AppendLine("[Stage]");
         AppendIntEntryList(builder, "Cleared Stages", saveData.StageClearEntries);
         AppendIntEntryList(builder, "Grade10 Created", saveData.StageGrade10CreatedEntries);
+        AppendStringBoolEntryList(builder, "Cleared Nodes", saveData.NodeClearEntries);
+        AppendStringBoolEntryList(builder, "Unlocked Nodes", saveData.NodeUnlockEntries);
         builder.AppendLine();
 
         builder.AppendLine("[Grade Spawn Count]");
@@ -478,6 +521,8 @@ public class SC_SaveDataManager : MonoBehaviour
 
         saveData.StageClearEntries ??= new List<SaveIntEntry>();
         saveData.StageGrade10CreatedEntries ??= new List<SaveIntEntry>();
+        saveData.NodeClearEntries ??= new List<SaveStringBoolEntry>();
+        saveData.NodeUnlockEntries ??= new List<SaveStringBoolEntry>();
         saveData.GradeSpawnCountEntries ??= new List<SaveIntEntry>();
         saveData.RosterOrder ??= Array.Empty<int>();
         saveData.CharacterUpgradeEntries ??= new List<SaveCharacterUpgradeEntry>();
@@ -527,6 +572,79 @@ public class SC_SaveDataManager : MonoBehaviour
             Key = key,
             Value = value
         });
+    }
+
+    private bool HasAnyNodeGraphState(int stageId)
+    {
+        string prefix = $"{Mathf.Max(1, stageId)}:";
+        return HasAnyNodeStateWithPrefix(saveData.NodeClearEntries, prefix)
+            || HasAnyNodeStateWithPrefix(saveData.NodeUnlockEntries, prefix);
+    }
+
+    private static bool HasAnyNodeStateWithPrefix(List<SaveStringBoolEntry> entries, string prefix)
+    {
+        if (entries == null || string.IsNullOrWhiteSpace(prefix))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            SaveStringBoolEntry entry = entries[i];
+            if (entry != null && entry.Key != null && entry.Key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ClearUnlockedNodeIds(int stageId)
+    {
+        string prefix = $"{Mathf.Max(1, stageId)}:";
+        if (saveData.NodeUnlockEntries == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < saveData.NodeUnlockEntries.Count; i++)
+        {
+            SaveStringBoolEntry entry = saveData.NodeUnlockEntries[i];
+            if (entry != null && entry.Key != null && entry.Key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                entry.Value = false;
+            }
+        }
+    }
+
+    private void SetUnlockedNodeIds(int stageId, string[] nodeIds)
+    {
+        if (nodeIds == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < nodeIds.Length; i++)
+        {
+            string key = BuildNodeStateKey(stageId, nodeIds[i]);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            SetStringBoolEntryValue(saveData.NodeUnlockEntries, key, true);
+        }
+    }
+
+    private static string BuildNodeStateKey(int stageId, string nodeId)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+        {
+            return string.Empty;
+        }
+
+        return $"{Mathf.Max(1, stageId)}:{nodeId.Trim()}";
     }
 
     private static int GetStringIntEntryValue(List<SaveStringIntEntry> entries, string key)

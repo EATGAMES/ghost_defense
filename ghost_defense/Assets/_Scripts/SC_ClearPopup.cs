@@ -51,6 +51,9 @@ public class SC_ClearPopup : MonoBehaviour
     [Tooltip("닫기 시 이동할 로비 씬 이름입니다.")]
     [SerializeField] private string lobbySceneName = "SCN_Lobby";
 
+    [Tooltip("노드에서 입장한 전투를 닫을 때 돌아갈 노드 씬 이름입니다.")]
+    [SerializeField] private string nodeSceneName = SC_NodeRunContext.NodeSceneName;
+
     public bool IsPopupOpen => popupRoot != null && popupRoot.activeInHierarchy;
     private bool isExitConfirmMode;
     private bool hasCachedRewardResult;
@@ -173,9 +176,12 @@ public class SC_ClearPopup : MonoBehaviour
         Time.timeScale = 1f;
         isExitConfirmMode = false;
 
-        if (!string.IsNullOrWhiteSpace(lobbySceneName))
+        string targetSceneName = SC_NodeRunContext.HasActiveNode ? nodeSceneName : lobbySceneName;
+        SC_NodeRunContext.Clear();
+
+        if (!string.IsNullOrWhiteSpace(targetSceneName))
         {
-            SceneManager.LoadScene(lobbySceneName);
+            SceneManager.LoadScene(targetSceneName);
         }
     }
 

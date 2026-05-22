@@ -29,6 +29,9 @@ public class SC_DefeatPopup : MonoBehaviour
     [Tooltip("종료 시 이동할 로비 씬 이름입니다.")]
     [SerializeField] private string lobbySceneName = "SCN_Lobby";
 
+    [Tooltip("노드에서 입장한 전투를 종료할 때 돌아갈 노드 씬 이름입니다.")]
+    [SerializeField] private string nodeSceneName = SC_NodeRunContext.NodeSceneName;
+
     [Tooltip("다시하기 시 새로 로드할 배틀 씬 이름입니다. 비워두면 현재 활성 씬을 다시 로드합니다.")]
     [SerializeField] private string battleSceneName = "SCN_Battle";
 
@@ -107,9 +110,12 @@ public class SC_DefeatPopup : MonoBehaviour
     {
         RestoreGameState();
 
-        if (!string.IsNullOrWhiteSpace(lobbySceneName))
+        string targetSceneName = SC_NodeRunContext.HasActiveNode ? nodeSceneName : lobbySceneName;
+        SC_NodeRunContext.Clear();
+
+        if (!string.IsNullOrWhiteSpace(targetSceneName))
         {
-            SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
+            SceneManager.LoadScene(targetSceneName, LoadSceneMode.Single);
         }
     }
 
