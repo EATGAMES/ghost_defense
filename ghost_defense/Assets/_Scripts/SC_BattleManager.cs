@@ -41,6 +41,18 @@ public class SC_BattleManager : MonoBehaviour
         }
     }
 
+    private readonly struct PendingMergeFxAttack
+    {
+        public readonly int Grade;
+        public readonly float ComboDamageMultiplier;
+
+        public PendingMergeFxAttack(int grade, float comboDamageMultiplier)
+        {
+            Grade = Mathf.Clamp(grade, 1, 10);
+            ComboDamageMultiplier = Mathf.Max(1f, comboDamageMultiplier);
+        }
+    }
+
     private const int FinalMergeClearBonusDiamondReward = 50;
 
     public static int CurrentStage { get; private set; } = 1;
@@ -110,6 +122,7 @@ public class SC_BattleManager : MonoBehaviour
     [SerializeField] private SC_BossSpawner bossSpawner;
 
     private readonly Queue<AttackRequest> pendingAttackRequests = new Queue<AttackRequest>();
+    private readonly SortedDictionary<long, PendingMergeFxAttack> arrivedMergeFxAttacks = new SortedDictionary<long, PendingMergeFxAttack>();
 
     private SC_MonsterHealth currentBoss;
     private Coroutine attackQueueCoroutine;
@@ -134,6 +147,8 @@ public class SC_BattleManager : MonoBehaviour
     private float nextAttackDamageMultiplier = 1f;
     private float cardAttackQueueSpeedBonus;
     private int battleMergeCount;
+    private long nextMergeFxAttackSequence = 1;
+    private long nextMergeFxAttackDeliverySequence = 1;
     private float battleDamageDealt;
     private bool hasPersistedBattleStatistics;
     private SC_MonsterHealth pendingDefeatedBoss;
@@ -292,9 +307,49 @@ public class SC_BattleManager : MonoBehaviour
 
     public void NotifyMergeAttack(int mergedGrade, float comboDamageMultiplier = 1f)
     {
-        if (isBattleFinished || isBattleClosing || isCardSelectionOpen)
+        NotifyMergeAttackInternal(mergedGrade, comboDamageMultiplier, false);
+    }
+
+    public long ReserveMergeFxAttackSequence()
+    {
+        return nextMergeFxAttackSequence++;
+    }
+
+    public void NotifyMergeFxAttackArrived(long sequence, int mergedGrade, float comboDamageMultiplier = 1f)
+    {
+        if (sequence <= 0)
+        {
+            NotifyMergeAttackInternal(mergedGrade, comboDamageMultiplier, true);
+            return;
+        }
+
+        if (sequence < nextMergeFxAttackDeliverySequence)
         {
             return;
+        }
+
+        arrivedMergeFxAttacks[sequence] = new PendingMergeFxAttack(mergedGrade, comboDamageMultiplier);
+        FlushArrivedMergeFxAttacks();
+    }
+
+    private void FlushArrivedMergeFxAttacks()
+    {
+        while (arrivedMergeFxAttacks.TryGetValue(nextMergeFxAttackDeliverySequence, out PendingMergeFxAttack pendingAttack))
+        {
+            arrivedMergeFxAttacks.Remove(nextMergeFxAttackDeliverySequence);
+            nextMergeFxAttackDeliverySequence++;
+            NotifyMergeAttackInternal(pendingAttack.Grade, pendingAttack.ComboDamageMultiplier, true);
+        }
+    }
+
+    private void NotifyMergeAttackInternal(int mergedGrade, float comboDamageMultiplier, bool allowDuringCardSelection)
+    {
+        if (isBattleFinished || isBattleClosing || isCardSelectionOpen)
+        {
+            if (!allowDuringCardSelection || isBattleFinished || isBattleClosing)
+            {
+                return;
+            }
         }
 
         battleMergeCount++;
@@ -428,6 +483,9 @@ public class SC_BattleManager : MonoBehaviour
         isBattleClearedThisSession = wasBattleCleared;
         isCardSelectionOpen = false;
         pendingAttackRequests.Clear();
+        arrivedMergeFxAttacks.Clear();
+        nextMergeFxAttackSequence = 1;
+        nextMergeFxAttackDeliverySequence = 1;
         currentAttackCount = 0;
         PersistBattleStatisticsIfNeeded();
         RefreshPrecognitionPreviewPoint();

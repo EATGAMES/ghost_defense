@@ -12,9 +12,7 @@ GameObject:
   - component: {fileID: 1192178842671405152}
   - component: {fileID: 8719631040584362176}
   - component: {fileID: 659783925499440691}
-  - component: {fileID: 4159833219662769503}
   - component: {fileID: 3986356179992966670}
-  - component: {fileID: 560854494607647108}
   - component: {fileID: 3051682432527465309}
   - component: {fileID: 6942196122259390253}
   - component: {fileID: 385865093740463180}
@@ -142,39 +140,6 @@ CapsuleCollider2D:
   m_Offset: {x: 0.1, y: -0.1}
   m_Size: {x: 1, y: 1.25}
   m_Direction: 0
---- !u!114 &4159833219662769503
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5306799179826955618}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4dcc710ac45bff74cbffc0b8ffad17c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SC_PlayerDragAndShoot
-  minX: -2.5
-  maxX: 2.5
-  useWideInputZone: 1
-  inputZoneWidth: 5.5
-  inputZoneHeight: 2.6
-  inputZoneOffset: {x: 0, y: 0.2}
-  shootSpeed: 18
-  lockYPosition: 1
-  fixedY: -7
-  deceleration: 0.4
-  collisionDamping: 0.5
-  sideSlipDamping: 0.5
-  useCollisionAngleJitter: 1
-  collisionAngleJitterMax: 30
-  stopSpeedThreshold: 0.01
-  downwardBrakeMultiplier: 8
-  disableCollisionBeforeShot: 1
-  syncPhysicsBeforeShot: 1
-  guideObject: {fileID: 5505103737445721466}
-  dragArrowRightObject: {fileID: 0}
-  dragArrowLeftObject: {fileID: 0}
 --- !u!114 &3986356179992966670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,35 +194,6 @@ MonoBehaviour:
   - 3.5
   baseMass: 5
   massStep: 0
---- !u!114 &560854494607647108
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5306799179826955618}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39a67bbc6f4ee9e4d9701315838ba295, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SC_CharacterMergeController
-  mergeObjectPrefab: {fileID: 0}
-  spawnParent: {fileID: 0}
-  presenter: {fileID: 3986356179992966670}
-  battleManager: {fileID: 0}
-  mergeSpeedMultiplier: 0.8
-  maxInheritedSpeed: 5
-  mergeContactTolerance: 0
-  finalMergeCleanupDelay: 1.5
-  finalMergePopupDelay: 0.3
-  finalMergePopup: {fileID: 0}
-  pushEffectRadiusMultiplier: 2
-  pushEffectForceGrade6: 10
-  pushEffectForceGrade7: 10
-  pushEffectForceGrade8: 10
-  pushEffectForceGrade9: 10
-  pushEffectForceGrade10: 10
-  pushEffectUpwardBias: 10
 --- !u!114 &3051682432527465309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -323,6 +259,12 @@ MonoBehaviour:
   finalMergeCleanupDelay: 1.5
   finalMergePopupDelay: 0.3
   finalMergePopup: {fileID: 0}
+  mergeFxPrefab: {fileID: 2332641657856936245, guid: 6a1cb78878d75844e8e8b20b2e0421d6, type: 3}
+  mergeFxDestinationName: OBJ_ParticlePoint
+  mergeFxParent: {fileID: 0}
+  mergeCameraShakeBasePower: 0.08
+  mergeCameraShakePowerIncreasePercent: 0.1
+  mergeCameraShakeDuration: 0.1
 --- !u!1 &9202169707005736598
 GameObject:
   m_ObjectHideFlags: 0

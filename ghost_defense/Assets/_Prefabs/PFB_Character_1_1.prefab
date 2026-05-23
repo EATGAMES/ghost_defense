@@ -161,7 +161,7 @@ MonoBehaviour:
   shootSpeed: 18
   lockYPosition: 1
   fixedY: -7
-  deceleration: 0.4
+  deceleration: 0.25
   collisionDamping: 0.5
   sideSlipDamping: 0.5
   useCollisionAngleJitter: 1
@@ -243,19 +243,25 @@ MonoBehaviour:
   spawnParent: {fileID: 0}
   presenter: {fileID: 3986356179992966670}
   battleManager: {fileID: 0}
-  mergeSpeedMultiplier: 0.8
-  maxInheritedSpeed: 5
+  mergeSpeedMultiplier: 1
+  maxInheritedSpeed: 0
   mergeContactTolerance: 0
   finalMergeCleanupDelay: 1.5
   finalMergePopupDelay: 0.3
   finalMergePopup: {fileID: 0}
-  pushEffectRadiusMultiplier: 2
-  pushEffectForceGrade6: 10
-  pushEffectForceGrade7: 10
-  pushEffectForceGrade8: 10
-  pushEffectForceGrade9: 10
-  pushEffectForceGrade10: 10
-  pushEffectUpwardBias: 10
+  mergeFxPrefab: {fileID: 2332641657856936245, guid: 6a1cb78878d75844e8e8b20b2e0421d6, type: 3}
+  mergeFxDestinationName: OBJ_ParticlePoint
+  mergeFxParent: {fileID: 0}
+  mergeCameraShakeBasePower: 0.08
+  mergeCameraShakePowerIncreasePercent: 0.1
+  mergeCameraShakeDuration: 0.1
+  pushEffectRadiusMultiplier: 3
+  pushEffectForceGrade6: 20
+  pushEffectForceGrade7: 20
+  pushEffectForceGrade8: 20
+  pushEffectForceGrade9: 20
+  pushEffectForceGrade10: 20
+  pushEffectUpwardBias: 20
 --- !u!114 &3051682432527465309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -353,7 +359,7 @@ SpriteRenderer:
   m_SortingLayer: 1
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 4f569f59cdd806d41b69bd572709ae97, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -361,7 +367,7 @@ SpriteRenderer:
   m_Size: {x: 1.6, y: 1.8}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
 --- !u!1001 &848098721287233199
 PrefabInstance:

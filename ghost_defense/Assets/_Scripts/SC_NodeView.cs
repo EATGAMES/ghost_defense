@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -15,9 +16,6 @@ public class SC_NodeView : MonoBehaviour
     [Tooltip("노드 이름을 표시할 TMP 텍스트입니다.")]
     [SerializeField] private TMP_Text nameText;
 
-    [Tooltip("지나간 노드나 선택하지 않은 지나간 갈래일 때 노드 그래픽 색상에 곱할 어둡기 값입니다.")]
-    [SerializeField] private Color dimColorMultiplier = new Color(0.45f, 0.45f, 0.45f, 1f);
-
     [Tooltip("클리어한 노드일 때 켤 오브젝트입니다.")]
     [SerializeField] private GameObject clearedObject;
 
@@ -30,20 +28,58 @@ public class SC_NodeView : MonoBehaviour
     [Tooltip("몬스터 데이터의 전투 방향이 DOWN일 때 이동할 씬 이름입니다.")]
     [SerializeField] private string downBattleSceneName = "SCN_Battle_Drop";
 
+    [Header("팝업")]
+    [Tooltip("카드샵 노드를 눌렀을 때 켤 팝업 오브젝트입니다. 비워두면 아무 동작도 하지 않습니다.")]
+    [SerializeField] private GameObject cardShopPopup;
+
+    [Tooltip("상인 노드를 눌렀을 때 켤 팝업 오브젝트입니다. 비워두면 아무 동작도 하지 않습니다.")]
+    [SerializeField] private GameObject merchantPopup;
+
+    [Header("치트")]
+    [Tooltip("체크하면 일반 노드를 클릭했을 때 전투에 들어가지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearNormalNode;
+
+    [Tooltip("체크하면 어려움 노드를 클릭했을 때 전투에 들어가지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearHardNode;
+
+    [Tooltip("체크하면 카드샵 노드를 클릭했을 때 팝업을 열지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearCardShopNode;
+
+    [Tooltip("체크하면 상인 노드를 클릭했을 때 팝업을 열지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearMerchantNode;
+
+    [Tooltip("체크하면 이벤트 A 노드를 클릭했을 때 전투에 들어가지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearEventANode;
+
+    [Tooltip("체크하면 이벤트 B 노드를 클릭했을 때 전투에 들어가지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearEventBNode;
+
+    [Tooltip("체크하면 이벤트 C 노드를 클릭했을 때 전투에 들어가지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearEventCNode;
+
+    [Tooltip("체크하면 보스 노드를 클릭했을 때 전투에 들어가지 않고 즉시 클리어 처리합니다.")]
+    [SerializeField] private bool cheatClearBossNode;
+
+    [Tooltip("현재 진행 가능한 노드가 꿀렁일 때 커질 최대 스케일 배율입니다.")]
+    [SerializeField] private float currentPulseScale = 1.08f;
+
+    [Tooltip("현재 진행 가능한 노드가 한 번 꿀렁이는 데 걸리는 시간입니다.")]
+    [SerializeField] private float currentPulseSeconds = 0.8f;
+
     private SO_NodeStageData stageData;
     private NodeStageEntry nodeEntry;
     private SC_NodeMapBuilder mapBuilder;
     private string nodeId = string.Empty;
     private bool isUnlocked;
     private bool isCleared;
-    private bool isDimmed;
-    private Graphic[] cachedGraphics;
-    private Color[] originalGraphicColors;
     private bool isClickProcessing;
+    private Vector3 originalScale = Vector3.one;
+    private Coroutine pulseCoroutine;
 
     private void Awake()
     {
         ResolveReferences();
+        originalScale = transform.localScale;
 
         if (button != null)
         {
@@ -53,6 +89,8 @@ public class SC_NodeView : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopPulse();
+
         if (button != null)
         {
             button.onClick.RemoveListener(OnClickNode);
@@ -66,7 +104,6 @@ public class SC_NodeView : MonoBehaviour
         this.nodeId = string.IsNullOrWhiteSpace(nodeId) ? string.Empty : nodeId.Trim();
         this.isUnlocked = isUnlocked;
         this.isCleared = isCleared;
-        this.isDimmed = isDimmed;
         this.mapBuilder = mapBuilder;
 
         Refresh();
@@ -78,12 +115,12 @@ public class SC_NodeView : MonoBehaviour
 
         if (nameText != null)
         {
-            nameText.text = nodeEntry != null ? nodeEntry.DisplayName : string.Empty;
+            nameText.text = string.Empty;
         }
 
         if (iconImage != null)
         {
-            Sprite icon = nodeEntry != null ? nodeEntry.Icon : null;
+            Sprite icon = stageData != null && nodeEntry != null ? stageData.GetNodeIcon(nodeEntry.NodeType) : null;
             iconImage.sprite = icon;
             iconImage.enabled = icon != null;
         }
@@ -92,8 +129,6 @@ public class SC_NodeView : MonoBehaviour
         {
             button.interactable = true;
         }
-
-        RefreshDimState();
 
         if (clearedObject != null)
         {
@@ -104,6 +139,8 @@ public class SC_NodeView : MonoBehaviour
         {
             currentObject.SetActive(isUnlocked && !isCleared);
         }
+
+        RefreshPulseState();
     }
 
     private void OnClickNode()
@@ -127,42 +164,37 @@ public class SC_NodeView : MonoBehaviour
             return;
         }
 
-        if (mapBuilder != null && mapBuilder.CheatClearNodeWithoutEntering)
-        {
-            mapBuilder.CompleteNode(nodeId, nodeEntry);
-            return;
-        }
-
         if (!isUnlocked)
         {
             isClickProcessing = false;
             return;
         }
 
-        SC_NodeRunContext.SelectNode(stageData, nodeEntry, nodeId);
-        string targetSceneName = ResolveTargetSceneName();
-
-        if (!string.IsNullOrWhiteSpace(targetSceneName))
+        if (TryCheatClearNode())
         {
-            if (!Application.CanStreamedLevelBeLoaded(targetSceneName))
-            {
-                Debug.LogWarning($"노드 이동 씬 '{targetSceneName}'이(가) Build Profiles에 없어 로드할 수 없습니다.", this);
+            return;
+        }
+
+        switch (nodeEntry.NodeType)
+        {
+            case NodeDungeonType.Normal:
+            case NodeDungeonType.Hard:
+            case NodeDungeonType.EventA:
+            case NodeDungeonType.EventB:
+            case NodeDungeonType.EventC:
+            case NodeDungeonType.Boss:
+                LoadBattleScene();
+                return;
+            case NodeDungeonType.CardShop:
+                OpenPopup(cardShopPopup);
+                return;
+            case NodeDungeonType.Merchant:
+                OpenPopup(merchantPopup);
+                return;
+            default:
                 isClickProcessing = false;
                 return;
-            }
-
-            SceneManager.LoadScene(targetSceneName);
-            return;
         }
-
-        if (nodeEntry.ClearImmediatelyWhenNoScene && mapBuilder != null)
-        {
-            SC_NodeRunContext.Clear();
-            mapBuilder.CompleteNode(nodeId, nodeEntry);
-            return;
-        }
-
-        isClickProcessing = false;
     }
 
     private void ResolveReferences()
@@ -176,70 +208,116 @@ public class SC_NodeView : MonoBehaviour
         {
             iconImage = GetComponent<Image>();
         }
-
-        CacheGraphicColorsIfNeeded();
     }
 
-    private void RefreshDimState()
+    private void RefreshPulseState()
     {
-        CacheGraphicColorsIfNeeded();
+        if (isUnlocked && !isCleared)
+        {
+            StartPulse();
+            return;
+        }
 
-        if (cachedGraphics == null || originalGraphicColors == null)
+        StopPulse();
+    }
+
+    private void StartPulse()
+    {
+        if (pulseCoroutine != null)
         {
             return;
         }
 
-        for (int i = 0; i < cachedGraphics.Length; i++)
-        {
-            Graphic graphic = cachedGraphics[i];
-            if (graphic == null || i >= originalGraphicColors.Length)
-            {
-                continue;
-            }
+        pulseCoroutine = StartCoroutine(PulseRoutine());
+    }
 
-            graphic.color = isDimmed ? MultiplyColor(originalGraphicColors[i], dimColorMultiplier) : originalGraphicColors[i];
+    private void StopPulse()
+    {
+        if (pulseCoroutine != null)
+        {
+            StopCoroutine(pulseCoroutine);
+            pulseCoroutine = null;
+        }
+
+        transform.localScale = originalScale;
+    }
+
+    private IEnumerator PulseRoutine()
+    {
+        float safePulseSeconds = Mathf.Max(0.01f, currentPulseSeconds);
+        float safePulseScale = Mathf.Max(0f, currentPulseScale);
+
+        while (true)
+        {
+            float normalizedTime = Mathf.PingPong(Time.unscaledTime / safePulseSeconds * 2f, 1f);
+            float scale = Mathf.Lerp(1f, safePulseScale, Mathf.SmoothStep(0f, 1f, normalizedTime));
+            transform.localScale = originalScale * scale;
+            yield return null;
         }
     }
 
-    private void CacheGraphicColorsIfNeeded()
+    private void LoadBattleScene()
     {
-        if (cachedGraphics != null && originalGraphicColors != null && cachedGraphics.Length == originalGraphicColors.Length)
-        {
-            return;
-        }
-
-        cachedGraphics = GetComponentsInChildren<Graphic>(true);
-        originalGraphicColors = new Color[cachedGraphics.Length];
-        for (int i = 0; i < cachedGraphics.Length; i++)
-        {
-            originalGraphicColors[i] = cachedGraphics[i] != null ? cachedGraphics[i].color : Color.white;
-        }
-    }
-
-    private static Color MultiplyColor(Color baseColor, Color multiplier)
-    {
-        return new Color(
-            baseColor.r * multiplier.r,
-            baseColor.g * multiplier.g,
-            baseColor.b * multiplier.b,
-            baseColor.a * multiplier.a);
-    }
-
-    private string ResolveTargetSceneName()
-    {
-        string targetSceneName = nodeEntry.ResolveTargetSceneName();
-        if (!nodeEntry.IsBattleNode || nodeEntry.MonsterData == null)
-        {
-            return targetSceneName;
-        }
-
-        if (!string.IsNullOrWhiteSpace(targetSceneName))
-        {
-            return targetSceneName;
-        }
-
-        return nodeEntry.MonsterData.StageBattleDirection == StageBattleDirection.DOWN
+        bool shouldUseDropScene = nodeEntry.MonsterData != null && nodeEntry.MonsterData.StageBattleDirection == StageBattleDirection.DOWN;
+        string targetSceneName = shouldUseDropScene
             ? downBattleSceneName
             : upBattleSceneName;
+
+        if (!Application.CanStreamedLevelBeLoaded(targetSceneName))
+        {
+            Debug.LogWarning($"노드 이동 씬 '{targetSceneName}'이(가) Build Profiles에 없어 로드할 수 없습니다.", this);
+            isClickProcessing = false;
+            return;
+        }
+
+        SC_NodeRunContext.SelectNode(stageData, nodeEntry, nodeId);
+        SceneManager.LoadScene(targetSceneName);
+    }
+
+    private void OpenPopup(GameObject popupObject)
+    {
+        if (popupObject != null)
+        {
+            popupObject.SetActive(true);
+        }
+
+        isClickProcessing = false;
+    }
+
+    private bool TryCheatClearNode()
+    {
+        if (mapBuilder == null || !IsCheatClearEnabled(nodeEntry.NodeType))
+        {
+            return false;
+        }
+
+        SC_NodeRunContext.Clear();
+        mapBuilder.CompleteNode(nodeId, nodeEntry);
+        return true;
+    }
+
+    private bool IsCheatClearEnabled(NodeDungeonType nodeType)
+    {
+        switch (nodeType)
+        {
+            case NodeDungeonType.Normal:
+                return cheatClearNormalNode;
+            case NodeDungeonType.Hard:
+                return cheatClearHardNode;
+            case NodeDungeonType.CardShop:
+                return cheatClearCardShopNode;
+            case NodeDungeonType.Merchant:
+                return cheatClearMerchantNode;
+            case NodeDungeonType.EventA:
+                return cheatClearEventANode;
+            case NodeDungeonType.EventB:
+                return cheatClearEventBNode;
+            case NodeDungeonType.EventC:
+                return cheatClearEventCNode;
+            case NodeDungeonType.Boss:
+                return cheatClearBossNode;
+            default:
+                return false;
+        }
     }
 }

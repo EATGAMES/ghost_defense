@@ -36,6 +36,25 @@ public class SC_CharacterMergeController : MonoBehaviour
     [Tooltip("10단계 최종 머지 연출 팝업입니다.")]
     [SerializeField] private SC_FinalMergePopup finalMergePopup;
 
+    [Tooltip("머지 성공 위치에서 재생할 운석 이동 이펙트 프리팹입니다.")]
+    [SerializeField] private SC_MergeMoveFx mergeFxPrefab;
+
+    [Tooltip("결합 상승 이펙트가 향할 도착 지점 오브젝트 이름입니다.")]
+    [SerializeField] private string mergeFxDestinationName = "OBJ_ParticlePoint";
+
+    [Tooltip("생성된 결합 상승 이펙트를 배치할 부모 Transform입니다. 비워두면 씬 루트에 생성합니다.")]
+    [SerializeField] private Transform mergeFxParent;
+
+    [Tooltip("2단계 머지부터 사용할 기본 카메라 흔들림 파워입니다.")]
+    [SerializeField] private float mergeCameraShakeBasePower = 0.01f;
+
+    [Tooltip("머지 단계가 1단계 오를 때마다 흔들림 파워가 증가하는 비율입니다.")]
+    [Range(0f, 5f)]
+    [SerializeField] private float mergeCameraShakePowerIncreasePercent = 0.25f;
+
+    [Tooltip("모든 머지 단계에 공통으로 사용할 카메라 흔들림 시간입니다.")]
+    [SerializeField] private float mergeCameraShakeDuration = 0.08f;
+
     [Tooltip("주변 밀치기 반경을 Circle Collider 2D 반지름 대비 몇 배로 사용할지 설정합니다.")]
     [FormerlySerializedAs("pushEffectRadius")]
     [SerializeField] private float pushEffectRadiusMultiplier = 1.75f;
@@ -154,6 +173,8 @@ public class SC_CharacterMergeController : MonoBehaviour
         otherMerge.isMerged = true;
 
         GameObject mergedObject = SC_BattleMergeService.CreateMergedObject(mergeObjectPrefab, transform, otherMerge.transform, spawnParent, nextGrade, false);
+        Vector3 mergeFxWorldPosition = mergedObject != null ? mergedObject.transform.position : (transform.position + otherMerge.transform.position) * 0.5f;
+        PlayMergeCameraShake(nextGrade);
 
         Rigidbody2D mergedRb2D = mergedObject.GetComponent<Rigidbody2D>();
         if (mergedRb2D != null)
@@ -181,6 +202,7 @@ public class SC_CharacterMergeController : MonoBehaviour
 
         if (nextGrade >= 10)
         {
+            PlayMergeFx(mergeFxWorldPosition, null);
             SC_BattleMergeService.SetPhysicsEnabled(mergedObject, false, true);
 
             SC_CharacterMergeController mergedMergeController = mergedObject.GetComponent<SC_CharacterMergeController>();
@@ -196,7 +218,7 @@ public class SC_CharacterMergeController : MonoBehaviour
         }
         else
         {
-            SC_BattleMergeService.NotifyBattleMergeAttack(battleManager, nextGrade, comboMergeResult.DamageMultiplier);
+            ScheduleMergeAttackAfterFxArrival(mergeFxWorldPosition, nextGrade, comboMergeResult.DamageMultiplier);
         }
 
         Destroy(otherMerge.gameObject);
@@ -308,6 +330,73 @@ public class SC_CharacterMergeController : MonoBehaviour
             default:
                 return 0f;
         }
+    }
+
+    private void ScheduleMergeAttackAfterFxArrival(Vector3 worldPosition, int mergedGrade, float comboDamageMultiplier)
+    {
+        if (battleManager == null)
+        {
+            battleManager = FindAnyObjectByType<SC_BattleManager>();
+        }
+
+        long mergeFxSequence = battleManager != null ? battleManager.ReserveMergeFxAttackSequence() : 0L;
+        PlayMergeFx(worldPosition, () =>
+        {
+            if (battleManager != null)
+            {
+                battleManager.NotifyMergeFxAttackArrived(mergeFxSequence, mergedGrade, comboDamageMultiplier);
+                return;
+            }
+
+            SC_BattleMergeService.NotifyBattleMergeAttack(null, mergedGrade, comboDamageMultiplier);
+        });
+    }
+
+    private void PlayMergeFx(Vector3 worldPosition, System.Action onArrived)
+    {
+        if (mergeFxPrefab == null)
+        {
+            onArrived?.Invoke();
+            return;
+        }
+
+        SC_MergeMoveFx mergeMoveFx = Instantiate(mergeFxPrefab, worldPosition, Quaternion.identity, mergeFxParent);
+        Transform destinationPoint = ResolveMergeFxDestinationPoint();
+        mergeMoveFx.PlayAt(worldPosition, destinationPoint, onArrived);
+    }
+
+    private Transform ResolveMergeFxDestinationPoint()
+    {
+        if (string.IsNullOrWhiteSpace(mergeFxDestinationName))
+        {
+            return null;
+        }
+
+        GameObject destinationObject = GameObject.Find(mergeFxDestinationName);
+        return destinationObject != null ? destinationObject.transform : null;
+    }
+
+    private void PlayMergeCameraShake(int mergedGrade)
+    {
+        SC_CameraShake cameraShake = Camera.main != null ? Camera.main.GetComponent<SC_CameraShake>() : FindAnyObjectByType<SC_CameraShake>();
+        if (cameraShake == null)
+        {
+            return;
+        }
+
+        cameraShake.Play(CalculateMergeCameraShakePower(mergedGrade), Mathf.Max(0f, mergeCameraShakeDuration));
+    }
+
+    private float CalculateMergeCameraShakePower(int mergedGrade)
+    {
+        if (mergedGrade < 2)
+        {
+            return 0f;
+        }
+
+        int increaseStep = Mathf.Clamp(mergedGrade, 2, 10) - 2;
+        float increaseMultiplier = Mathf.Pow(1f + Mathf.Max(0f, mergeCameraShakePowerIncreasePercent), increaseStep);
+        return Mathf.Max(0f, mergeCameraShakeBasePower) * increaseMultiplier;
     }
 
     private IEnumerator CoHandleFinalMergeSequence()
