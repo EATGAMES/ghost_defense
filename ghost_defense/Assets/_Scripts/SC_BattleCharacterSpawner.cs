@@ -159,6 +159,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         }
 
         currentWaitingCharacter = shootComponent;
+        ConsumeExcludeLowGradeSpawnShot();
         PrepareNextSpawnGradePreview();
     }
 
@@ -239,6 +240,11 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
     private void PrepareNextSpawnGradePreview()
     {
+        if (preparedNextSpawnGrade.HasValue && !nextSpawnGradeOverride.HasValue)
+        {
+            return;
+        }
+
         int previousPreviewGrade = preparedNextSpawnGrade ?? 0;
         int nextPreviewGrade = nextSpawnGradeOverride ?? PickWeightedSpawnGrade();
         preparedNextSpawnGrade = Mathf.Clamp(nextPreviewGrade, 1, 10);
@@ -247,6 +253,16 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         {
             NextSpawnPreviewChanged?.Invoke();
         }
+    }
+
+    private void ConsumeExcludeLowGradeSpawnShot()
+    {
+        if (cardManager == null)
+        {
+            return;
+        }
+
+        cardManager.ConsumeExcludeLowGradeSpawnShot();
     }
 
     private void EnforceExcludeLowGradeSpawnEffect()

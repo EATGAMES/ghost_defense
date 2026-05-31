@@ -536,12 +536,12 @@ public class SC_NodeMapBuilder : MonoBehaviour
 
     private Vector2 ResolveRandomNodeOffset(NodeStageEntry entry, int layerIndex, int nodeIndex)
     {
-        if (currentStageData == null)
+        if (nodeViewPrefab == null)
         {
             return Vector2.zero;
         }
 
-        Vector2 randomRange = currentStageData.RandomPositionRange;
+        Vector2 randomRange = nodeViewPrefab.RandomPositionRange;
         if (Mathf.Approximately(randomRange.x, 0f) && Mathf.Approximately(randomRange.y, 0f))
         {
             return Vector2.zero;

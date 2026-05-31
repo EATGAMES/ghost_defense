@@ -141,10 +141,10 @@ public class SC_BossSpawner : MonoBehaviour
         return stageMonsterDataList[stageIndex];
     }
 
-    public StageMapType GetStageMapTypeForStage(int stage)
+    public Sprite GetStageMapSpriteForStage(int stage)
     {
         SO_MonsterData monsterData = GetMonsterDataForStage(stage);
-        return monsterData != null ? monsterData.StageMapType : StageMapType.Type1;
+        return monsterData != null ? monsterData.StageMapSprite : null;
     }
 
     private void OnMonsterDied(SC_MonsterHealth deadMonster)
@@ -173,7 +173,12 @@ public class SC_BossSpawner : MonoBehaviour
             return;
         }
 
-        placedBossHealth.SetMonsterData(targetMonsterData);
+        placedBossHealth.SetMonsterData(targetMonsterData, ResolveMonsterHpMultiplier());
+    }
+
+    private float ResolveMonsterHpMultiplier()
+    {
+        return SC_NodeRunContext.HasActiveNode ? SC_NodeRunContext.CurrentNodeMultiplier : 1f;
     }
 
     private void ApplyStageMonsterDataAndRegisterBoss()

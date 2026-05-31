@@ -367,7 +367,6 @@ public class SC_BattleManager : MonoBehaviour
             cardManager.ConsumeLowerGradeAdditionalAttackShot();
         }
 
-        RefreshPrecognitionPreviewPoint();
         TryStartAttackQueueProcessing();
         RaiseMergeAttackGaugeChanged();
     }
@@ -512,12 +511,19 @@ public class SC_BattleManager : MonoBehaviour
             return;
         }
 
+        bool shouldRefreshNextSpawnPreviewGrade = selectedCardData != null
+            && selectedCardData.EffectType == CardEffectType.ExcludeLowGradeSpawn;
+
         if (selectedCardData != null && cardManager != null)
         {
             cardManager.ApplySelectedCard(selectedCardData);
         }
 
-        RefreshNextSpawnPreviewGrade();
+        if (shouldRefreshNextSpawnPreviewGrade)
+        {
+            RefreshNextSpawnPreviewGrade();
+        }
+
         isCardSelectionOpen = false;
         currentAttackCount = 0;
         RaiseMergeAttackGaugeChanged();
@@ -709,7 +715,6 @@ public class SC_BattleManager : MonoBehaviour
         while (!isCardSelectionOpen && pendingAttackRequests.Count > 0)
         {
             AttackRequest request = pendingAttackRequests.Dequeue();
-            RefreshPrecognitionPreviewPoint();
             SO_CharacterData attacker = request.CharacterData != null ? request.CharacterData : currentAttackCharacterData;
             if (attacker == null)
             {
@@ -743,12 +748,6 @@ public class SC_BattleManager : MonoBehaviour
             if (!isPostClearContinueMode)
             {
                 currentAttackCount++;
-                if (cardManager != null)
-                {
-                    cardManager.ConsumeExcludeLowGradeSpawnShot();
-                    RefreshNextSpawnPreviewGrade();
-                }
-
                 RaiseMergeAttackGaugeChanged();
             }
 
@@ -784,8 +783,6 @@ public class SC_BattleManager : MonoBehaviour
         {
             TryStartAttackQueueProcessing();
         }
-
-        RefreshPrecognitionPreviewPoint();
     }
 
     private void FinalizeBossDefeat()

@@ -4,6 +4,59 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+[System.Serializable]
+public class NodeDungeonTypeIconSet
+{
+    [Tooltip("일반 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite normalIcon;
+
+    [Tooltip("어려움 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite hardIcon;
+
+    [Tooltip("카드점 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite cardShopIcon;
+
+    [Tooltip("거래상 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite merchantIcon;
+
+    [Tooltip("이벤트 A 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite eventAIcon;
+
+    [Tooltip("이벤트 B 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite eventBIcon;
+
+    [Tooltip("이벤트 C 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite eventCIcon;
+
+    [Tooltip("보스 노드에 표시할 아이콘입니다.")]
+    [SerializeField] private Sprite bossIcon;
+
+    public Sprite GetIcon(NodeDungeonType type)
+    {
+        switch (type)
+        {
+            case NodeDungeonType.Normal:
+                return normalIcon;
+            case NodeDungeonType.Hard:
+                return hardIcon;
+            case NodeDungeonType.CardShop:
+                return cardShopIcon;
+            case NodeDungeonType.Merchant:
+                return merchantIcon;
+            case NodeDungeonType.EventA:
+                return eventAIcon;
+            case NodeDungeonType.EventB:
+                return eventBIcon;
+            case NodeDungeonType.EventC:
+                return eventCIcon;
+            case NodeDungeonType.Boss:
+                return bossIcon;
+            default:
+                return null;
+        }
+    }
+}
+
 [DisallowMultipleComponent]
 public class SC_NodeView : MonoBehaviour
 {
@@ -15,6 +68,16 @@ public class SC_NodeView : MonoBehaviour
 
     [Tooltip("노드 이름을 표시할 TMP 텍스트입니다.")]
     [SerializeField] private TMP_Text nameText;
+
+    [Tooltip("노드 타입별로 표시할 아이콘 목록입니다.")]
+    [SerializeField] private NodeDungeonTypeIconSet typeIcons = new NodeDungeonTypeIconSet();
+
+    [Header("랜덤 위치")]
+    [Tooltip("노드 아이콘 생성 시 0부터 이 X값까지 랜덤하게 더할 위치입니다.")]
+    [SerializeField] private float randomPositionX;
+
+    [Tooltip("노드 아이콘 생성 시 0부터 이 Y값까지 랜덤하게 더할 위치입니다.")]
+    [SerializeField] private float randomPositionY;
 
     [Tooltip("클리어한 노드일 때 켤 오브젝트입니다.")]
     [SerializeField] private GameObject clearedObject;
@@ -76,6 +139,8 @@ public class SC_NodeView : MonoBehaviour
     private Vector3 originalScale = Vector3.one;
     private Coroutine pulseCoroutine;
 
+    public Vector2 RandomPositionRange => new Vector2(randomPositionX, randomPositionY);
+
     private void Awake()
     {
         ResolveReferences();
@@ -115,12 +180,12 @@ public class SC_NodeView : MonoBehaviour
 
         if (nameText != null)
         {
-            nameText.text = string.Empty;
+            nameText.text = nodeEntry != null ? GetNodeTypeName(nodeEntry.NodeType) : string.Empty;
         }
 
         if (iconImage != null)
         {
-            Sprite icon = stageData != null && nodeEntry != null ? stageData.GetNodeIcon(nodeEntry.NodeType) : null;
+            Sprite icon = nodeEntry != null && typeIcons != null ? typeIcons.GetIcon(nodeEntry.NodeType) : null;
             iconImage.sprite = icon;
             iconImage.enabled = icon != null;
         }
@@ -258,7 +323,9 @@ public class SC_NodeView : MonoBehaviour
 
     private void LoadBattleScene()
     {
-        bool shouldUseDropScene = nodeEntry.MonsterData != null && nodeEntry.MonsterData.StageBattleDirection == StageBattleDirection.DOWN;
+        SC_NodeRunContext.SelectNode(stageData, nodeEntry, nodeId);
+        StageBattleDirection battleDirection = SC_NodeRunContext.CurrentBattleDirection;
+        bool shouldUseDropScene = battleDirection == StageBattleDirection.DOWN;
         string targetSceneName = shouldUseDropScene
             ? downBattleSceneName
             : upBattleSceneName;
@@ -270,7 +337,6 @@ public class SC_NodeView : MonoBehaviour
             return;
         }
 
-        SC_NodeRunContext.SelectNode(stageData, nodeEntry, nodeId);
         SceneManager.LoadScene(targetSceneName);
     }
 
@@ -318,6 +384,29 @@ public class SC_NodeView : MonoBehaviour
                 return cheatClearBossNode;
             default:
                 return false;
+        }
+    }
+
+    private string GetNodeTypeName(NodeDungeonType nodeType)
+    {
+        switch (nodeType)
+        {
+            case NodeDungeonType.Normal:
+                return "보통";
+            case NodeDungeonType.Hard:
+                return "어려움";
+            case NodeDungeonType.CardShop:
+                return "카드점";
+            case NodeDungeonType.Merchant:
+                return "상인";
+            case NodeDungeonType.EventA:
+            case NodeDungeonType.EventB:
+            case NodeDungeonType.EventC:
+                return "이벤트";
+            case NodeDungeonType.Boss:
+                return "보스";
+            default:
+                return string.Empty;
         }
     }
 }

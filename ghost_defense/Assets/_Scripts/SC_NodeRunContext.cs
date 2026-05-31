@@ -7,7 +7,41 @@ public static class SC_NodeRunContext
     public static int CurrentStageId { get; private set; }
     public static string CurrentNodeId { get; private set; } = string.Empty;
     public static SO_MonsterData CurrentMonsterData => CurrentNodeEntry != null ? CurrentNodeEntry.MonsterData : null;
+    public static string CurrentMapStyle => CurrentNodeEntry != null ? CurrentNodeEntry.MapStyle : string.Empty;
+    public static float CurrentNodeMultiplier => CurrentNodeEntry != null ? CurrentNodeEntry.NodeMultiplier : 1f;
     public static bool HasActiveNode => CurrentStageData != null && CurrentNodeEntry != null && !string.IsNullOrWhiteSpace(CurrentNodeId);
+
+    public static StageBattleDirection CurrentBattleDirection
+    {
+        get
+        {
+            if (TryResolveBattleDirectionFromMapStyle(CurrentMapStyle, out StageBattleDirection battleDirection))
+            {
+                return battleDirection;
+            }
+
+            return StageBattleDirection.UP;
+        }
+    }
+
+    private static bool TryResolveBattleDirectionFromMapStyle(string mapStyle, out StageBattleDirection battleDirection)
+    {
+        string safeMapStyle = string.IsNullOrWhiteSpace(mapStyle) ? string.Empty : mapStyle.Trim();
+        if (safeMapStyle.StartsWith("Down_", System.StringComparison.OrdinalIgnoreCase))
+        {
+            battleDirection = StageBattleDirection.DOWN;
+            return true;
+        }
+
+        if (safeMapStyle.StartsWith("Up_", System.StringComparison.OrdinalIgnoreCase))
+        {
+            battleDirection = StageBattleDirection.UP;
+            return true;
+        }
+
+        battleDirection = StageBattleDirection.UP;
+        return false;
+    }
 
     public static void SelectNode(SO_NodeStageData stageData, NodeStageEntry nodeEntry, string nodeId)
     {

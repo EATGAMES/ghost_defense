@@ -35,7 +35,12 @@ public class SC_MonsterHealth : MonoBehaviour
 
     public void SetMonsterData(SO_MonsterData newMonsterData)
     {
-        ApplyMonsterData(newMonsterData);
+        ApplyMonsterData(newMonsterData, 1f);
+    }
+
+    public void SetMonsterData(SO_MonsterData newMonsterData, float hpMultiplier)
+    {
+        ApplyMonsterData(newMonsterData, hpMultiplier);
     }
 
     public void TakeDamage(float damage)
@@ -87,8 +92,13 @@ public class SC_MonsterHealth : MonoBehaviour
 
     private void ApplyMonsterData(SO_MonsterData newMonsterData)
     {
+        ApplyMonsterData(newMonsterData, 1f);
+    }
+
+    private void ApplyMonsterData(SO_MonsterData newMonsterData, float hpMultiplier)
+    {
         monsterData = newMonsterData;
-        runtimeMaxHp = monsterData != null ? Mathf.Max(0f, monsterData.MaxHp) : 0f;
+        runtimeMaxHp = monsterData != null ? Mathf.Max(0f, monsterData.BaseHp * Mathf.Max(0f, hpMultiplier)) : 0f;
         currentHp = runtimeMaxHp;
         isDeathNotified = false;
         isImmortalTarget = false;

@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Node Stage Editor</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d8dee9;
+      --strong: #111827;
+      --blue: #2563eb;
+      --green: #0f8a5f;
+      --red: #d33838;
+      --amber: #b7791f;
+      --violet: #7353c6;
+      --teal: #0f766e;
+      --pink: #be477c;
+      --shadow: 0 10px 28px rgba(24, 39, 75, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      background: var(--bg);
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 260px minmax(620px, 1fr) 430px;
+      min-height: 100vh;
+    }
+
+    .side,
+    .inspector {
+      background: var(--panel);
+      border-color: var(--line);
+      border-style: solid;
+      overflow: auto;
+    }
+
+    .side {
+      border-width: 0 1px 0 0;
+      padding: 18px;
+    }
+
+    .inspector {
+      border-width: 0 0 0 1px;
+      padding: 18px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.82);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand strong {
+      color: var(--strong);
+      font-size: 18px;
+    }
+
+    .brand span,
+    .hint,
+    label span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin: 0 0 12px;
+    }
+
+    .field.inline {
+      grid-template-columns: auto 90px;
+      align-items: center;
+      margin: 0;
+    }
+
+    .field label {
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    button.danger {
+      border-color: rgba(211, 56, 56, 0.35);
+      color: var(--red);
+    }
+
+    button.active {
+      border-color: var(--green);
+      background: rgba(15, 138, 95, 0.1);
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      color: var(--strong);
+      font-size: 16px;
+    }
+
+    .palette {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .palette-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px 10px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .palette-item:active {
+      cursor: grabbing;
+    }
+
+    .type-icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .type-Normal .type-icon { background: var(--green); }
+    .type-Hard .type-icon { background: var(--amber); }
+    .type-Boss .type-icon { background: var(--red); }
+    .type-EventA .type-icon { background: var(--violet); }
+    .type-EventB .type-icon { background: var(--pink); }
+    .type-EventC .type-icon { background: var(--teal); }
+    .type-CardShop .type-icon { background: var(--blue); }
+    .type-Merchant .type-icon { background: #64748b; }
+
+    .type-label {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .type-label strong {
+      font-size: 14px;
+    }
+
+    .board-wrap {
+      min-height: 0;
+      padding: 18px;
+      overflow: auto;
+      height: calc(100vh - 65px);
+    }
+
+    .board {
+      position: relative;
+      min-width: 700px;
+      min-height: 760px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(31, 41, 55, 0.055) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(31, 41, 55, 0.055) 1px, transparent 1px),
+        #fbfcff;
+      background-size: 36px 36px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .connections {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .connections path {
+      fill: none;
+      stroke: rgba(26, 36, 56, 0.35);
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+
+    .layers {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 36px;
+      padding: 18px 30px;
+      min-height: 760px;
+      align-content: end;
+    }
+
+    .layer {
+      display: grid;
+      grid-template-columns: 64px repeat(3, minmax(120px, 1fr));
+      align-items: center;
+      gap: 12px;
+      min-height: 68px;
+    }
+
+    .layer-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .slot {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 62px;
+      border: 1px dashed #b8c2d4;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .slot.over {
+      border-color: var(--blue);
+      background: rgba(37, 99, 235, 0.08);
+    }
+
+    .slot-empty {
+      color: #a2adbd;
+      font-size: 12px;
+    }
+
+    .node {
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 6px;
+      width: min(112px, 88%);
+      min-height: 56px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 8px 20px rgba(24, 39, 75, 0.14);
+      cursor: grab;
+      user-select: none;
+    }
+
+    .node:active {
+      cursor: grabbing;
+    }
+
+    .node.selected {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14), 0 8px 20px rgba(24, 39, 75, 0.14);
+    }
+
+    .node.connect-source {
+      border-color: var(--green);
+    }
+
+    .node-id {
+      color: var(--strong);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .node-name {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .csv-box {
+      min-height: 280px;
+      resize: vertical;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0 16px;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .empty-state {
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      min-height: 200px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .selected-panel {
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+
+    .inspector-section {
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+
+    .inspector-section h3 {
+      margin: 0 0 10px;
+      color: var(--strong);
+      font-size: 14px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        grid-template-columns: 220px minmax(580px, 1fr);
+      }
+
+      .inspector {
+        grid-column: 1 / -1;
+        border-width: 1px 0 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="side">
+      <h2>노드 타입</h2>
+      <div id="palette" class="palette"></div>
+      <div class="field">
+        <label for="stageId">스테이지 ID</label>
+        <input id="stageId" type="number" min="1" value="1">
+      </div>
+      <div class="field">
+        <label for="layerCount">레이어 수 <span>아래에서 위로 배치</span></label>
+        <input id="layerCount" type="number" min="1" max="20" value="10">
+      </div>
+      <div class="button-row">
+        <button id="resetIds" type="button">ID 재정렬</button>
+        <button id="clearStage" class="danger" type="button">전체 삭제</button>
+      </div>
+      <p class="hint">타입을 오른쪽 슬롯에 드래그하세요. 연결 모드를 켠 뒤 출발 노드와 도착 노드를 차례로 누르면 선이 연결됩니다.</p>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div class="brand">
+          <strong>Node Stage Editor</strong>
+          <span>같은 레이어에는 최대 3개까지 배치됩니다.</span>
+        </div>
+        <div class="controls">
+          <button id="connectMode" type="button">연결 모드</button>
+          <button id="saveJson" type="button">작업 저장</button>
+          <button id="loadJson" type="button">작업 불러오기</button>
+        </div>
+      </header>
+      <div class="board-wrap">
+        <div id="board" class="board">
+          <svg id="connections" class="connections"></svg>
+          <div id="layers" class="layers"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <h2>선택 노드</h2>
+      <div id="emptyInspector" class="empty-state">
+        <span>노드를 선택하면 타입별 세부값을 편집할 수 있습니다.</span>
+      </div>
+      <div id="nodeInspector" class="selected-panel" hidden>
+        <div class="field">
+          <label for="nodeId">Node ID</label>
+          <input id="nodeId" type="text" inputmode="numeric" maxlength="3">
+        </div>
+        <div class="field">
+          <label for="nodeType">Type</label>
+          <select id="nodeType"></select>
+        </div>
+
+        <div id="battleInspector" class="inspector-section">
+          <h3>전투 데이터</h3>
+          <div class="field">
+            <label for="mapStyle">맵 스타일</label>
+            <select id="mapStyle"></select>
+          </div>
+          <div class="field">
+            <label for="monsterId">몬스터 ID</label>
+            <input id="monsterId" type="text" placeholder="SkeletonCactus">
+          </div>
+          <div class="field">
+            <label for="hpMultiplier">체력 배율</label>
+            <input id="hpMultiplier" type="number" min="0" step="0.01" value="1">
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="weaknessDamageType">약점 속성</label>
+              <select id="weaknessDamageType"></select>
+            </div>
+            <div class="field">
+              <label for="weaknessAttackStyle">약점 스타일</label>
+              <select id="weaknessAttackStyle"></select>
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="firstClearGold">첫 클리어 골드</label>
+              <input id="firstClearGold" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="field">
+              <label for="repeatClearGold">반복 골드</label>
+              <input id="repeatClearGold" type="number" min="0" step="1" value="0">
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="firstClearDiamond">첫 클리어 다이아</label>
+              <input id="firstClearDiamond" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="field">
+              <label for="repeatClearDiamond">반복 다이아</label>
+              <input id="repeatClearDiamond" type="number" min="0" step="1" value="0">
+            </div>
+          </div>
+        </div>
+
+        <div id="utilityInspector" class="inspector-section" hidden>
+          <h3>비전투 노드</h3>
+          <p class="hint">카드점과 상인은 배치와 연결만 CSV에 기록합니다.</p>
+        </div>
+
+        <div class="button-row">
+          <button id="deleteNode" class="danger" type="button">노드 삭제</button>
+        </div>
+      </div>
+
+      <h2>CSV</h2>
+      <textarea id="csvOutput" class="csv-box" spellcheck="false"></textarea>
+      <div class="button-row">
+        <button id="copyCsv" type="button">CSV 복사</button>
+        <button id="downloadCsv" class="primary" type="button">CSV 다운로드</button>
+      </div>
+      <div id="status" class="status"></div>
+    </aside>
+  </main>
+
+  <script>
+    const nodeTypes = [
+      { type: "Normal", label: "보통", icon: "일" },
+      { type: "Hard", label: "어려움", icon: "어" },
+      { type: "Boss", label: "보스", icon: "보" },
+      { type: "EventA", label: "이벤트 A", icon: "A" },
+      { type: "EventB", label: "이벤트 B", icon: "B" },
+      { type: "EventC", label: "이벤트 C", icon: "C" },
+      { type: "CardShop", label: "카드점", icon: "카" },
+      { type: "Merchant", label: "상인", icon: "상" }
+    ];
+
+    const battleNodeTypes = new Set(["Normal", "Hard", "Boss", "EventA", "EventB", "EventC"]);
+    const mapStyles = ["Up_001", "Up_002", "Up_003", "Up_004", "Up_005", "Down_001", "Down_002", "Down_003", "Down_004", "Down_005"];
+    const weaknessDamageTypes = ["None", "Physical", "Magic", "Explosion"];
+    const weaknessAttackStyles = ["None", "Ranged", "Melee", "Summon"];
+
+    const state = {
+      nodes: [],
+      edges: [],
+      selectedUid: null,
+      connectMode: false,
+      connectSourceUid: null,
+      uidSeed: 1
+    };
+
+    const els = {
+      palette: document.getElementById("palette"),
+      layers: document.getElementById("layers"),
+      board: document.getElementById("board"),
+      connections: document.getElementById("connections"),
+      stageId: document.getElementById("stageId"),
+      layerCount: document.getElementById("layerCount"),
+      connectMode: document.getElementById("connectMode"),
+      csvOutput: document.getElementById("csvOutput"),
+      status: document.getElementById("status"),
+      emptyInspector: document.getElementById("emptyInspector"),
+      nodeInspector: document.getElementById("nodeInspector"),
+      nodeId: document.getElementById("nodeId"),
+      nodeType: document.getElementById("nodeType"),
+      battleInspector: document.getElementById("battleInspector"),
+      utilityInspector: document.getElementById("utilityInspector"),
+      mapStyle: document.getElementById("mapStyle"),
+      monsterId: document.getElementById("monsterId"),
+      hpMultiplier: document.getElementById("hpMultiplier"),
+      weaknessDamageType: document.getElementById("weaknessDamageType"),
+      weaknessAttackStyle: document.getElementById("weaknessAttackStyle"),
+      firstClearGold: document.getElementById("firstClearGold"),
+      repeatClearGold: document.getElementById("repeatClearGold"),
+      firstClearDiamond: document.getElementById("firstClearDiamond"),
+      repeatClearDiamond: document.getElementById("repeatClearDiamond"),
+      deleteNode: document.getElementById("deleteNode"),
+      resetIds: document.getElementById("resetIds"),
+      clearStage: document.getElementById("clearStage"),
+      copyCsv: document.getElementById("copyCsv"),
+      downloadCsv: document.getElementById("downloadCsv"),
+      saveJson: document.getElementById("saveJson"),
+      loadJson: document.getElementById("loadJson")
+    };
+
+    function getTypeInfo(type) {
+      return nodeTypes.find(item => item.type === type) || nodeTypes[0];
+    }
+
+    function isBattleNodeType(type) {
+      return battleNodeTypes.has(type);
+    }
+
+    function toNumber(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
+    }
+
+    function createDefaultNode(type, layer, slot) {
+      return {
+        uid: `node-${state.uidSeed++}`,
+        nodeId: nextNodeId(),
+        type,
+        mapStyle: isBattleNodeType(type) ? "Up_001" : "",
+        monsterId: "",
+        hpMultiplier: isBattleNodeType(type) ? 1 : "",
+        weaknessDamageType: "None",
+        weaknessAttackStyle: "None",
+        firstClearGold: 0,
+        repeatClearGold: 0,
+        firstClearDiamond: 0,
+        repeatClearDiamond: 0,
+        layer,
+        slot
+      };
+    }
+
+    function normalizeNode(node) {
+      if (!node) {
+        return null;
+      }
+
+      node.nodeId = padNodeId(node.nodeId);
+      node.type = node.type || "Normal";
+      node.mapStyle = node.mapStyle ?? "";
+      node.monsterId = node.monsterId ?? node.monster ?? "";
+      node.hpMultiplier = node.hpMultiplier ?? (isBattleNodeType(node.type) ? 1 : "");
+      node.weaknessDamageType = node.weaknessDamageType || "None";
+      node.weaknessAttackStyle = node.weaknessAttackStyle || "None";
+      node.firstClearGold = node.firstClearGold ?? 0;
+      node.repeatClearGold = node.repeatClearGold ?? 0;
+      node.firstClearDiamond = node.firstClearDiamond ?? 0;
+      node.repeatClearDiamond = node.repeatClearDiamond ?? 0;
+      return node;
+    }
+
+    function padNodeId(value) {
+      const text = String(value || "").replace(/\D/g, "");
+      if (!text) {
+        return "";
+      }
+      return text.padStart(3, "0").slice(-3);
+    }
+
+    function nextNodeId() {
+      const used = new Set(state.nodes.map(node => node.nodeId));
+      for (let i = 1; i < 1000; i++) {
+        const id = String(i).padStart(3, "0");
+        if (!used.has(id)) {
+          return id;
+        }
+      }
+      return "999";
+    }
+
+    function sortedNodes() {
+      return [...state.nodes].sort((a, b) => {
+        if (a.layer !== b.layer) {
+          return a.layer - b.layer;
+        }
+        return a.slot - b.slot;
+      });
+    }
+
+    function renderPalette() {
+      els.palette.innerHTML = "";
+      nodeTypes.forEach(info => {
+        const item = document.createElement("div");
+        item.className = `palette-item type-${info.type}`;
+        item.draggable = true;
+        item.dataset.type = info.type;
+        item.innerHTML = `
+          <span class="type-icon">${info.icon}</span>
+          <span class="type-label">
+            <strong>${info.label}</strong>
+            <span>${info.type}</span>
+          </span>
+        `;
+        item.addEventListener("dragstart", event => {
+          event.dataTransfer.setData("application/node-type", info.type);
+          event.dataTransfer.effectAllowed = "copy";
+        });
+        els.palette.appendChild(item);
+      });
+    }
+
+    function renderTypeSelect() {
+      els.nodeType.innerHTML = "";
+      nodeTypes.forEach(info => {
+        const option = document.createElement("option");
+        option.value = info.type;
+        option.textContent = `${info.label} (${info.type})`;
+        els.nodeType.appendChild(option);
+      });
+    }
+
+    function renderOptionSelect(select, values) {
+      select.innerHTML = "";
+      values.forEach(value => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    }
+
+    function renderInspectorSelects() {
+      renderTypeSelect();
+      renderOptionSelect(els.mapStyle, mapStyles);
+      renderOptionSelect(els.weaknessDamageType, weaknessDamageTypes);
+      renderOptionSelect(els.weaknessAttackStyle, weaknessAttackStyles);
+    }
+
+    function renderLayers() {
+      const count = Math.max(1, Math.min(20, Number(els.layerCount.value) || 10));
+      els.layerCount.value = count;
+      els.layers.innerHTML = "";
+
+      for (let layer = count; layer >= 1; layer--) {
+        const layerEl = document.createElement("div");
+        layerEl.className = "layer";
+        layerEl.dataset.layer = layer;
+        layerEl.innerHTML = `<div class="layer-title">Layer ${layer}</div>`;
+
+        for (let slot = 0; slot < 3; slot++) {
+          const slotEl = document.createElement("div");
+          slotEl.className = "slot";
+          slotEl.dataset.layer = layer;
+          slotEl.dataset.slot = slot;
+          slotEl.innerHTML = `<span class="slot-empty">비어 있음</span>`;
+          bindSlotDrop(slotEl);
+          layerEl.appendChild(slotEl);
+        }
+
+        els.layers.appendChild(layerEl);
+      }
+
+      state.nodes = state.nodes.filter(node => node.layer <= count);
+      state.edges = state.edges.filter(edge => findNode(edge.from) && findNode(edge.to));
+      renderNodes();
+    }
+
+    function bindSlotDrop(slotEl) {
+      slotEl.addEventListener("dragover", event => {
+        event.preventDefault();
+        slotEl.classList.add("over");
+      });
+
+      slotEl.addEventListener("dragleave", () => {
+        slotEl.classList.remove("over");
+      });
+
+      slotEl.addEventListener("drop", event => {
+        event.preventDefault();
+        slotEl.classList.remove("over");
+        const layer = Number(slotEl.dataset.layer);
+        const slot = Number(slotEl.dataset.slot);
+        const existingNode = nodeAt(layer, slot);
+        const movingUid = event.dataTransfer.getData("application/node-uid");
+        const newType = event.dataTransfer.getData("application/node-type");
+
+        if (existingNode && (!movingUid || existingNode.uid !== movingUid)) {
+          setStatus("이미 노드가 있는 슬롯입니다.");
+          return;
+        }
+
+        if (movingUid) {
+          moveNode(movingUid, layer, slot);
+          return;
+        }
+
+        if (newType) {
+          addNode(newType, layer, slot);
+        }
+      });
+    }
+
+    function addNode(type, layer, slot) {
+      const node = createDefaultNode(type, layer, slot);
+      state.nodes.push(node);
+      state.selectedUid = node.uid;
+      renderAll();
+      setStatus("노드를 추가했습니다.");
+    }
+
+    function moveNode(uid, layer, slot) {
+      const node = findNode(uid);
+      if (!node) {
+        return;
+      }
+      node.layer = layer;
+      node.slot = slot;
+      renderAll();
+      setStatus("노드를 이동했습니다.");
+    }
+
+    function findNode(uid) {
+      return state.nodes.find(node => node.uid === uid);
+    }
+
+    function nodeAt(layer, slot) {
+      return state.nodes.find(node => node.layer === layer && node.slot === slot);
+    }
+
+    function renderNodes() {
+      document.querySelectorAll(".slot").forEach(slotEl => {
+        slotEl.innerHTML = `<span class="slot-empty">비어 있음</span>`;
+      });
+
+      state.nodes.forEach(node => {
+        normalizeNode(node);
+        const slotEl = document.querySelector(`.slot[data-layer="${node.layer}"][data-slot="${node.slot}"]`);
+        if (!slotEl) {
+          return;
+        }
+
+        const info = getTypeInfo(node.type);
+        const nodeEl = document.createElement("div");
+        nodeEl.className = `node type-${node.type}`;
+        if (node.uid === state.selectedUid) {
+          nodeEl.classList.add("selected");
+        }
+        if (node.uid === state.connectSourceUid) {
+          nodeEl.classList.add("connect-source");
+        }
+        nodeEl.draggable = true;
+        nodeEl.dataset.uid = node.uid;
+        nodeEl.innerHTML = `
+          <span class="type-icon">${info.icon}</span>
+          <span class="node-id">${node.nodeId}</span>
+          <span class="node-name">${info.label}</span>
+        `;
+        nodeEl.addEventListener("dragstart", event => {
+          event.dataTransfer.setData("application/node-uid", node.uid);
+          event.dataTransfer.effectAllowed = "move";
+        });
+        nodeEl.addEventListener("click", event => {
+          event.stopPropagation();
+          handleNodeClick(node.uid);
+        });
+        slotEl.innerHTML = "";
+        slotEl.appendChild(nodeEl);
+      });
+
+      renderInspector();
+      renderConnections();
+      updateCsv();
+    }
+
+    function handleNodeClick(uid) {
+      state.selectedUid = uid;
+
+      if (state.connectMode) {
+        if (!state.connectSourceUid) {
+          state.connectSourceUid = uid;
+          setStatus("도착 노드를 선택하세요.");
+        } else if (state.connectSourceUid === uid) {
+          state.connectSourceUid = null;
+          setStatus("연결 시작을 취소했습니다.");
+        } else {
+          toggleEdge(state.connectSourceUid, uid);
+          state.connectSourceUid = null;
+        }
+      }
+
+      renderAll();
+    }
+
+    function toggleEdge(from, to) {
+      const index = state.edges.findIndex(edge => edge.from === from && edge.to === to);
+      if (index >= 0) {
+        state.edges.splice(index, 1);
+        setStatus("연결을 제거했습니다.");
+        return;
+      }
+      state.edges.push({ from, to });
+      setStatus("연결을 추가했습니다.");
+    }
+
+    function renderConnections() {
+      const boardRect = els.board.getBoundingClientRect();
+      els.connections.setAttribute("width", boardRect.width);
+      els.connections.setAttribute("height", boardRect.height);
+      els.connections.setAttribute("viewBox", `0 0 ${boardRect.width} ${boardRect.height}`);
+      els.connections.innerHTML = "";
+
+      state.edges.forEach(edge => {
+        const fromEl = document.querySelector(`.node[data-uid="${edge.from}"]`);
+        const toEl = document.querySelector(`.node[data-uid="${edge.to}"]`);
+        if (!fromEl || !toEl) {
+          return;
+        }
+
+        const start = centerInBoard(fromEl, boardRect);
+        const end = centerInBoard(toEl, boardRect);
+        const midY = (start.y + end.y) * 0.5;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${start.x} ${start.y} C ${start.x} ${midY}, ${end.x} ${midY}, ${end.x} ${end.y}`);
+        els.connections.appendChild(path);
+      });
+    }
+
+    function centerInBoard(element, boardRect) {
+      const rect = element.getBoundingClientRect();
+      return {
+        x: rect.left - boardRect.left + rect.width * 0.5,
+        y: rect.top - boardRect.top + rect.height * 0.5
+      };
+    }
+
+    function renderInspector() {
+      const node = findNode(state.selectedUid);
+      els.emptyInspector.hidden = Boolean(node);
+      els.nodeInspector.hidden = !node;
+      if (!node) {
+        return;
+      }
+
+      normalizeNode(node);
+      const isBattleNode = isBattleNodeType(node.type);
+      els.nodeId.value = node.nodeId;
+      els.nodeType.value = node.type;
+      els.battleInspector.hidden = !isBattleNode;
+      els.utilityInspector.hidden = isBattleNode;
+      els.mapStyle.value = node.mapStyle || "Up_001";
+      els.monsterId.value = node.monsterId || "";
+      els.hpMultiplier.value = node.hpMultiplier === "" ? "" : node.hpMultiplier;
+      els.weaknessDamageType.value = node.weaknessDamageType || "None";
+      els.weaknessAttackStyle.value = node.weaknessAttackStyle || "None";
+      els.firstClearGold.value = node.firstClearGold ?? 0;
+      els.repeatClearGold.value = node.repeatClearGold ?? 0;
+      els.firstClearDiamond.value = node.firstClearDiamond ?? 0;
+      els.repeatClearDiamond.value = node.repeatClearDiamond ?? 0;
+    }
+
+    function updateCsv() {
+      const stageId = Number(els.stageId.value) || 1;
+      const rows = [[
+        "stageId",
+        "layer",
+        "nodeId",
+        "nodeType",
+        "mapStyle",
+        "monsterId",
+        "hpMultiplier",
+        "weaknessDamageType",
+        "weaknessAttackStyle",
+        "firstClearGold",
+        "repeatClearGold",
+        "firstClearDiamond",
+        "repeatClearDiamond",
+        "nextNodeIds"
+      ]];
+      sortedNodes().forEach(node => {
+        normalizeNode(node);
+        const isBattleNode = isBattleNodeType(node.type);
+        const nextIds = state.edges
+          .filter(edge => edge.from === node.uid)
+          .map(edge => findNode(edge.to))
+          .filter(Boolean)
+          .sort((a, b) => a.nodeId.localeCompare(b.nodeId))
+          .map(nextNode => nextNode.nodeId)
+          .join("|");
+
+        rows.push([
+          stageId,
+          node.layer,
+          node.nodeId,
+          node.type,
+          isBattleNode ? node.mapStyle : "",
+          isBattleNode ? node.monsterId : "",
+          isBattleNode ? node.hpMultiplier : "",
+          isBattleNode ? node.weaknessDamageType : "",
+          isBattleNode ? node.weaknessAttackStyle : "",
+          isBattleNode ? node.firstClearGold : "",
+          isBattleNode ? node.repeatClearGold : "",
+          isBattleNode ? node.firstClearDiamond : "",
+          isBattleNode ? node.repeatClearDiamond : "",
+          nextIds
+        ]);
+      });
+
+      els.csvOutput.value = rows.map(row => row.map(csvCell).join(",")).join("\n");
+    }
+
+    function csvCell(value) {
+      const text = String(value ?? "");
+      if (/[",\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+      return text;
+    }
+
+    function renderAll() {
+      renderNodes();
+    }
+
+    function setStatus(message) {
+      els.status.textContent = message;
+      window.clearTimeout(setStatus.timer);
+      setStatus.timer = window.setTimeout(() => {
+        els.status.textContent = "";
+      }, 2600);
+    }
+
+    function resetNodeIds() {
+      sortedNodes().forEach((node, index) => {
+        node.nodeId = String(index + 1).padStart(3, "0");
+      });
+      renderAll();
+      setStatus("노드 ID를 정렬했습니다.");
+    }
+
+    function clearStage() {
+      if (!window.confirm("모든 노드와 연결을 삭제할까요?")) {
+        return;
+      }
+      state.nodes = [];
+      state.edges = [];
+      state.selectedUid = null;
+      state.connectSourceUid = null;
+      renderAll();
+      setStatus("전체 삭제했습니다.");
+    }
+
+    async function copyCsv() {
+      try {
+        await navigator.clipboard.writeText(els.csvOutput.value);
+        setStatus("CSV를 클립보드에 복사했습니다.");
+      } catch {
+        els.csvOutput.select();
+        document.execCommand("copy");
+        setStatus("CSV를 선택 영역으로 복사했습니다.");
+      }
+    }
+
+    function downloadCsv() {
+      const stageId = padNodeId(els.stageId.value);
+      const blob = new Blob(["\ufeff" + els.csvOutput.value], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `TXT_NodeStageData_${stageId || "001"}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("CSV를 다운로드했습니다.");
+    }
+
+    function saveJson() {
+      const payload = JSON.stringify({
+        stageId: els.stageId.value,
+        layerCount: els.layerCount.value,
+        nodes: state.nodes,
+        edges: state.edges,
+        uidSeed: state.uidSeed
+      });
+      localStorage.setItem("ghost-node-stage-editor", payload);
+      setStatus("브라우저에 작업을 저장했습니다.");
+    }
+
+    function loadJson() {
+      const payload = localStorage.getItem("ghost-node-stage-editor");
+      if (!payload) {
+        setStatus("저장된 작업이 없습니다.");
+        return;
+      }
+
+      const data = JSON.parse(payload);
+      els.stageId.value = data.stageId || "1";
+      els.layerCount.value = data.layerCount || "10";
+      state.nodes = Array.isArray(data.nodes) ? data.nodes : [];
+      state.edges = Array.isArray(data.edges) ? data.edges : [];
+      state.uidSeed = Number(data.uidSeed) || state.nodes.length + 1;
+      state.selectedUid = null;
+      state.connectSourceUid = null;
+      renderLayers();
+      setStatus("저장된 작업을 불러왔습니다.");
+    }
+
+    function bindNodeInput(input, key, parser = value => value) {
+      input.addEventListener("input", () => {
+        const node = findNode(state.selectedUid);
+        if (!node) {
+          return;
+        }
+
+        node[key] = parser(input.value);
+        updateCsv();
+      });
+    }
+
+    function bindNodeSelect(select, key) {
+      select.addEventListener("change", () => {
+        const node = findNode(state.selectedUid);
+        if (!node) {
+          return;
+        }
+
+        node[key] = select.value;
+        updateCsv();
+      });
+    }
+
+    els.stageId.addEventListener("input", updateCsv);
+    els.layerCount.addEventListener("change", renderLayers);
+    els.board.addEventListener("click", () => {
+      state.selectedUid = null;
+      state.connectSourceUid = null;
+      renderAll();
+    });
+    els.connectMode.addEventListener("click", () => {
+      state.connectMode = !state.connectMode;
+      state.connectSourceUid = null;
+      els.connectMode.classList.toggle("active", state.connectMode);
+      setStatus(state.connectMode ? "연결 모드입니다." : "연결 모드를 껐습니다.");
+      renderAll();
+    });
+    els.nodeId.addEventListener("input", () => {
+      const node = findNode(state.selectedUid);
+      if (!node) {
+        return;
+      }
+      node.nodeId = padNodeId(els.nodeId.value);
+      renderAll();
+    });
+    els.nodeType.addEventListener("change", () => {
+      const node = findNode(state.selectedUid);
+      if (!node) {
+        return;
+      }
+      node.type = els.nodeType.value;
+      if (isBattleNodeType(node.type)) {
+        node.mapStyle = node.mapStyle || "Up_001";
+        node.hpMultiplier = node.hpMultiplier === "" ? 1 : node.hpMultiplier;
+        node.weaknessDamageType = node.weaknessDamageType || "None";
+        node.weaknessAttackStyle = node.weaknessAttackStyle || "None";
+      }
+      renderAll();
+    });
+    bindNodeSelect(els.mapStyle, "mapStyle");
+    bindNodeInput(els.monsterId, "monsterId", value => value.trim());
+    bindNodeInput(els.hpMultiplier, "hpMultiplier", value => toNumber(value, 1));
+    bindNodeSelect(els.weaknessDamageType, "weaknessDamageType");
+    bindNodeSelect(els.weaknessAttackStyle, "weaknessAttackStyle");
+    bindNodeInput(els.firstClearGold, "firstClearGold", value => Math.max(0, Math.round(toNumber(value, 0))));
+    bindNodeInput(els.repeatClearGold, "repeatClearGold", value => Math.max(0, Math.round(toNumber(value, 0))));
+    bindNodeInput(els.firstClearDiamond, "firstClearDiamond", value => Math.max(0, Math.round(toNumber(value, 0))));
+    bindNodeInput(els.repeatClearDiamond, "repeatClearDiamond", value => Math.max(0, Math.round(toNumber(value, 0))));
+    els.deleteNode.addEventListener("click", () => {
+      const uid = state.selectedUid;
+      state.nodes = state.nodes.filter(node => node.uid !== uid);
+      state.edges = state.edges.filter(edge => edge.from !== uid && edge.to !== uid);
+      state.selectedUid = null;
+      renderAll();
+      setStatus("노드를 삭제했습니다.");
+    });
+    els.resetIds.addEventListener("click", resetNodeIds);
+    els.clearStage.addEventListener("click", clearStage);
+    els.copyCsv.addEventListener("click", copyCsv);
+    els.downloadCsv.addEventListener("click", downloadCsv);
+    els.saveJson.addEventListener("click", saveJson);
+    els.loadJson.addEventListener("click", loadJson);
+    window.addEventListener("resize", renderConnections);
+
+    renderPalette();
+    renderInspectorSelects();
+    renderLayers();
+  </script>
+</body>
+</html>

@@ -214,6 +214,17 @@ MonoBehaviour:
   button: {fileID: 6182144640710447964}
   iconImage: {fileID: 8632310805743807305}
   nameText: {fileID: 7490537504888210340}
+  typeIcons:
+    normalIcon: {fileID: 21300000, guid: f5a26e0c29370ea4e8428910736ec019, type: 3}
+    hardIcon: {fileID: 21300000, guid: bf64df057408d8b478c1fed0ed99c067, type: 3}
+    cardShopIcon: {fileID: 21300000, guid: b4a76ac2897eea9458f562e15ec55136, type: 3}
+    merchantIcon: {fileID: 21300000, guid: ef824bf41f9e7b94992905e0f9f99b88, type: 3}
+    eventAIcon: {fileID: 21300000, guid: ecf1b333ae3ad644c84c73343b2c0fb5, type: 3}
+    eventBIcon: {fileID: 21300000, guid: ecf1b333ae3ad644c84c73343b2c0fb5, type: 3}
+    eventCIcon: {fileID: 21300000, guid: ecf1b333ae3ad644c84c73343b2c0fb5, type: 3}
+    bossIcon: {fileID: 21300000, guid: bef2db4f38b3bd2498a54d0458f43182, type: 3}
+  randomPositionX: 30
+  randomPositionY: 5
   clearedObject: {fileID: 0}
   currentObject: {fileID: 0}
   upBattleSceneName: SCN_Battle

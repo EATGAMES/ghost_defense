@@ -157,6 +157,7 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
         dropController.ResetToWaitingState(position);
         currentWaitingCharacter = dropController;
+        ConsumeExcludeLowGradeSpawnShot();
         PrepareNextDropGradePreview();
     }
 
@@ -236,6 +237,11 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
     private void PrepareNextDropGradePreview()
     {
+        if (preparedNextDropGrade.HasValue && !nextDropGradeOverride.HasValue)
+        {
+            return;
+        }
+
         int previousPreviewGrade = preparedNextDropGrade ?? 0;
         int nextPreviewGrade = nextDropGradeOverride ?? PickWeightedSpawnGrade();
         preparedNextDropGrade = Mathf.Clamp(nextPreviewGrade, 1, 10);
@@ -244,5 +250,15 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         {
             NextSpawnPreviewChanged?.Invoke();
         }
+    }
+
+    private void ConsumeExcludeLowGradeSpawnShot()
+    {
+        if (cardManager == null)
+        {
+            return;
+        }
+
+        cardManager.ConsumeExcludeLowGradeSpawnShot();
     }
 }

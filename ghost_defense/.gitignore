@@ -119,3 +119,6 @@ Thumbs.db
 # Android 서명 키스토어 (절대 커밋 금지)
 *.keystore
 *.jks
+
+# Node.js 의존성 폴더
+node_modules/

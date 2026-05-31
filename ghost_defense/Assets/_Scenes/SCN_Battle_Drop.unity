@@ -4131,6 +4131,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SC_StageMapImage
   stageMapSpriteRenderer: {fileID: 795720156}
   fallbackStageMapSprite: {fileID: 21300000, guid: 68fc3104b49f2624b8da006c088e3810, type: 3}
+  mapStyles: []
   battleManager: {fileID: 1688277399}
   bossSpawner: {fileID: 1688277400}
 --- !u!1 &801360525
@@ -8392,7 +8393,6 @@ GameObject:
   - component: {fileID: 1688277402}
   - component: {fileID: 1688277403}
   - component: {fileID: 1688277404}
-  - component: {fileID: 1688277405}
   - component: {fileID: 1688277406}
   m_Layer: 0
   m_Name: GameObject
@@ -8542,23 +8542,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SC_CardManager
   damageCalculator: {fileID: 1688277403}
   battleManager: {fileID: 1688277399}
---- !u!114 &1688277405
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1688277398}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc9c6611b5b451246b03de3ba39d9e66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SC_StageMapTypeActivator
-  battleManager: {fileID: 1688277399}
-  bossSpawner: {fileID: 1688277400}
-  mapType1Object: {fileID: 1434070775}
-  mapType2Object: {fileID: 1402882634}
-  mapType3Object: {fileID: 520816220}
 --- !u!114 &1688277406
 MonoBehaviour:
   m_ObjectHideFlags: 0
