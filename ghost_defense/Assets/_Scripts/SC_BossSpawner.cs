@@ -127,11 +127,6 @@ public class SC_BossSpawner : MonoBehaviour
 
     public SO_MonsterData GetMonsterDataForStage(int stage)
     {
-        if (SC_NodeRunContext.HasActiveNode)
-        {
-            return SC_NodeRunContext.CurrentMonsterData;
-        }
-
         if (stageMonsterDataList == null || stageMonsterDataList.Length <= 0)
         {
             return null;

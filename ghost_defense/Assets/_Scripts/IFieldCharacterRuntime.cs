@@ -14,5 +14,4 @@ public interface IFieldCharacterRuntime
 
     void CancelInputAndReset();
     void CancelInputAndSuppressUntilRelease();
-    void SetShrinkVisual(bool shouldShrink);
 }

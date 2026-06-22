@@ -8,9 +8,6 @@ public class SC_BattleUI : MonoBehaviour
     [Tooltip("상단 보스 스테이지를 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text stageText;
 
-    [Tooltip("카드 선택까지 남은 공격 횟수를 표시하는 TMP_Text입니다.")]
-    [SerializeField] private TMP_Text attackGaugeText;
-
     [Tooltip("현재 상단 공격 캐릭터 이름을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text currentAttackCharacterText;
 
@@ -37,13 +34,11 @@ public class SC_BattleUI : MonoBehaviour
         }
 
         battleManager.StageChanged += OnStageChanged;
-        battleManager.MergeAttackGaugeChanged += OnMergeAttackGaugeChanged;
         battleManager.CurrentAttackCharacterChanged += OnCurrentAttackCharacterChanged;
         battleManager.StageCleared += OnStageCleared;
         battleManager.StageFailed += OnStageFailed;
 
         OnStageChanged(SC_BattleManager.CurrentStage, battleManager.MaxStage);
-        OnMergeAttackGaugeChanged(battleManager.CurrentMergeAttackCount, battleManager.MergeAttackCountPerCard);
         OnCurrentAttackCharacterChanged(battleManager.CurrentAttackCharacterData, false);
     }
 
@@ -55,7 +50,6 @@ public class SC_BattleUI : MonoBehaviour
         }
 
         battleManager.StageChanged -= OnStageChanged;
-        battleManager.MergeAttackGaugeChanged -= OnMergeAttackGaugeChanged;
         battleManager.CurrentAttackCharacterChanged -= OnCurrentAttackCharacterChanged;
         battleManager.StageCleared -= OnStageCleared;
         battleManager.StageFailed -= OnStageFailed;
@@ -66,14 +60,6 @@ public class SC_BattleUI : MonoBehaviour
         if (stageText != null)
         {
             stageText.text = $"BOSS {currentStage}";
-        }
-    }
-
-    private void OnMergeAttackGaugeChanged(int currentCount, int requiredCount)
-    {
-        if (attackGaugeText != null)
-        {
-            attackGaugeText.text = $"{currentCount}/{Mathf.Max(1, requiredCount)}";
         }
     }
 
@@ -89,19 +75,10 @@ public class SC_BattleUI : MonoBehaviour
 
     private void OnStageCleared(int clearedStage)
     {
-        if (attackGaugeText != null)
-        {
-            attackGaugeText.text = "CLEAR";
-        }
     }
 
     private void OnStageFailed(int failedStage)
     {
-        if (attackGaugeText != null)
-        {
-            attackGaugeText.text = "FAIL";
-        }
-
         if (defeatPopup == null)
         {
             Debug.LogWarning("SC_BattleUI: Defeat Popup 인스펙터 연결이 비어 있습니다.", this);

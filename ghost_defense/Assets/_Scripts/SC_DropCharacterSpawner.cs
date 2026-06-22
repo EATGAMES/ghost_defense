@@ -1,10 +1,8 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
+public class SC_DropCharacterSpawner : MonoBehaviour
 {
-    public event System.Action NextSpawnPreviewChanged;
-
     [Tooltip("드래그해서 떨어뜨릴 드롭 캐릭터 프리팹입니다.")]
     [SerializeField] private GameObject dropCharacterPrefab;
 
@@ -35,26 +33,11 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
     [Tooltip("다음 대기 캐릭터를 다시 생성하기까지의 지연 시간(초)입니다.")]
     [SerializeField] private float respawnDelay = 0.4f;
 
-    [Tooltip("전투 중 카드 효과를 참조할 카드 매니저입니다.")]
-    [SerializeField] private SC_CardManager cardManager;
-
     private SC_DropCharacterController currentWaitingCharacter;
     private float respawnTimer;
     private bool isRespawnScheduled;
-    private int? nextDropGradeOverride;
-    private int? preparedNextDropGrade;
-
-    public StageBattleDirection BattleDirection => StageBattleDirection.DOWN;
-    public bool IsSpawnerActive => isActiveAndEnabled;
-
     private void Start()
     {
-        if (cardManager == null)
-        {
-            cardManager = FindAnyObjectByType<SC_CardManager>();
-        }
-
-        PrepareNextDropGradePreview();
         TrySpawnWaitingCharacter();
     }
 
@@ -90,30 +73,6 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         TrySpawnWaitingCharacter();
     }
 
-    public void QueueNextDropGrade(int grade)
-    {
-        nextDropGradeOverride = Mathf.Clamp(grade, 1, 10);
-        preparedNextDropGrade = null;
-        PrepareNextDropGradePreview();
-    }
-
-    public void QueueNextCharacterGrade(int grade)
-    {
-        QueueNextDropGrade(grade);
-    }
-
-    public int GetNextSpawnPreviewGrade()
-    {
-        PrepareNextDropGradePreview();
-        return Mathf.Clamp(preparedNextDropGrade ?? 1, 1, 10);
-    }
-
-    public void RefreshNextSpawnPreviewGrade()
-    {
-        preparedNextDropGrade = null;
-        PrepareNextDropGradePreview();
-    }
-
     private void ScheduleRespawn()
     {
         if (isRespawnScheduled)
@@ -133,8 +92,7 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
             return;
         }
 
-        int spawnGrade = ConsumePreparedDropGrade();
-        nextDropGradeOverride = null;
+        int spawnGrade = PickWeightedSpawnGrade();
 
         Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
         Quaternion rotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
@@ -157,7 +115,6 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
         dropController.ResetToWaitingState(position);
         currentWaitingCharacter = dropController;
-        PrepareNextDropGradePreview();
     }
 
     private void ApplyCharacterGrade(GameObject targetObject, int grade)
@@ -179,8 +136,7 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
     private int PickWeightedSpawnGrade()
     {
-        bool isExcludeLowGradeSpawnActive = cardManager != null && cardManager.IsExcludeLowGradeSpawnActive();
-        float grade1EffectiveWeight = isExcludeLowGradeSpawnActive ? 0f : Mathf.Max(0f, grade1Weight);
+        float grade1EffectiveWeight = Mathf.Max(0f, grade1Weight);
         float grade2EffectiveWeight = Mathf.Max(0f, grade2Weight);
         float grade3EffectiveWeight = Mathf.Max(0f, grade3Weight);
         float grade4EffectiveWeight = Mathf.Max(0f, grade4Weight);
@@ -195,7 +151,7 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
         if (totalWeight <= 0f)
         {
-            return isExcludeLowGradeSpawnActive ? 2 : 1;
+            return 1;
         }
 
         float roll = Random.Range(0f, totalWeight);
@@ -226,23 +182,4 @@ public class SC_DropCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         return 5;
     }
 
-    private int ConsumePreparedDropGrade()
-    {
-        PrepareNextDropGradePreview();
-        int spawnGrade = Mathf.Clamp(preparedNextDropGrade ?? 1, 1, 10);
-        preparedNextDropGrade = null;
-        return spawnGrade;
-    }
-
-    private void PrepareNextDropGradePreview()
-    {
-        int previousPreviewGrade = preparedNextDropGrade ?? 0;
-        int nextPreviewGrade = nextDropGradeOverride ?? PickWeightedSpawnGrade();
-        preparedNextDropGrade = Mathf.Clamp(nextPreviewGrade, 1, 10);
-
-        if (previousPreviewGrade != preparedNextDropGrade.Value)
-        {
-            NextSpawnPreviewChanged?.Invoke();
-        }
-    }
 }

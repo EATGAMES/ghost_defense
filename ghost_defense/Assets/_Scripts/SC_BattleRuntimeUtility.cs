@@ -20,13 +20,8 @@ public static class SC_BattleRuntimeUtility
         CancelFallbackDropCharacters();
     }
 
-    public static bool IsBattleInputBlocked(SC_BattleManager battleManager, SC_FinalMergePopup finalMergePopup, SC_ClearPopup clearPopup)
+    public static bool IsBattleInputBlocked(SC_FinalMergePopup finalMergePopup, SC_ClearPopup clearPopup)
     {
-        if (battleManager != null && battleManager.IsCardSelectionOpen)
-        {
-            return true;
-        }
-
         if (finalMergePopup != null && finalMergePopup.IsPopupOpen)
         {
             return true;

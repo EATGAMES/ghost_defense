@@ -10,7 +10,7 @@ public class SC_SimpleLoadSceneButton : MonoBehaviour
     [SerializeField] private Button button;
 
     [Tooltip("버튼 클릭 시 이동할 씬 이름입니다.")]
-    [SerializeField] private string targetSceneName = "SCN_Node";
+    [SerializeField] private string targetSceneName = "SCN_Battle";
 
     private bool isListenerRegistered;
 

@@ -113,11 +113,6 @@ public class SC_DropCharacterMergeController : MonoBehaviour
             return false;
         }
 
-        if (myDrop.HasCollisionEraseRemaining || otherDrop.HasCollisionEraseRemaining)
-        {
-            return false;
-        }
-
         if (!SC_BattleMergeService.TryCalculateNextGrade(presenter, otherMerge.presenter, out int nextGrade))
         {
             return false;

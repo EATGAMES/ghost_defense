@@ -11,13 +11,6 @@ public class SaveIntEntry
 }
 
 [Serializable]
-public class SaveStringIntEntry
-{
-    public string Key;
-    public int Value;
-}
-
-[Serializable]
 public class SaveStringBoolEntry
 {
     public string Key;
@@ -46,14 +39,10 @@ public class SC_GameSaveData
     public int SelectedStage = 1;
     public List<SaveIntEntry> StageClearEntries = new List<SaveIntEntry>();
     public List<SaveIntEntry> StageGrade10CreatedEntries = new List<SaveIntEntry>();
-    public List<SaveStringBoolEntry> NodeClearEntries = new List<SaveStringBoolEntry>();
-    public List<SaveStringBoolEntry> NodeUnlockEntries = new List<SaveStringBoolEntry>();
     public List<SaveIntEntry> GradeSpawnCountEntries = new List<SaveIntEntry>();
     public int[] RosterOrder = Array.Empty<int>();
     public List<SaveCharacterUpgradeEntry> CharacterUpgradeEntries = new List<SaveCharacterUpgradeEntry>();
     public List<SaveStringBoolEntry> CharacterUseEntries = new List<SaveStringBoolEntry>();
-    public List<SaveStringIntEntry> CardUseCountEntries = new List<SaveStringIntEntry>();
-    public List<SaveStringIntEntry> CardLevelEntries = new List<SaveStringIntEntry>();
     public bool HasVipMembership;
     public int TotalAdViewCount;
 }
@@ -223,45 +212,6 @@ public class SC_SaveDataManager : MonoBehaviour
         SaveIfNeeded();
     }
 
-    public void EnsureNodeGraphStarted(int stageId, string[] startNodeIds)
-    {
-        int safeStageId = Mathf.Max(1, stageId);
-        if (HasAnyNodeGraphState(safeStageId))
-        {
-            return;
-        }
-
-        SetUnlockedNodeIds(safeStageId, startNodeIds);
-        SaveIfNeeded();
-    }
-
-    public bool IsNodeCleared(int stageId, string nodeId)
-    {
-        string key = BuildNodeStateKey(stageId, nodeId);
-        return !string.IsNullOrWhiteSpace(key) && TryGetStringBoolEntryValue(saveData.NodeClearEntries, key, out bool value) && value;
-    }
-
-    public bool IsNodeUnlocked(int stageId, string nodeId)
-    {
-        string key = BuildNodeStateKey(stageId, nodeId);
-        return !string.IsNullOrWhiteSpace(key) && TryGetStringBoolEntryValue(saveData.NodeUnlockEntries, key, out bool value) && value;
-    }
-
-    public void CompleteNode(int stageId, string nodeId, string[] nextNodeIds)
-    {
-        string clearedKey = BuildNodeStateKey(stageId, nodeId);
-        if (string.IsNullOrWhiteSpace(clearedKey))
-        {
-            return;
-        }
-
-        int safeStageId = Mathf.Max(1, stageId);
-        SetStringBoolEntryValue(saveData.NodeClearEntries, clearedKey, true);
-        ClearUnlockedNodeIds(safeStageId);
-        SetUnlockedNodeIds(safeStageId, nextNodeIds);
-        SaveIfNeeded();
-    }
-
     public int GetGradeSpawnCount(int grade)
     {
         return Mathf.Max(0, GetIntEntryValue(saveData.GradeSpawnCountEntries, grade));
@@ -388,39 +338,6 @@ public class SC_SaveDataManager : MonoBehaviour
         SaveIfNeeded();
     }
 
-    public int GetCardUseCount(string cardId)
-    {
-        return Mathf.Max(0, GetStringIntEntryValue(saveData.CardUseCountEntries, cardId));
-    }
-
-    public void AddCardUseCount(string cardId, int amount = 1)
-    {
-        if (string.IsNullOrWhiteSpace(cardId) || amount <= 0)
-        {
-            return;
-        }
-
-        int currentValue = GetStringIntEntryValue(saveData.CardUseCountEntries, cardId);
-        SetStringIntEntryValue(saveData.CardUseCountEntries, cardId, currentValue + amount);
-        SaveIfNeeded();
-    }
-
-    public int GetCardLevel(string cardId)
-    {
-        return Mathf.Max(0, GetStringIntEntryValue(saveData.CardLevelEntries, cardId));
-    }
-
-    public void SetCardLevel(string cardId, int level)
-    {
-        if (string.IsNullOrWhiteSpace(cardId))
-        {
-            return;
-        }
-
-        SetStringIntEntryValue(saveData.CardLevelEntries, cardId, Mathf.Max(0, level));
-        SaveIfNeeded();
-    }
-
     public void SetVipMembership(bool hasVipMembership)
     {
         saveData.HasVipMembership = hasVipMembership;
@@ -461,8 +378,6 @@ public class SC_SaveDataManager : MonoBehaviour
         builder.AppendLine("[Stage]");
         AppendIntEntryList(builder, "Cleared Stages", saveData.StageClearEntries);
         AppendIntEntryList(builder, "Grade10 Created", saveData.StageGrade10CreatedEntries);
-        AppendStringBoolEntryList(builder, "Cleared Nodes", saveData.NodeClearEntries);
-        AppendStringBoolEntryList(builder, "Unlocked Nodes", saveData.NodeUnlockEntries);
         builder.AppendLine();
 
         builder.AppendLine("[Grade Spawn Count]");
@@ -479,11 +394,6 @@ public class SC_SaveDataManager : MonoBehaviour
 
         builder.AppendLine("[Character Use]");
         AppendStringBoolEntryList(builder, "Use States", saveData.CharacterUseEntries);
-        builder.AppendLine();
-
-        builder.AppendLine("[Card]");
-        AppendStringIntEntryList(builder, "Use Counts", saveData.CardUseCountEntries);
-        AppendStringIntEntryList(builder, "Levels", saveData.CardLevelEntries);
         builder.AppendLine();
 
         builder.AppendLine("[Account]");
@@ -521,14 +431,10 @@ public class SC_SaveDataManager : MonoBehaviour
 
         saveData.StageClearEntries ??= new List<SaveIntEntry>();
         saveData.StageGrade10CreatedEntries ??= new List<SaveIntEntry>();
-        saveData.NodeClearEntries ??= new List<SaveStringBoolEntry>();
-        saveData.NodeUnlockEntries ??= new List<SaveStringBoolEntry>();
         saveData.GradeSpawnCountEntries ??= new List<SaveIntEntry>();
         saveData.RosterOrder ??= Array.Empty<int>();
         saveData.CharacterUpgradeEntries ??= new List<SaveCharacterUpgradeEntry>();
         saveData.CharacterUseEntries ??= new List<SaveStringBoolEntry>();
-        saveData.CardUseCountEntries ??= new List<SaveStringIntEntry>();
-        saveData.CardLevelEntries ??= new List<SaveStringIntEntry>();
     }
 
     private static int[] CreateDefaultOrder(int slotCount)
@@ -568,111 +474,6 @@ public class SC_SaveDataManager : MonoBehaviour
         }
 
         entries.Add(new SaveIntEntry
-        {
-            Key = key,
-            Value = value
-        });
-    }
-
-    private bool HasAnyNodeGraphState(int stageId)
-    {
-        string prefix = $"{Mathf.Max(1, stageId)}:";
-        return HasAnyNodeStateWithPrefix(saveData.NodeClearEntries, prefix)
-            || HasAnyNodeStateWithPrefix(saveData.NodeUnlockEntries, prefix);
-    }
-
-    private static bool HasAnyNodeStateWithPrefix(List<SaveStringBoolEntry> entries, string prefix)
-    {
-        if (entries == null || string.IsNullOrWhiteSpace(prefix))
-        {
-            return false;
-        }
-
-        for (int i = 0; i < entries.Count; i++)
-        {
-            SaveStringBoolEntry entry = entries[i];
-            if (entry != null && entry.Key != null && entry.Key.StartsWith(prefix, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void ClearUnlockedNodeIds(int stageId)
-    {
-        string prefix = $"{Mathf.Max(1, stageId)}:";
-        if (saveData.NodeUnlockEntries == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < saveData.NodeUnlockEntries.Count; i++)
-        {
-            SaveStringBoolEntry entry = saveData.NodeUnlockEntries[i];
-            if (entry != null && entry.Key != null && entry.Key.StartsWith(prefix, StringComparison.Ordinal))
-            {
-                entry.Value = false;
-            }
-        }
-    }
-
-    private void SetUnlockedNodeIds(int stageId, string[] nodeIds)
-    {
-        if (nodeIds == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < nodeIds.Length; i++)
-        {
-            string key = BuildNodeStateKey(stageId, nodeIds[i]);
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                continue;
-            }
-
-            SetStringBoolEntryValue(saveData.NodeUnlockEntries, key, true);
-        }
-    }
-
-    private static string BuildNodeStateKey(int stageId, string nodeId)
-    {
-        if (string.IsNullOrWhiteSpace(nodeId))
-        {
-            return string.Empty;
-        }
-
-        return $"{Mathf.Max(1, stageId)}:{nodeId.Trim()}";
-    }
-
-    private static int GetStringIntEntryValue(List<SaveStringIntEntry> entries, string key)
-    {
-        if (entries == null || string.IsNullOrWhiteSpace(key))
-        {
-            return 0;
-        }
-
-        SaveStringIntEntry targetEntry = entries.Find(entry => entry.Key == key);
-        return targetEntry != null ? targetEntry.Value : 0;
-    }
-
-    private static void SetStringIntEntryValue(List<SaveStringIntEntry> entries, string key, int value)
-    {
-        if (entries == null || string.IsNullOrWhiteSpace(key))
-        {
-            return;
-        }
-
-        SaveStringIntEntry targetEntry = entries.Find(entry => entry.Key == key);
-        if (targetEntry != null)
-        {
-            targetEntry.Value = value;
-            return;
-        }
-
-        entries.Add(new SaveStringIntEntry
         {
             Key = key,
             Value = value
@@ -747,45 +548,6 @@ public class SC_SaveDataManager : MonoBehaviour
         {
             SaveIntEntry entry = entries[i];
             if (entry == null)
-            {
-                continue;
-            }
-
-            if (hasValue)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(entry.Key);
-            builder.Append('=');
-            builder.Append(entry.Value);
-            hasValue = true;
-        }
-
-        if (!hasValue)
-        {
-            builder.Append('-');
-        }
-
-        builder.AppendLine();
-    }
-
-    private static void AppendStringIntEntryList(StringBuilder builder, string label, List<SaveStringIntEntry> entries)
-    {
-        builder.Append(label);
-        builder.Append(": ");
-
-        if (entries == null || entries.Count <= 0)
-        {
-            builder.AppendLine("-");
-            return;
-        }
-
-        bool hasValue = false;
-        for (int i = 0; i < entries.Count; i++)
-        {
-            SaveStringIntEntry entry = entries[i];
-            if (entry == null || string.IsNullOrWhiteSpace(entry.Key))
             {
                 continue;
             }

@@ -108,7 +108,6 @@ public class SC_DefeatPopup : MonoBehaviour
         RestoreGameState();
 
         string targetSceneName = lobbySceneName;
-        SC_NodeRunContext.Clear();
 
         if (!string.IsNullOrWhiteSpace(targetSceneName))
         {

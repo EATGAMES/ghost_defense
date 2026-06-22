@@ -5,8 +5,6 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
 {
-    private const float ShrinkShotScaleMultiplier = 0.75f;
-    private const float PoweredDropSpeedBonus = 8f;
     private const string DragArrowRightRootName = "OBJ_DragArrow_Right";
     private const string DragArrowLeftRootName = "OBJ_DragArrow_Left";
     private static bool hasAnyDragGuideBeenViewed;
@@ -72,19 +70,13 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
     private float zDepthFromCamera;
     private Vector3 waitingPosition;
     private Vector3 guideOriginalLocalScale = Vector3.one;
-    private Vector3 defaultCharacterScale = Vector3.one;
     private Vector2 dropVelocity;
     private float defaultGravityScale;
-    private bool isShrinkShotVisualApplied;
-    private SC_CardManager cardManager;
-    private SC_BattleManager battleManager;
     private SC_FinalMergePopup finalMergePopup;
     private SC_ClearPopup clearPopup;
-    private int remainingCollisionEraseCount;
 
     public bool IsDropped => isDropped;
     public bool IsActiveDrop => isDropped && gameObject.activeInHierarchy;
-    public bool HasCollisionEraseRemaining => remainingCollisionEraseCount > 0;
     public Vector2 CurrentVelocity => cachedRigidbody2D != null ? cachedRigidbody2D.linearVelocity : dropVelocity;
     public StageBattleDirection BattleDirection => StageBattleDirection.DOWN;
     public GameObject RuntimeObject => gameObject;
@@ -108,9 +100,7 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
         EnsureReferences();
         EnsureGuideReferences();
         EnsureDragArrowReferences();
-        EnsureCardManagerReference();
         ResolvePopupReferences();
-        defaultCharacterScale = transform.localScale;
         if (cachedRigidbody2D != null)
         {
             defaultGravityScale = Mathf.Max(0f, cachedRigidbody2D.gravityScale);
@@ -177,14 +167,11 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
         EnsureReferences();
         EnsureGuideReferences();
         EnsureDragArrowReferences();
-        EnsureCardManagerReference();
-
         isDragging = false;
         isDropped = false;
         wasMousePressed = false;
         wasTouchPressed = false;
         suppressDragUntilPointerReleased = false;
-        remainingCollisionEraseCount = 0;
         waitingPosition = startPosition;
         SetGuideVisible(false);
         RefreshDragArrowVisibility();
@@ -195,7 +182,6 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
         }
 
         transform.position = waitingPosition;
-        SetShrinkShotVisual(cardManager != null && cardManager.IsShrinkShotActive());
         if (cachedRigidbody2D != null)
         {
             if (cachedRigidbody2D.gravityScale > 0f)
@@ -214,11 +200,6 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
     public void SetDropActive(bool isActive)
     {
         isDropped = isActive;
-        if (!isActive)
-        {
-            remainingCollisionEraseCount = 0;
-        }
-
         if (cachedRigidbody2D != null)
         {
             if (isActive)
@@ -426,7 +407,6 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
         }
 
         isDropped = true;
-        remainingCollisionEraseCount = cardManager != null ? cardManager.ConsumeCollisionEraseCount() : 0;
         ApplyCollisionState();
         SC_ComboManager.NotifyShotStartedGlobal();
 
@@ -436,38 +416,6 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
             cachedRigidbody2D.linearVelocity = GetFinalDropVelocity();
         }
 
-        if (cardManager != null && cardManager.IsShrinkShotActive())
-        {
-            cardManager.ConsumeShrinkShot();
-        }
-
-        if (cardManager != null && cardManager.IsAttackQueueSpeedBonusActive())
-        {
-            cardManager.ConsumeAttackQueueSpeedBonusShot();
-        }
-    }
-
-    public void SetShrinkShotVisual(bool shouldShrink)
-    {
-        if (shouldShrink)
-        {
-            if (!isShrinkShotVisualApplied)
-            {
-                defaultCharacterScale = transform.localScale;
-            }
-
-            transform.localScale = defaultCharacterScale * ShrinkShotScaleMultiplier;
-            isShrinkShotVisualApplied = true;
-            return;
-        }
-
-        if (!isShrinkShotVisualApplied)
-        {
-            return;
-        }
-
-        transform.localScale = defaultCharacterScale;
-        isShrinkShotVisualApplied = false;
     }
 
     public void CancelInputAndReset()
@@ -492,21 +440,6 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
     public void CancelInputAndSuppressUntilRelease()
     {
         CancelDragAndSuppressUntilRelease();
-    }
-
-    public void SetShrinkVisual(bool shouldShrink)
-    {
-        SetShrinkShotVisual(shouldShrink);
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (!isDropped || collision == null)
-        {
-            return;
-        }
-
-        TryEraseCollidedCharacter(collision.collider);
     }
 
     private void CancelDragAndResetToWaitingPosition(bool resetEvenWhenNotDragging)
@@ -547,59 +480,7 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
 
     private Vector2 GetFinalDropVelocity()
     {
-        Vector2 baseVelocity = dropVelocity.sqrMagnitude > 0f ? dropVelocity : Vector2.down * Mathf.Max(0f, dropSpeed);
-        float poweredDropBonus = cardManager != null && cardManager.IsAttackQueueSpeedBonusActive()
-            ? PoweredDropSpeedBonus
-            : 0f;
-
-        if (baseVelocity.sqrMagnitude <= Mathf.Epsilon)
-        {
-            return Vector2.down * poweredDropBonus;
-        }
-
-        return baseVelocity.normalized * Mathf.Max(0f, baseVelocity.magnitude + poweredDropBonus);
-    }
-
-    private bool TryEraseCollidedCharacter(Collider2D otherCollider)
-    {
-        if (remainingCollisionEraseCount <= 0 || otherCollider == null)
-        {
-            return false;
-        }
-
-        SC_DropCharacterController targetDropController = otherCollider.GetComponentInParent<SC_DropCharacterController>();
-        if (targetDropController != null && targetDropController != this)
-        {
-            EraseCharacter(targetDropController.gameObject);
-            remainingCollisionEraseCount--;
-            return true;
-        }
-
-        SC_CharacterPresenter targetPresenter = otherCollider.GetComponentInParent<SC_CharacterPresenter>();
-        if (targetPresenter == null || targetPresenter.gameObject == gameObject)
-        {
-            return false;
-        }
-
-        EraseCharacter(targetPresenter.gameObject);
-        remainingCollisionEraseCount--;
-        return true;
-    }
-
-    private static void EraseCharacter(GameObject targetObject)
-    {
-        if (targetObject == null)
-        {
-            return;
-        }
-
-        IFieldCharacterRuntime runtime = targetObject.GetComponent<IFieldCharacterRuntime>();
-        if (runtime != null && runtime.IsWaiting)
-        {
-            runtime.CancelInputAndReset();
-        }
-
-        Destroy(targetObject);
+        return dropVelocity.sqrMagnitude > 0f ? dropVelocity : Vector2.down * Mathf.Max(0f, dropSpeed);
     }
 
     private void HandleDragStarted()
@@ -730,28 +611,15 @@ public class SC_DropCharacterController : MonoBehaviour, IFieldCharacterRuntime
         }
     }
 
-    private void EnsureCardManagerReference()
-    {
-        if (cardManager == null)
-        {
-            cardManager = FindAnyObjectByType<SC_CardManager>();
-        }
-    }
-
     private bool IsInputBlockedByPopup()
     {
         ResolvePopupReferences();
 
-        return SC_BattleRuntimeUtility.IsBattleInputBlocked(battleManager, finalMergePopup, clearPopup);
+        return SC_BattleRuntimeUtility.IsBattleInputBlocked(finalMergePopup, clearPopup);
     }
 
     private void ResolvePopupReferences()
     {
-        if (battleManager == null)
-        {
-            battleManager = FindAnyObjectByType<SC_BattleManager>();
-        }
-
         if (finalMergePopup == null)
         {
             finalMergePopup = FindAnyObjectByType<SC_FinalMergePopup>();

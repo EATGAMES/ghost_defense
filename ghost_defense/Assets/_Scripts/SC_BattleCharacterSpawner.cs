@@ -1,10 +1,8 @@
 ﻿using UnityEngine;
 
 [DisallowMultipleComponent]
-public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
+public class SC_BattleCharacterSpawner : MonoBehaviour
 {
-    public event System.Action NextSpawnPreviewChanged;
-
     [Tooltip("하단에서 발사할 캐릭터 오브젝트를 생성할 프리팹입니다.")]
     [SerializeField] private GameObject characterPrefab;
 
@@ -35,33 +33,16 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
     [Tooltip("다음 대기 캐릭터를 다시 생성하기까지의 지연 시간(초)입니다.")]
     [SerializeField] private float respawnDelay = 0.1f;
 
-    [Tooltip("전투 중 카드 효과를 참조할 카드 매니저입니다.")]
-    [SerializeField] private SC_CardManager cardManager;
-
     private SC_PlayerDragAndShoot currentWaitingCharacter;
     private float respawnTimer;
     private bool isRespawnScheduled;
-    private int? nextSpawnGradeOverride;
-    private int? preparedNextSpawnGrade;
-
-    public StageBattleDirection BattleDirection => StageBattleDirection.UP;
-    public bool IsSpawnerActive => isActiveAndEnabled;
-
     private void Start()
     {
-        if (cardManager == null)
-        {
-            cardManager = FindAnyObjectByType<SC_CardManager>();
-        }
-
-        PrepareNextSpawnGradePreview();
         TrySpawnWaitingCharacter();
     }
 
     private void Update()
     {
-        EnforceExcludeLowGradeSpawnEffect();
-
         // 대기 캐릭터가 발사됐거나 합체/삭제로 사라졌다면 다음 스폰을 예약한다.
         if (currentWaitingCharacter == null)
         {
@@ -93,30 +74,6 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         TrySpawnWaitingCharacter();
     }
 
-    public void QueueNextSpawnGrade(int grade)
-    {
-        nextSpawnGradeOverride = Mathf.Clamp(grade, 1, 10);
-        preparedNextSpawnGrade = null;
-        PrepareNextSpawnGradePreview();
-    }
-
-    public void QueueNextCharacterGrade(int grade)
-    {
-        QueueNextSpawnGrade(grade);
-    }
-
-    public int GetNextSpawnPreviewGrade()
-    {
-        PrepareNextSpawnGradePreview();
-        return Mathf.Clamp(preparedNextSpawnGrade ?? 1, 1, 10);
-    }
-
-    public void RefreshNextSpawnPreviewGrade()
-    {
-        preparedNextSpawnGrade = null;
-        PrepareNextSpawnGradePreview();
-    }
-
     private void ScheduleRespawn()
     {
         if (isRespawnScheduled)
@@ -136,8 +93,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
             return;
         }
 
-        int spawnGrade = ConsumePreparedSpawnGrade();
-        nextSpawnGradeOverride = null;
+        int spawnGrade = PickWeightedSpawnGrade();
 
         Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
         Quaternion rotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
@@ -159,7 +115,6 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         }
 
         currentWaitingCharacter = shootComponent;
-        PrepareNextSpawnGradePreview();
     }
 
     private void ApplyMergeObjectData(GameObject mergeObject, int mergeGrade)
@@ -181,8 +136,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
     private int PickWeightedSpawnGrade()
     {
-        bool isExcludeLowGradeSpawnActive = cardManager != null && cardManager.IsExcludeLowGradeSpawnActive();
-        float grade1EffectiveWeight = isExcludeLowGradeSpawnActive ? 0f : Mathf.Max(0f, grade1Weight);
+        float grade1EffectiveWeight = Mathf.Max(0f, grade1Weight);
         float grade2EffectiveWeight = Mathf.Max(0f, grade2Weight);
         float grade3EffectiveWeight = Mathf.Max(0f, grade3Weight);
         float grade4EffectiveWeight = Mathf.Max(0f, grade4Weight);
@@ -197,7 +151,7 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
 
         if (totalWeight <= 0f)
         {
-            return isExcludeLowGradeSpawnActive ? 2 : 1;
+            return 1;
         }
 
         float roll = Random.Range(0f, totalWeight);
@@ -229,44 +183,4 @@ public class SC_BattleCharacterSpawner : MonoBehaviour, IBattleCharacterSpawner
         return 5;
     }
 
-    private int ConsumePreparedSpawnGrade()
-    {
-        PrepareNextSpawnGradePreview();
-        int spawnGrade = Mathf.Clamp(preparedNextSpawnGrade ?? 1, 1, 10);
-        preparedNextSpawnGrade = null;
-        return spawnGrade;
-    }
-
-    private void PrepareNextSpawnGradePreview()
-    {
-        int previousPreviewGrade = preparedNextSpawnGrade ?? 0;
-        int nextPreviewGrade = nextSpawnGradeOverride ?? PickWeightedSpawnGrade();
-        preparedNextSpawnGrade = Mathf.Clamp(nextPreviewGrade, 1, 10);
-
-        if (previousPreviewGrade != preparedNextSpawnGrade.Value)
-        {
-            NextSpawnPreviewChanged?.Invoke();
-        }
-    }
-
-    private void EnforceExcludeLowGradeSpawnEffect()
-    {
-        if (currentWaitingCharacter == null || cardManager == null || !cardManager.IsExcludeLowGradeSpawnActive())
-        {
-            return;
-        }
-
-        SC_CharacterPresenter presenter = currentWaitingCharacter.GetComponent<SC_CharacterPresenter>();
-        if (presenter == null || presenter.MergeGrade != 1)
-        {
-            return;
-        }
-
-        Destroy(currentWaitingCharacter.gameObject);
-        currentWaitingCharacter = null;
-        isRespawnScheduled = false;
-        preparedNextSpawnGrade = null;
-        PrepareNextSpawnGradePreview();
-        TrySpawnWaitingCharacter();
-    }
 }

@@ -21,9 +21,6 @@ public class SC_ClearPopup : MonoBehaviour
     [Tooltip("기본 골드 획득량을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text goldText;
 
-    [Tooltip("추가 골드 획득량을 표시하는 TMP_Text입니다.")]
-    [SerializeField] private TMP_Text goldBonusText;
-
     [Tooltip("기본 다이아 획득량을 표시하는 TMP_Text입니다.")]
     [SerializeField] private TMP_Text diamondText;
 
@@ -50,9 +47,6 @@ public class SC_ClearPopup : MonoBehaviour
 
     [Tooltip("닫기 시 이동할 로비 씬 이름입니다.")]
     [SerializeField] private string lobbySceneName = "SCN_Lobby";
-
-    [Tooltip("노드에서 입장한 전투를 닫을 때 돌아갈 노드 씬 이름입니다.")]
-    [SerializeField] private string nodeSceneName = SC_NodeRunContext.NodeSceneName;
 
     public bool IsPopupOpen => popupRoot != null && popupRoot.activeInHierarchy;
     private bool isExitConfirmMode;
@@ -145,7 +139,7 @@ public class SC_ClearPopup : MonoBehaviour
     public void OpenExitConfirmPopup()
     {
         isExitConfirmMode = true;
-        RefreshTexts(new SC_BattleManager.ClearRewardResult(0, 0, 0, 0, false));
+        RefreshTexts(new SC_BattleManager.ClearRewardResult(0, 0, 0, false));
         RefreshButtons(false);
         CancelAllPendingCharacterDrags();
         Time.timeScale = 0f;
@@ -176,12 +170,9 @@ public class SC_ClearPopup : MonoBehaviour
         Time.timeScale = 1f;
         isExitConfirmMode = false;
 
-        string targetSceneName = SC_NodeRunContext.HasActiveNode ? nodeSceneName : lobbySceneName;
-        SC_NodeRunContext.Clear();
-
-        if (!string.IsNullOrWhiteSpace(targetSceneName))
+        if (!string.IsNullOrWhiteSpace(lobbySceneName))
         {
-            SceneManager.LoadScene(targetSceneName);
+            SceneManager.LoadScene(lobbySceneName);
         }
     }
 
@@ -190,12 +181,6 @@ public class SC_ClearPopup : MonoBehaviour
         if (goldText != null)
         {
             goldText.text = rewardResult.BaseGold.ToString("N0");
-        }
-
-        if (goldBonusText != null)
-        {
-            goldBonusText.text = FormatBonusText(rewardResult.BonusGold);
-            goldBonusText.gameObject.SetActive(rewardResult.BonusGold > 0);
         }
 
         if (diamondText != null)

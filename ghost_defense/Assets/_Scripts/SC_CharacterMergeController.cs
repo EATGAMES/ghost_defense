@@ -149,11 +149,6 @@ public class SC_CharacterMergeController : MonoBehaviour
             return false;
         }
 
-        if (myShoot.HasCollisionEraseRemaining || otherShoot.HasCollisionEraseRemaining)
-        {
-            return false;
-        }
-
         if (!SC_BattleMergeService.TryCalculateNextGrade(presenter, otherMerge.presenter, out int nextGrade))
         {
             return false;
